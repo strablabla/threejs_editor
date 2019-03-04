@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+
+		<title>Moving the walls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+
+				}
+
+     /*
+     Navigation bar..
+		 */
+
+		.navig {
+			font-family: 'Playfair Display';
+			font-size: 0.85em;
+			letter-spacing: 0.2em;
+			position: absolute;
+			top: 0px;
+			left:0px;
+			margin-left:0px;
+			padding-left: 0px;
+			padding-top: 20px;
+			width: 100%;
+			height: 50px;
+			background-color:#fff0b3;
+			z-index: 10000;
+			opacity: 1;
+		}
+
+		.menu {
+
+			font-family: 'Playfair Display';
+			font-size: 1.6em;
+			letter-spacing: 0.2em;
+			position: absolute;
+			top: 10px;
+			z-index: 10010;
+			opacity: 1;
+
+		}
+
+		/*
+		Panel object
+		*/
+
+		.panel {
+			font-family: 'Playfair Display';
+			font-size: 0.85em;
+			letter-spacing: 0.2em;
+			position: absolute;
+			top: 50px;
+			left:10px;
+			margin-left:5px;
+			padding-left: 10px;
+			padding-top: 20px;
+			width: 200px;
+			height: 200px;
+			background-color:grey;
+			z-index: 9999;
+			opacity: 0.8;
+			visibility: hidden;
+		}
+
+		.titlepanel {
+			font-family: 'Playfair Display';
+			font-size: 1.5em;
+			letter-spacing: 0.1em;
+			text-align: center;
+
+		}
+
+		/*
+		Panel menu
+		*/
+		.panel_menu1 {
+			font-family: 'Playfair Display';
+			font-size: 0.85em;
+			letter-spacing: 0.2em;
+			position: absolute;
+			top: 50px;
+			left:200px;
+			margin-left:5px;
+			padding-left: 10px;
+			padding-top: 20px;
+			width: 200px;
+			height: 200px;
+			background-color:grey;
+			z-index: 9999;
+			opacity: 0.8;
+		}
+
+
+		</style>
+	</head>
+	<body>
+
+		<!-- jquery -->
+		<script src="/static/js/js/jquery.min.js"></script>
+		<!-- jquery-ui -->
+		<script src="/static/js/jquery-ui.js"></script>
+		<!-- bootstrap -->
+		<script src="/static/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="/static/css/bootstrap.min.css">
+
+    <!-- socket.io -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+		<script src="/static/js/simple_flat/three.js"></script>
+		<script src="/static/js/simple_flat/TrackballControls.js"></script>
+		<script src="/static/js/simple_flat/stats.js"></script>
+		<script src="/static/js/object_museum.js"></script>
+		<script src="/static/js/make_objects.js"></script>
+		<script src="/static/js/drag_flat.js"></script>
+
+		<script>
+
+			var container, stats;
+			var camera, controls, scene, projector, renderer;
+			var objects = [], plane;
+
+			var mouse = new THREE.Vector2(),
+			offset = new THREE.Vector3(),
+			INTERSECTED, SELECTED;
+			namespace = '/pos'; // change to an empty string to use the global namespace
+      var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.z = 1000;
+				camera.position.y = -1000;
+				camera.position.x = 0;
+
+				controls = new THREE.TrackballControls( camera );
+				controls.rotateSpeed = 1.0;
+				controls.zoomSpeed = 1.2;
+				controls.panSpeed = 0.8;
+				controls.noZoom = false;
+				controls.noPan = false;
+				controls.staticMoving = true;
+				controls.dynamicDampingFactor = 0.3;
+
+				scene = new THREE.Scene();
+
+				scene.add( new THREE.AmbientLight( 0x505050 ) );
+
+				var light = new THREE.SpotLight( 0xffffff, 1.5 );
+				light.position.set( 200, 500, 2000 );
+				light.castShadow = true;
+
+				light.shadowCameraNear = 200;
+				light.shadowCameraFar = camera.far;
+				light.shadowCameraFov = 50;
+
+				light.shadowBias = -0.00022;
+				light.shadowDarkness = 0.5;
+
+				light.shadowMapWidth = 2048;
+				light.shadowMapHeight = 2048;
+
+				scene.add( light );
+
+				//make_objects_onflat()
+				make_uniform_ground()  // make the board
+				//make_small_seats()     // make the seats
+				//make_seat()            // make the seat
+				listwalls = {}
+				socket.emit( 'begin',  "hello from client"); // send mess to server for ping pong..
+				socket.on('server_pos', function(msg) {
+
+							// alert('Hello from socket.on !!! ')
+							// alert(Object.keys(msg))
+
+							// var listorig = {}
+							// for (i=0; i < Object.keys(msg).length; i++){ // Create the objects at the beginning
+							// 				var k = Object.keys(msg)[i]  // k is the objects name, wall, seat etc..
+							// 				//alert(k)
+							// 				//if (msg[k]['clone']['cloned'] == false){
+							// 					 listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], 0x800000)
+							// 					 try {
+							// 								 listorig[k]['numclone'] = msg[k]['clone']['numclone']
+							// 								 listorig[k]ject['cloned'] = msg[k]['clone']['cloned']
+							// 								 listorig[k]['origclone'] = msg[k]['clone']['origclone']
+							// 						}
+							// 						catch(error) {
+							// 						  		//console.error(error);
+							// 						}
+							// 				// } // if
+							// 		}
+
+							var listorig = {}
+
+
+
+							for (i=0; i < Object.keys(msg).length; i++){ // Create the objects at the beginning
+											var k = Object.keys(msg)[i]  // k is the objects name, wall, seat etc..
+											//alert(k)
+											//if (msg[k]['clone']['cloned'] == false){
+											// if (msg[k]['type'] == "wall"){
+											// 	 listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], 0x800000)
+											//  }
+
+											 make_wall(k, msg[k]['pos'], msg[k]['rot'], 0x800000)
+
+												 //listorig[k]['numclone'] = msg[k]['clone']['numclone']
+				 								 // listorig[k]['numclone'] = msg[k]['clone']['numclone']
+				 								 // listorig[k]ject['cloned'] = msg[k]['clone']['cloned']
+				 								 // listorig[k]['origclone'] = msg[k]['clone']['origclone']
+
+											//}
+									} // end for
+							//
+						  // // clone
+							//
+							// for (i=0; i < Object.keys(msg).length; i++){ // Create the objects at the beginning
+							// 				var k = Object.keys(msg)[i]  // k is the objects name, wall, seat etc..
+							// 				//alert(k)
+							// 				if (msg[k]['clone']['cloned'] == true){
+							//
+							// 							for (i in objects){
+							// 								 if (objects[i].name == msg[k]['clone']['origclone']){
+							//
+							// 												//make_wall(k, msg[k]['pos'], msg[k]['rot'], 0x800000)
+							// 												//object = listorig[msg[k]['clone']['origclone']].clone()
+							// 												object = objects[i].clone()
+							// 												object['name'] = k;
+							// 												object['position'] = msg[k]['pos']
+							// 												object['rotation'] = msg[k]['rot']
+							// 												//---------
+							// 												object['cloned'] = msg[k]['clone']['cloned']
+							// 												object['origclone'] = msg[k]['clone']['origclone']
+							// 												object['numclone'] = msg[k]['clone']['numclone']
+							// 												scene.add(object)
+							// 												objects.push(object)
+							// 												//console.log("length of objects is " + object.length)
+							// 								 }
+							// 							}
+							// 				} // end if clone
+							// 		} // end for for clone..
+
+					  });// end socket.on
+
+				init_drag()
+				// console.log('All initialized !!!! ');
+				//alert('All initialized !!!! ');
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.sortObjects = false;
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMapEnabled = true;
+				renderer.shadowMapType = THREE.PCFShadowMap;
+				renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+				renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+				//-------------------------- Menu
+
+
+
+				//-------------------------- Infos
+
+				function give_infos(){
+
+							if ( INTERSECTED ){
+
+										var x = document.getElementsByClassName("panel");
+										var i;
+										for (i = 0; i < x.length; i++) {
+											x[i].style.visibility = "visible";
+											x[i].style.backgroundColor = "grey";
+											x[i].style.left = event.pageX + "px";  // mouse x
+											x[i].style.top = event.pageY + "px";   // mouse y
+
+										}
+							}
+							else{
+
+								//$('#pan').css('color','red')
+								var x = document.getElementsByClassName("panel");
+								var i;
+								for (i = 0; i < x.length; i++) {
+											//x[i].style.backgroundColor = "red";
+											x[i].style.left = "10px";
+											x[i].style.top = "10px";
+											x[i].style.visibility = "hidden";
+								}
+
+							}
+						}
+				renderer.domElement.addEventListener( 'mouseup', give_infos, false );
+
+				//------------------------- rotation
+
+				var keyev = function(key, event){
+							return (event.keyCode == key.charCodeAt(0)-32 )
+						}
+
+				function keyDownTextField(event){
+						if(keyev('r', event)){    // Rotation
+									if ( INTERSECTED ){
+										INTERSECTED.rotation.z += -Math.PI/2;
+									}
+							} // end if key code
+							if(keyev('c', event)){    // Clone
+										if ( INTERSECTED ){
+											  clone = INTERSECTED.clone();
+												clone.name = INTERSECTED.name + "_" + INTERSECTED.numclone;
+												//-----------
+												INTERSECTED.numclone += 1;
+												//INTERSECTED.cloned = true;
+												clone.numclone = 0;
+												clone.cloned = true;
+												clone.origclone = INTERSECTED.name;
+												//-----------
+												clone.position.x += 100;
+												clone.material.color.setHex( 0xffffff );
+												scene.add(clone)
+												objects.push(clone)
+												// var newname = INTERSECTED.name + '_clone'; // 0x800000
+											  // make_wall(newname,
+												//     INTERSECTED.position,
+												// 	  INTERSECTED.rotation,0xffffff)
+												// for (i in objects){
+												// 			if (objects[i].name == newname){
+												// 					objects[i].material.color.setHex( 0xffffff );
+												// 			}
+												// 	}
+
+										}
+								} // end if key code
+								if(keyev('d', event)){    // Delete
+											if ( INTERSECTED ){
+													for (i in objects){
+																if (objects[i].name == INTERSECTED.name){
+																	  delete objects[i];
+																}
+														}
+													scene.remove( INTERSECTED )
+											}
+									} // end if key code
+					} // end keyDownTextField
+
+					document.addEventListener("keydown", keyDownTextField, false);
+
+				//------------------------- Emit the positions of all the objects..
+
+				function emitpos(){          // emits the positions toward the server to save them
+						var listpos = {}         // list of all the positions
+						for (i in objects){
+									var dicclone = {}
+									dicclone["numclone"] = objects[i].numclone // objects.length //
+									dicclone["cloned"] = objects[i].cloned
+									dicclone["origclone"] = objects[i].origclone
+									var infos_obj = {"pos": objects[i].position,
+									 								 "rot": objects[i].rotation,
+																	 "clone": dicclone
+																	 //"type": objects[i].type
+																  };
+									 // var infos_obj = {"pos": objects[i].position,
+									 // 				"rot": objects[i].rotation}
+									listpos[objects[i].name] = infos_obj;   // add position to listpos
+									}
+						socket.emit( 'message', JSON.stringify(listpos));
+						}
+				renderer.domElement.addEventListener( 'mouseup', emitpos, false );
+
+				//---------------------------
+
+				container.appendChild( renderer.domElement );
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function animate() {
+				requestAnimationFrame( animate );
+				render();
+			}
+
+			function render() {
+				controls.update();
+				renderer.render( scene, camera );
+			}
+
+		</script>
+
+    <div class="navig">
+				<div class="menu" style='left:70px'> Home </div>
+				<div class="menu" style='left:200px' id="menu" > Object </div>
+				<div class="menu" style='left: 90%'> Help</div>
+
+				<!-- onclick="showmenu()" -->
+
+		</div>
+
+		<div style="cursor: auto;">
+			<!-- <canvas style="width: 1007px; height: 804px;" height="804" width="1007"></canvas> -->
+
+			<div class="panel" id="pan" >
+
+						<div class="titlepanel" >
+									Parameters
+						</div>
+
+						<br><br>
+
+						<!-- <div>
+								  <input type="checkbox" id="rotate" name="rot">
+								  <label for="rotate">Rotation</label>
+						</div> -->
+
+						<!-- <div>
+									<input type="checkbox" id="infos" name="inf">
+									<label for="informatons">Show Infos</label>
+						</div> -->
+
+			</div>
+
+		</div>
+
+		<div class="panel_menu1" id="menu1" hidden>  </div>
+
+
+		</body>
+</html>

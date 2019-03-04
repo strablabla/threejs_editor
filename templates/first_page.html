@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+      <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+      <title>control car</title>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+    <!-- include bootstrap -->
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+<script>
+        var valx = 0
+        $(document).ready(function(){
+            namespace = '/mupy'; // change to an empty string to use the global namespace
+            var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+            socket.on('accel_data', function(msg) {
+                $('#log').html('<br>Received #' + msg.count + ': ' + msg.accel);
+                valx = msg.accel.split(',')[0]
+                $('#loglog').html('<br> ' + 'x=' + valx);
+            });// end socket.on
+        });
+</script>
+
+  </head>
+  <body>
+
+    <h2>Receive:</h2>
+    <div id="log"></div>
+
+    <div id="loglog"></div>
+
+
+  </body>
+</html>

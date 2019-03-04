@@ -1,0 +1,226 @@
+body {
+	font-family: Monospace;
+	background-color: #f0f0f0;
+	margin: 0px;
+	overflow: hidden;
+
+	}
+
+/*
+Navigation bar..
+*/
+
+.navig {
+	font-family: 'Playfair Display';
+	font-size: 0.75em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 0px;
+	left:0px;
+	margin-left:0px;
+	padding-left: 0px;
+	padding-top: 20px;
+	width: 100%;
+	height: 50px;
+	background-color:#fff0b3; /* yellow */
+	z-index: 1;
+	opacity: 1;
+}
+
+.menu {
+
+	font-family: 'Playfair Display';
+	font-size: 1.6em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 10px;
+	z-index: 10010;
+	opacity: 1;
+
+}
+
+/*
+Current selected function
+Indicate which key functon is currently activated..
+*/
+
+.current_func {
+
+	font-family: 'Playfair Display';
+	font-size: 1.2em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	text-align: center;
+	padding-top: 5px;
+	height : 40px;
+	width : 150px;
+	left:75%;
+	top: 5px;
+	z-index: 10010;
+	opacity: 0.4;
+	background-color:green;
+
+}
+
+/*
+Keys for interacting with the scene..
+*/
+
+#keys {
+
+	font-family: 'Playfair Display';
+	font-size: 1.2em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	text-align: center;
+	padding-top: 5px;
+	height : 40px;
+	width : 150px;
+	left:60%;
+	top: 5px;
+	z-index: 10010;
+	opacity: 0.4;
+	background-color:green;
+
+}
+
+/*
+Panel of all the keys used for interacting with the scene..
+*/
+
+.panel_keys {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	left:20%;
+	margin-left:5px;
+	padding-left: 5px;
+	padding-top: 20px;
+	width: 400px;
+	height: 400px;
+	background-color:#ccffe6; /* green */
+	z-index: 9999;
+	opacity: 1;
+	border-radius: 10px;
+	box-shadow: 10px 10px 12px;
+}
+
+/*
+Panel inside panel keys of color white
+*/
+
+.panel_keys_board {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	margin-left:50px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 300px;
+	height: 300px;
+	background-color:white; /* green */
+	z-index: 9999;
+	opacity: 1;
+	border-radius: 10px;
+}
+
+/*
+Panel objects
+*/
+
+.panel_objects {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	left:20%;
+	margin-left:5px;
+	padding-left: 5px;
+	padding-top: 20px;
+	width: 400px;
+	height: 400px;
+	background-color:#ccffe6; /* green */
+	z-index: 9999;
+	opacity: 1;
+	border-radius: 10px;
+	box-shadow: 10px 10px 12px;
+}
+
+/*
+Panel giving infos about the object. Open close to the object
+*/
+
+.panel {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	left:10px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 200px;
+	height: 200px;
+	background-color:white;
+	z-index: 9999;
+	opacity: 1;
+	visibility: hidden;
+	border-radius: 10px;
+	box-shadow: 10px 10px 12px;
+}
+
+.titlepanel {
+	font-family: 'Playfair Display';
+	font-size: 1.5em;
+	letter-spacing: 0.1em;
+	text-align: center;
+
+}
+
+/*
+Panel menu
+*/
+
+.panel_menu1 {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	left:200px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 200px;
+	height: 200px;
+	background-color:grey;
+	z-index: 9999;
+	opacity: 0.8;
+}
+
+/*
+Panel objects
+*/
+
+.panel_objects {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	right:10px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 400px;
+	height: 600px;
+	background-color:#fff; /*blue;*/
+	z-index: 9999;
+	opacity: 0.9;
+}

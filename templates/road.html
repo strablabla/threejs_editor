@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<!-- pointerlock_controls with json for defining shapes.  -->
+
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<title>On the road</title>
+
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<script src='/static/3d.json'></script>
+		<link rel="stylesheet" type="text/css" href="/static/css/gallerie.css">
+
+	</head>
+	<body>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/1.6.0/annyang.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+        <script type="text/javascript" src="/static/js/TrackballControls.js"></script>
+        <script type="text/javascript" src="/static/js/Detector.js"></script>
+        <script type="text/javascript" src="/static/js/dat.js"></script>
+        <script type="text/javascript" src="/static/js/point_locker.js"></script>
+		<script type="text/javascript" src="/static/js/landscape.js"></script>
+		<script type="text/javascript" src="/static/js/graphical_elems.js"></script>
+		<script type="text/javascript" src="/static/js/road_objects.js"></script>
+		<script type="text/javascript" src="/static/js/gamepad.js"></script>
+		<script type="text/javascript" src="/static/js/road_gamepad.js"></script>
+
+		<div id="blocker" style="display: -webkit-box;">
+
+			<div id="instructions">
+				<span style="font-size:40px">Click to play</span>
+				<br>
+				(W, A, S, D = Move, SPACE = Jump, MOUSE = Look around)
+			</div>
+
+		</div>
+
+		<div id="log"></div>
+
+		<script>
+
+            var camera, scene, renderer, controls;
+            var map_mesh = 0.25;
+            var map_detail = 8, map_roughness = 0.7;
+			var geometry, material, mesh;
+			var objects = [];
+			var raycaster;
+			var blocker = document.getElementById( 'blocker' );
+			var instructions = document.getElementById( 'instructions' );
+
+			namespace = '/mupy'; // change to an empty string to use the global namespace
+			var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+			// http://www.html5rocks.com/en/tutorials/pointerlock/intro/
+			//$('#instructions').click()
+
+			ptlock()
+			init();
+			generate()
+			animate();
+
+			if (annyang) {
+			  alert('in annyang')
+			  var test=function(){alert('helllloooo')}
+			  var commands = {'open car': test}; // 'music': zic,
+			  annyang.addCommands(commands);
+			  annyang.start();
+			}
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+            function generate() {
+
+				pitch = make_pitch()
+				make_line()
+				car1 = make_car(-200)
+				car2 = make_car(200)
+
+				gamepad_handle_event()
+
+            }; // end generate
+
+		</script>
+
+		<canvas width="1078" height="575" style="width: 1078px; height: 575px;"></canvas>
+
+</body></html>

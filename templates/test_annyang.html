@@ -1,0 +1,42 @@
+
+		
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>annyang! example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/1.6.0/annyang.js"></script>
+    <style>
+        #results {
+            background-color: #eee;
+            padding:50px;
+            border:1px solid #000;
+            width:25px;
+        }
+    </style>
+
+</head>
+<body>
+    <div id="results"></div>
+    <p>
+    Say 'show me green' <br />
+    Say 'show me red' <br />
+    Say 'show me purple' <br />
+    Say 'show me blue' <br />
+    Say 'show me ' & any HTML color <br />
+    </p>
+   
+<script>
+if (annyang) {
+  var r= document.getElementById('results')
+  var color = function(color){r.style.backgroundColor=color}
+  var commands = {
+    'show me *color': color
+  };
+
+  annyang.addCommands(commands);
+  annyang.start();
+}
+</script>
+</body>
+</html>
