@@ -88,8 +88,9 @@ function onDocumentMouseDown( event ) {
 
     }
     else{
-        $('.panel').css({'top':"10px","left":"-300px"})  // close panel when mouse leaves..
+        $('.panel').css({'top':"10px","left":"-300px"})  // hide panel when mouse leaves..
     }
+
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
 
 }
@@ -172,7 +173,7 @@ function mouse_create_object_or_action(){
 
     //------------------------- Mouse select area..
 
-    if (select_obj){
+    if (select_obj){              // S key
 
         /*
         Select area
@@ -182,17 +183,27 @@ function mouse_create_object_or_action(){
 
             var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
             interptsub = mousepos()
-            var creobj = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
-            selpos.push(creobj)
-            list_obj_inside.push(creobj)      // adding the limits in the list
-            if (selpos.length == 2){
-                  make_area(selpos)           // plane created with mouse click..
-                  objects_in_area()           // action on the object in the area..
-                  selpos = []                 // position of the diagonal of the plane
-                  select_obj = !select_obj;
+            var creobj0 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
+            selpos.push(creobj0)
+            list_obj_inside.push(creobj0)      // adding the limits in the list
 
-            }
-        } // Select area
+            var creobj1 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
+            selpos.push(creobj1)
+            list_obj_inside.push(creobj1)      // adding the limits in the list
+            SELECTED = creobj1
+
+
+        } // end if selpos.length < 2
+        else{
+          if (selpos.length == 2){
+              make_area(selpos)           // plane created with mouse click..
+              objects_in_area()           // action on the object in the area..
+              selpos = []                 // position of the diagonal of the plane
+              select_obj = !select_obj;
+              SELECTED = null;
+              }
+
+        } // end else
 
     } // end select_obj
 
@@ -211,6 +222,7 @@ function mouse_create_object_or_action(){
       } // end select_poscam
 
 } // end mouse_create_object_or_action
+
 
 function give_infos(){
 
