@@ -229,8 +229,10 @@ function give_infos(){
             for (i = 0; i < x.length; i++) {
                 x[i].style.visibility = "visible";
                 x[i].style.backgroundColor = "white";
-                x[i].style.left = event.pageX + "px";  				// mouse x
-                x[i].style.top = event.pageY + "px";   				// mouse y
+                // x[i].style.left = event.pageX + "px";  				// mouse x
+                // x[i].style.top = event.pageY + "px";   				// mouse y
+                x[i].style.left = "0px";  				  //  pos x
+                x[i].style.top =  "50px";   				//  pos y
             }
             $('#name_panel').text(INTERSECTED.name);          //  show the name of the element in the parameter panel..
       }
