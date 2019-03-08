@@ -47,6 +47,27 @@ function make_mark(name,p,r,col){
 
 } // end function
 
+function dotted_line(nbelem,elem,kind,posx,posy,size_elem){
+
+    /*
+    Dotted lines
+    */
+
+    for (var i=0; i<nbelem+1; i++){
+          var elem_clone = elem.clone()
+          if (kind == "x"){
+              elem_clone.position.x = posx;
+              elem_clone.position.y = posy+2*i*size_elem;
+          }
+          else if (kind == 'y'){
+              elem_clone.position.x = posx+2*i*size_elem;
+              elem_clone.position.y = posy
+          }
+          elem_clone.position.z = 25;
+          scene.add(elem_clone)
+      } // end for
+}
+
 function make_area(selpos){
 
     /*
@@ -55,20 +76,73 @@ function make_area(selpos){
 
     var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x)
     var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y)
-    var geometry = new THREE.CubeGeometry( side1, side2, 5 );
+    size_elem = 40
+    var geometry = new THREE.CubeGeometry( size_elem, size_elem, 3 );
     var square_color = 0xffffff
-    var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
-    object.material.ambient = object.material.color;
-    object.position.x = (selpos[0].position.x + selpos[1].position.x)/2
-    object.position.y = (selpos[0].position.y + selpos[1].position.y)/2
-    object.position.z = 160
-    object.castShadow = true;
-    object.receiveShadow = true;
-    object.opacity = 0.4;
-    scene.add( object );
-    objects.push( object )
+    var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
 
-} // end function
+    nbelem1 = Math.round(side1/(2*size_elem))
+    nbelem2 = Math.round(side2/(2*size_elem))
+
+    var minx = Math.min(selpos[0].position.x,selpos[1].position.x)
+    var miny = Math.min(selpos[0].position.y,selpos[1].position.y)
+    var maxx = Math.max(selpos[0].position.x,selpos[1].position.x)
+    var maxy = Math.max(selpos[0].position.y,selpos[1].position.y)
+
+
+    // var elem_clone_a = elem.clone()
+    // elem_clone_a.position.x = minx+50;
+    // elem_clone_a.position.y = miny+50;
+    // elem_clone_a.position.z = 160;
+    // scene.add(elem_clone_a)
+
+    dotted_line(nbelem2,elem,'x',minx,miny,size_elem)
+    dotted_line(nbelem1,elem,'y',minx,miny,size_elem)
+    dotted_line(nbelem2,elem,'x',maxx,miny,size_elem)
+    dotted_line(nbelem1,elem,'y',minx,maxy,size_elem)
+
+    // for (var i=0; i<nbelem1/2; i++){
+    //
+    //     var elem_clone_a = elem.clone()
+    //     elem_clone_a.position.x = minx;
+    //     elem_clone_a.position.y = miny+2*i*size_elem;
+    //     elem_clone_a.position.z = 130;
+    //     scene.add(elem_clone_a)
+    //     //-------------
+    //     var elem_clone_b = elem.clone()
+    //     elem_clone_b.position.x = maxx;
+    //     elem_clone_b.position.y = miny+2*i*size_elem;
+    //     elem_clone_b.position.z = 130;
+    //     scene.add(elem_clone_b)
+    //
+    // } // end for
+    //
+    // scene.add(group_area)
+
+} // end function make area
+
+// function make_area(selpos){
+//
+//     /*
+//     Area for selecting the pieces
+//     */
+//
+//     var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x)
+//     var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y)
+//     var geometry = new THREE.CubeGeometry( side1, side2, 5 );
+//     var square_color = 0xffffff
+//     var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
+//     object.material.ambient = object.material.color;
+//     object.position.x = (selpos[0].position.x + selpos[1].position.x)/2
+//     object.position.y = (selpos[0].position.y + selpos[1].position.y)/2
+//     object.position.z = 160
+//     object.castShadow = true;
+//     object.receiveShadow = true;
+//     object.opacity = 0.4;
+//     scene.add( object );
+//     objects.push( object )
+//
+// } // end function make area
 
 function make_uniform_ground(){
 
