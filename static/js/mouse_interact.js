@@ -158,6 +158,52 @@ function objects_in_area(){
 
 } // end objects in area..
 
+function limits_and_action(action){
+
+  /*
+  Select a region and make action
+  */
+
+  if ( selpos.length < 2 ){
+
+      make_limits_mouse()
+
+  } // end if selpos.length < 2
+  else{
+    if (selpos.length == 2){
+        action(selpos)
+        if (select_obj){
+            objects_in_area()           // action on the object in the area..
+        }
+        selpos = []                     // position of the diagonal of the plane
+        select_obj = false;
+        make_plane = false;
+        SELECTED = null;
+        }
+
+  } // end else
+
+}
+
+function make_limits_mouse(){
+
+    /*
+    Graphical limits moved with the mouse..
+    */
+
+    var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
+    interptsub = mousepos()
+    var creobj0 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
+    selpos.push(creobj0)
+    list_obj_inside.push(creobj0)      // adding the limits in the list
+
+    var creobj1 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
+    selpos.push(creobj1)
+    list_obj_inside.push(creobj1)      // adding the limits in the list
+    SELECTED = creobj1
+
+}
+
 function mouse_create_object_or_action(){
 
     /*
@@ -179,33 +225,24 @@ function mouse_create_object_or_action(){
         Select area
         */
 
-        if ( selpos.length < 2 ){
+        limits_and_action(make_dotted_area)
 
-            var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
-            interptsub = mousepos()
-            var creobj0 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
-            selpos.push(creobj0)
-            list_obj_inside.push(creobj0)      // adding the limits in the list
-
-            var creobj1 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
-            selpos.push(creobj1)
-            list_obj_inside.push(creobj1)      // adding the limits in the list
-            SELECTED = creobj1
-
-
-        } // end if selpos.length < 2
-        else{
-          if (selpos.length == 2){
-              make_area(selpos)           // plane created with mouse click..
-              objects_in_area()           // action on the object in the area..
-              selpos = []                 // position of the diagonal of the plane
-              select_obj = !select_obj;
-              SELECTED = null;
-              }
-
-        } // end else
 
     } // end select_obj
+
+    //------------------------- Make plane
+
+    if (make_plane){              // H key
+
+        /*
+        Make horizontal area
+        */
+
+        limits_and_action(make_horizontal_area)
+
+    }
+
+    //------------------------- Change the camera point of view
 
     if (select_poscam){
 

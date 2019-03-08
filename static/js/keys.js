@@ -25,7 +25,7 @@ function keyDownTextField1(event){
     c : clone
     d : delete
     n : new piece with mouse
-    s : selected area
+    s : selected area (dotted area)
     k : select camera position with mouse..
     arrow up : move up
     arrow down : move down
@@ -68,6 +68,10 @@ function keyDownTextField1(event){
 
     if(keyev('s', event)){             							    // select area..
          select_obj = !select_obj
+      } // end if key code
+
+    if(keyev('h', event)){             							    // horizontal plane..
+         make_plane = !make_plane
       } // end if key code
 
     if(keyev('k', event)){             							    // change camera's position with the mouse.
