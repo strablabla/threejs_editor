@@ -1,5 +1,9 @@
 function init_drag(){
 
+    /*
+    Init the dragging function..
+    */
+
     projector = new THREE.Projector();
     var size_plane = 10000
     plane = new THREE.Mesh( new THREE.PlaneGeometry( size_plane, size_plane, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
@@ -36,6 +40,7 @@ function onDocumentMouseMove( event ) {
         var interptsub = intersects[ 0 ].point.sub( offset )
         interptsub.z = SELECTED.position.z
         SELECTED.position.copy( interptsub );
+        nearest_object(SELECTED)  // change the color of the nearest objects..
 
         return;
 
@@ -65,7 +70,9 @@ function onDocumentMouseMove( event ) {
         container.style.cursor = 'auto';
 
     }
-}
+
+
+} // end mouse move
 
 function onDocumentMouseDown( event ) {
 
@@ -158,6 +165,44 @@ function objects_in_area(){
 
 } // end objects in area..
 
+function getDistance(mesh1, mesh2) {
+
+      /*
+      Distance mesh1-mesh2
+      */
+
+      var dx = mesh1.position.x - mesh2.position.x;
+      var dy = mesh1.position.y - mesh2.position.y;
+      var dz = mesh1.position.z - mesh2.position.z;
+      return Math.sqrt(dx*dx+dy*dy+dz*dz);
+
+}
+
+function nearest_object(currobj){
+
+    /*
+    Find the nearest object
+    */
+
+    //$('#curr_func').css('background-color','blue')
+
+    for (i in objects){
+        if (objects[i] != currobj){
+              $('#curr_func').css('background-color','red')
+              var dist = getDistance(currobj, objects[i])
+              //var dist = currobj.position.distanceTo( objects[i].position );
+              $('#curr_func').css('background-color','blue')
+              if ( dist < 200 )
+                  {
+                      objects[i].material.color.setHex(0xffff66)
+                      $('#curr_func').css('background-color','blue')
+                  }
+        }
+
+    } // end for
+
+} // end nearest_object
+
 function limits_and_action(action){
 
   /*
@@ -225,7 +270,7 @@ function mouse_create_object_or_action(){
         Select area
         */
 
-        limits_and_action(make_dotted_area)
+        limits_and_action(make_dotted_area)  // Select a region and select the obects inside
 
 
     } // end select_obj
@@ -238,7 +283,7 @@ function mouse_create_object_or_action(){
         Make horizontal area
         */
 
-        limits_and_action(make_horizontal_area)
+        limits_and_action(make_horizontal_area) // Select a region and make the corresponding horizontal plane..
 
     }
 
@@ -247,10 +292,10 @@ function mouse_create_object_or_action(){
     if (select_poscam){
 
             /*
-            Select camera position
+            Select camera position with mouse
             */
 
-            interptsub = mousepos()
+            interptsub = mousepos()       // mouse position
             camera.position.z = 1000;
             camera.position.y = interptsub.y;
             camera.position.x = interptsub.x;
