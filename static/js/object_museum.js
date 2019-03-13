@@ -110,6 +110,7 @@ function make_horizontal_area(selpos){
 
     /*
     Horizontal rectangular area..
+    triggered with H key..
     */
 
     var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x)
@@ -145,7 +146,7 @@ function make_uniform_ground(){
     object.position.z = 0
     object.castShadow = true;
     object.receiveShadow = true;
-    object.opacity = 0.4;
+    object.opacity = 0.2;
     object.name = "ground";
     object.size = size_square;
     scene.add( object );
@@ -157,13 +158,14 @@ function make_ground_chess(){
     /*
     Ground with cases of different color, chess game etc..
     */
-
+    var col1 = 0x000000
+    var col2 = 0xffffff
     var size_square = 150;
     var geometry = new THREE.CubeGeometry( size_square, size_square, 5 );
     var square_color
     for ( var i = 0; i < 64; i ++ ) {
-        if ((i+Math.floor(i/8))%2==0){square_color = 0x000000}
-        else{square_color = 0xffffff}
+        if ((i+Math.floor(i/8))%2==0){square_color = col1}
+        else{square_color = col12}
         var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
         object.material.ambient = object.material.color;
         object.position.x = (i%8-4) * size_square

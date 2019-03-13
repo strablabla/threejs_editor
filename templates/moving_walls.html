@@ -235,11 +235,11 @@
 
 		</script>
 
-
     <div class="navig">
+
 				<div class="menu" style='left:70px'> Home </div>
 				<div class="menu" style='left:200px' id="objects" > Object </div>
-				<div class="menu" style='left: 90%'> Help</div>
+				<div class="menu" style='left: 90%' id="help" > Help </div>
 
 		</div>
 
@@ -258,7 +258,6 @@
 						<div> <span>angle: </span><span id="angle_panel" >angle</span> </div>
 						<div> <span>color: </span><span id="color_panel" >color</span> </div>
 						<div> <span>texture: </span><span id="texture_panel" >texture</span> </div>
-
 
 						<br><br>
 
@@ -286,31 +285,136 @@
 
 <!-- Keys -->
 
-		<div  id="keys" > keys </div>
 		<div class="panel_keys" hidden ></div>
-		<div class="panel_objects" hidden ></div>
+
+		<div class="panel_objects" hidden >
+
+			<div class="titlepanel" > Object </div>
+
+					<br><br><br>
+
+					<div  class="help" id="type_obj" > type </div>
+					<br>
+					<div  class="help" id="color_obj" > color </div>
+					<br>
+					<div  class="help" id="angle_obj" > angle </div>
+
+		</div>
+
+		<div class="panel_help" hidden >
+
+			<div class="titlepanel" > Help </div>
+
+					<br><br><br>
+
+					<div  class="help" id="keys" > keys </div>
+					<br>
+					<div  class="help" id="doc" > Documentation </div>
+					<br>
+					<div  class="help" id="ex" > Examples </div>
+
+		</div>
 
 		<script>
 
 
+//===================================================================== Simple markdown
+
+    /*
+    Simple markdown used for providing informations to the user.
+    It handles classical markdown list syntax.
+    */
+
+    simple_md = function(text){ // mini markdown for the help
+        var all_text = text.split('\n')
+        var htm = $('<div/>')
+        var ul = $('<ul/>').css({'text-align':'left'})
+        for (i in all_text){
+            var text_insert = all_text[i].trim().slice(1) // prepare text
+            if (all_text[i].match(/^\s{4}\*/)){    // detect list first level
+                ul.append($('<li/>').text(text_insert).css({"font-weight": "bold"}))
+                } // end if
+            if (all_text[i].match(/^\s{8}\*/)){  // detect list second level
+                    var interm1 = $('<ul/>').append($('<li/>').text(text_insert))
+                    ul.append(interm1)
+                    } // end if
+            if (all_text[i].match(/^\s{12}\*/)){  // detect list third level
+                    var interm2 = $('<ul/>').append($('<li/>').text(text_insert))
+                    interm1.append(interm2)
+                    } // end if
+            if (all_text[i].match(/\s*\#/)){ // detect #
+                htm.append($('<h1/>').text(text_insert))
+                } // end if
+        } // end for
+        htm.append(ul);
+        return htm.html()
+    } // end function
+
+
+var keys = function(){/*
+    # Keys:
+    * action
+        * s : select an area
+        * h : make an horizontal plane..
+        * r : rotation
+        * c : clone
+        * d : delete
+        * k : select camera position with the mouse..
+        * n : new piece with mouse
+        * arrow up : move up
+        * arrow down : move down
+*/}.toString().slice(14,-3)
+
+
+//===================================================================== keys
+
+	 /*
+		Keys shortcuts
+		div containing all the shortcuts
+	 */
+
+	 $('.panel_keys').html(simple_md(keys))
+
+			//---------------------- Keys
+
 			$('#keys').click(function(){
-						$('.panel_keys').toggle() 											// show hide the key panel
+						$('.panel_keys').toggle() 											     // show hide the key panel
 				})
+			// $('#keys').hover(function(){
+			// 			$('.panel_keys').show() 											     // show hide the key panel
+			// 	})
+
+			$('.panel_keys').mouseleave(function(){
+						$('.panel_keys').hide()
+				})
+
+			//---------------------- Objects..
 
 			$("#objects").hover(function(){
-						//$('.panel_keys').toggle() 										// show hide the key panel
-						$('.panel_objects').show() 											// show hide the key panel
+						//$('.panel_keys').toggle() 										     // show hide the Objects panel
+						$('.panel_objects').show()
 				})
 			$('.panel_objects').mouseleave(function(){
-						$('.panel_objects').hide() 											// show hide the key panel
-				})
-			$('.panel').mouseleave(function(){
-						$('.panel').css({'top':"10px","left":"-300px"})  // close panel when mouse leaves..
+						$('.panel_objects').hide()
 				})
 
+			//---------------------- Help
+
+			$("#help").hover(function(){
+						//$('.panel_keys').toggle() 										    // show hide the key panel
+						$('.panel_help').show()
+				})
+			$('.panel_help').mouseleave(function(){
+							$('.panel_help').hide() 											    // show hide the help panel
+					})
+
+			//---------------------- Panel about object
+
+			$('.panel').mouseleave(function(){                       // panel about the object..
+						$('.panel').css({'top':"10px","left":"-300px"})    // close panel about object infos when mouse leaves..
+				})
 
 		</script>
-
 
 		</body>
 </html>

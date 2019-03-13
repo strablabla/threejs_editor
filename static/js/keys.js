@@ -27,6 +27,7 @@ function keyDownTextField1(event){
     n : new piece with mouse
     s : selected area (dotted area)
     k : select camera position with mouse..
+    h : make an horizontal plane
     arrow up : move up
     arrow down : move down
     */
