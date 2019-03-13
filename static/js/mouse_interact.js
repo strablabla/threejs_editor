@@ -184,22 +184,30 @@ function nearest_object(currobj){
     Find the nearest object
     */
 
-    //$('#curr_func').css('background-color','blue')
-
+    var mindist = 200;
+    mini = -1;
     for (i in objects){
         if (objects[i] != currobj){
-              $('#curr_func').css('background-color','red')
               var dist = getDistance(currobj, objects[i])
-              //var dist = currobj.position.distanceTo( objects[i].position );
-              $('#curr_func').css('background-color','blue')
-              if ( dist < 200 )
+
+              if ( dist < mindist )
                   {
-                      objects[i].material.color.setHex(0xffff66)
-                      $('#curr_func').css('background-color','blue')
+                      mini = i
+                      mindist = dist
+
+                      //$('#curr_func').css('background-color','blue')
                   }
-        }
+              else{
+                      objects[i].material.color.setHex(INTERSECTED.currentHex)
+                  }
+        } // end if objects[i]
 
     } // end for
+
+    if (mini != -1){
+      objects[mini].material.color.setHex(0xffff66)
+    }
+
 
 } // end nearest_object
 
