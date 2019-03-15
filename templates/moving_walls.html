@@ -156,24 +156,54 @@
 				//make_small_seats()     		// make the seats
 				//make_seat()            		// make the seat
 
+				listorig = {}
+				listmat = {}
+
 				function load_scene(msg){
 
 							/*
 							Loading the scene
 							*/
 
-							var listorig = {}
 
 							for (i=0; i < Object.keys(msg).length; i++){ 					// Create the objects at the beginning
-											var k = Object.keys(msg)[i]  									// k is the objects name, wall, seat etc..
+											var k = Object.keys(msg)[i]  									// k is the objects name
 											if (msg[k]['type'] == "wall"){
-												 	listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], 0x800000)
+													wall_color = 0x800000;
+													var tex = new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
+													listmat[k] = new THREE.MeshBasicMaterial({ map : tex, color : wall_color})
+												 	listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], listmat[k] )
+													//listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], listmat[k])
+
 											 }
 										  listorig[k]['clone_infos'] = msg[k]['clone_infos']
 
 									} // end for (loading the scene)
 
 				} // end load_scene..
+
+
+					texture1 =  new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
+					//texture1 = new THREE.MeshLambertMaterial( { color: 0x800000 } )
+
+					size = 400;
+				  geom_step = new THREE.CubeGeometry( size,size,size )
+					material_step = new THREE.MeshBasicMaterial({ map: texture1 })
+					mesh = new THREE.Mesh( geom_step, material_step )
+					mesh.position.set(0,0,0)
+					scene.add( mesh );
+					objects.push( mesh )
+
+					//----------------------
+
+					size = 400;
+					geom_step0 = new THREE.CubeGeometry( size,size,size )
+					material_step0 = new THREE.MeshLambertMaterial( { color: 0x800000 } )
+					mesh = new THREE.Mesh( geom_step0, material_step0 )
+					var pos_cube = 300
+					mesh.position.set(pos_cube,pos_cube,pos_cube)
+					scene.add( mesh );
+					objects.push( mesh )
 
 				//-----------------------------------------
 

@@ -179,7 +179,7 @@ function make_ground_chess(){
     }
 } // end function
 
-function make_wall(name,p,r,col){
+function make_wall(name,p,r,material){
 
     /*
     Wall
@@ -189,13 +189,15 @@ function make_wall(name,p,r,col){
     col : color of the object
     */
 
-    wall_color = col;
+    //wall_color = col;
     var wall_length = 150;
     var wall_width = 5;
     var wall_height = 300;
     p.z = wall_height/2;
     var geometry = new THREE.CubeGeometry( wall_width, wall_length, wall_height );
-    var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: wall_color } ) );
+    //var material = new THREE.MeshLambertMaterial( { color: wall_color } )
+    //var material = new THREE.MeshBasicMaterial({ map : tex, color : wall_color})
+    var object = new THREE.Mesh( geometry, material );
     object = obj_basics(object,p,r,name)
     object.type = "wall"
     scene.add( object );
