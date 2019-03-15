@@ -59,6 +59,35 @@ def accelero(ser):
     l = ser.readline()
     return l
 
+@app.route('/upload_file', methods=['GET', 'POST'])
+def upload_file(debug=1):
+    '''
+    Upload the datasets from the Dropzone with the same tree structure and make the processing list.
+    '''
+    print('uploading !!! ')
+    if request.method == 'POST':
+        print("method is POST")
+        for f in request.files.getlist('file'):                   # retrieves files names
+            file_in_folder_path = request.form.get('fullPath')
+            file_name = request.form.get('name')
+            if file_in_folder_path :
+                if debug>0: print("Server side, file_in_folder_path are ", file_in_folder_path)
+                full_path = os.path.join('static', 'upload', file_in_folder_path)
+                try:
+                    f.save(full_path)
+                except IOError as e:
+                    os.makedirs(os.path.dirname(full_path))    # Makes folder
+                    f.save(full_path)                          # Save locally the file in the folder upload
+                    if debug>0: print("###################### Saved file {0} !!!! ".format(full_path))
+            elif file_name:
+                print("in file_name")
+                full_path = os.path.join('static', 'upload', file_name)
+                print("fullpath for name is ", full_path)
+                f.save(full_path)
+
+    #print("####### On the point to scan UPLOADED_PATH !!!")
+    return render_template('moving_walls.html')
+
 def background_thread():
     """Example of how to send server generated events to clients."""
     count = 0
@@ -76,6 +105,7 @@ def index():
     #     thread.daemon = True
     #     thread.start()
     return render_template('moving_walls.html') #
+    #return render_template('test_dropzone.html') #
     #return render_template('first_page.html') #
 
 if __name__ == '__main__':

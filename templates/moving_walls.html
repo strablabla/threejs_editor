@@ -11,6 +11,21 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 
 	</head>
+
+	<style>
+
+	#save_param {
+		margin-left: -40px
+	}
+
+	#dropz {
+		height: 30px;
+		width : 140px;
+		margin-left: 15px;
+	}
+
+	</style>
+
 	<body>
 
 		<link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet">
@@ -22,8 +37,20 @@
 
     <!-- socket.io -->
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+
 		<script src="/static/js/simple_flat/three.js"></script>
-		<script src="/static/js/simple_flat/TrackballControls.js"></script>
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/102/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/90/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/80/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/60/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/50/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/40/three.js"></script> -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r57/three.js"></script> -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r65/three.js"></script>
+
+		<!-- <script src="/static/js/simple_flat/TrackballControls.js"></script> -->
+		<script src='https://rawgit.com/YaleDHLab/pix-plot/master/assets/js/trackball-controls.js'></script>
 		<script src="/static/js/simple_flat/stats.js"></script>
 		<script src="/static/js/object_museum.js"></script>
 		<script src="/static/js/make_objects.js"></script>
@@ -40,6 +67,12 @@
 		<script src="/static/js/bootstrap.min.js"></script>
 		<link rel="stylesheet" href="/static/css/bootstrap.min.css">
 
+		<!-- Dropzone -->
+
+		<script src="/static/js/dropzone.js"></script>
+		<script src="/static/js/manage_drop.js"></script>
+		<link rel="stylesheet" href="/static/css/dropzone.css">
+
 		<script>
 
 			var container, stats;
@@ -51,12 +84,13 @@
 			var selpos = [];
 			var select_poscam = false; 			    // change camera position with mouse
 			var list_obj_inside = [];  					// list of the objects inside the area..
+			var select_picking = false;
 
 			//------------------------- Graphical objects
 
 			var mouse = new THREE.Vector2(),
 			offset = new THREE.Vector3(),
-			INTERSECTED, SELECTED;          // interaction with mouse..
+			INTERSECTED, SELECTED, LAST_SELECTED;          // interaction with mouse..
 
 			//------------------------- Socket communication
 
@@ -201,18 +235,29 @@
 						Infos about : position, cloning, rotation, type of object..
 						*/
 
+
 						var listpos = {}         														// list of all the positions
 						for (i in objects){
 									if (objects[i].type != 'pawn' & objects[i].type != null){
-											var infos_obj = {"pos": objects[i].position,
-											 								 "rot": objects[i].rotation,
+											var x = objects[i].rotation.x
+											var y = objects[i].rotation.y
+											var z = objects[i].rotation.z
+											var infos_obj = {
+																			 "pos": objects[i].position,
+											 								 "rot": {x, y, z},
 																			 "clone_infos": objects[i].clone_infos,
 																			 "type": objects[i].type
 																		  };
+
 											listpos[objects[i].name] = infos_obj;   			// add position to listpos
-											}
-									}
+										} // end if
+									} // end for
+						//listpos = {"a":2, "b":3}
+						// $('#curr_func').css('background-color','red')
+						// $('#curr_func').text(listpos.toString())
+						// console.log(JSON.stringify(listpos))
 						socket.emit( 'message', JSON.stringify(listpos));
+
 						}
 				renderer.domElement.addEventListener( 'mouseup', emit_infos_scene, false );
 
@@ -262,6 +307,10 @@
 						<br><br>
 
 						<center> <button id="save_param" type="button" class="btn btn-success">save</button> </center>
+
+						<br><br>
+
+						<form  id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" ></form>
 
 						<br><br>
 
@@ -413,6 +462,8 @@ var keys = function(){/*
 			$('.panel').mouseleave(function(){                       // panel about the object..
 						$('.panel').css({'top':"10px","left":"-300px"})    // close panel about object infos when mouse leaves..
 				})
+
+    manage_drop()                                          // manage the Dropzone
 
 		</script>
 

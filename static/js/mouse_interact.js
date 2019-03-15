@@ -99,6 +99,12 @@ function onDocumentMouseDown( event ) {
     }
 
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
+    if (select_picking){
+       list_obj_inside.push(SELECTED)
+       INTERSECTED.material.color.setHex( 0xebebe0 );
+
+    }
+
 
 }
 
@@ -111,6 +117,7 @@ function onDocumentMouseUp( event ) {
     event.preventDefault();
     controls.enabled = true;
     if ( INTERSECTED ) {
+        LAST_SELECTED = SELECTED;
         SELECTED = null;
     }
     // else{                                               // no intesection, close the panel about the objects..
@@ -178,6 +185,7 @@ function getDistance(mesh1, mesh2) {
 
 }
 
+//$('#curr_func').css('background-color','blue')
 function nearest_object(currobj){
 
     /*
@@ -189,25 +197,19 @@ function nearest_object(currobj){
     for (i in objects){
         if (objects[i] != currobj){
               var dist = getDistance(currobj, objects[i])
-
-              if ( dist < mindist )
-                  {
+              if ( dist < mindist ){        // smaller distance
                       mini = i
-                      mindist = dist
-
-                      //$('#curr_func').css('background-color','blue')
+                      mindist = dist       // change mini distance..
                   }
               else{
-                      objects[i].material.color.setHex(INTERSECTED.currentHex)
+                      objects[i].material.color.setHex(INTERSECTED.currentHex) // initial color
                   }
         } // end if objects[i]
-
     } // end for
 
     if (mini != -1){
       objects[mini].material.color.setHex(0xffff66)
     }
-
 
 } // end nearest_object
 
