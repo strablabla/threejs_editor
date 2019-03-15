@@ -35,7 +35,7 @@ function keyDownTextField1(event){
 
     $('#curr_func').css('background-color','red')
 
-    if(event.keyCode == 16){    												  // Picking
+    if(event.keyCode == 16){    												  // Picking objects to aplly the same action after.. 
           select_picking = !select_picking
           if (select_picking){
               document.getElementById("curr_func").textContent = "picking";
