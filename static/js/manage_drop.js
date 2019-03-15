@@ -12,43 +12,104 @@ var manage_drop = function(){
           paramName: "file",                                                 // The name that will be used to transfer the file
           maxFilesize: 2,                                                    // MB
           success: function(file, response) {
-             $("#dropz").hide()                                              // hidding dropzone when files are dropped
-             var newpath = file.fullPath.match(/^.+\/\d{1,2}/)[0]            // name has to contain 1 or 2 decimals
-             var newfullpath = file.fullPath.match(/^.+\/\d{1,2}.+/)[0]      // name has to contain 1 or 2 decimals
-             var newpath_id = newpath.replace('\/','-')
-             var newfullpath_id = newfullpath.replace('\/','-')
-             var basename = newfullpath_id.split('-')[0]
-             // alert(newfullpath)
-             if (list_addr.indexOf(newpath) == -1){                          // if not registered yet. 
-                var find_pdata = newpath.match(/pdata/g)                     // search for pdata
-                  if (!find_pdata){                                          // if there is not pdata
-                    currentpath = newpath_id
-                    $('.listfiles').append($("<li>")
-                                   .attr('id', newpath_id)
-                                   .text(newpath + "....")                   // folder name
-                                   .append($('<input/>')
-                                      .addClass('check')
-                                      .attr('id', 'box_' + newpath_id)
-                                      .attr('type', "checkbox").css({'left':'280px', 'top':'-10px'}))  // checkbox
-                                   .append($('<span>').text('+').attr('id', 'show' + newpath_id))      // toggle list of files
-                                   .append($("<ul>").attr('id', 'ul' + newpath_id ).hide())
-                                   );  // add path to list
-                    $('#show' + newpath_id).click(function(){
-                            $(this).next().toggle()
-                          })
-                    list_addr.push(newpath)                 // registering the path
-                   }                                        // end !find_pdata
-                 }                                          // end if in registered list of paths
-              else {
-                 $('#'+'ul'+ currentpath ).append($("<li>").text(newfullpath));
-                 var currpath = $('#' + currentpath )
-                 if (newfullpath.match(/vclist/g)){currpath.css({'color':'#ff9999'})}             // case T2T2
-                 else if (newfullpath.match(/vdlist/g)){currpath.css({'color':'#99ccff'})}        // case T1T2
-                 else if (newfullpath.match(/difflist/g)){currpath.css({'color':'#85e085'})}      // case DT2
-                }
+             //alert('helllloooooo Sir !!! ')
+             //alert("file.fullPath in success is " + file.fullPath)
+             //$("#dropz").hide()                                              // hidding dropzone when files are dropped
+
            },
           sending: function(file, xhr, data){
-              data.append("fullPath", file.fullPath);
+
+              if(file.fullPath){                                  // case of a folder
+                  data.append("fullPath", file.fullPath);
+                  //alert("file.fullPath is " + file.fullPath)
+              }
+
+              if(file.name){                                      // case of a file
+                  data.append("name", file.name);
+                  //alert("file.name is " + file.name
+                  //var texture = new THREE.TextureLoader().load( "/static/upload/48.jpg" );
+                  //var material = new THREE.MeshBasicMaterial( { map: texture } );
+                  //SELECTED.material.map = texture;
+                  // SELECTED.material.needsUpdate = true;
+                  // SELECTED.material.map.needsUpdate = true;
+                  // SELECTED.material.map = texture;
+                  //LAST_SELECTED.material.color.setHex(0xffff66)
+
+                  //LAST_SELECTED.material.color.setHex(0xffff66)
+
+                  // Instantiate the material we will be using
+
+
+                  // var material = new THREE.MeshBasicMaterial();
+                  // // Instantiate a geometry to use
+                  // var geometry = new THREE.BoxGeometry( 1, 1, 1 );
+                  // // Instatiate the mesh with the geometry and material
+                  // var cube = new THREE.Mesh( geometry, material );
+                  // cube.position.set(0,0,0);
+                  //
+                  // // Then load the texture
+                  // loader.load(arr[textureToShow], function(tex) {
+                  //  // Once the texture has loaded
+                  //  // Asign it to the material
+                  //  material.map = tex;
+                  //  // Update the next texture to show
+
+                  // Load a texture
+
+// var texture = new THREE.TextureLoader().load( "../upload/47.jpg" );
+//
+// // Create a geometry
+// // 	Create a box (cube) of 10 width, length, and height
+// var geometry = new THREE.BoxGeometry( 100, 100, 100 );
+// // Create a MeshBasicMaterial with a loaded texture
+// var material = new THREE.MeshBasicMaterial( {color:"red"} ); //{ map: texture}
+//
+// // Combine the geometry and material into a mesh
+// var mesh = new THREE.Mesh( geometry, material );
+// mesh.position.set(0,0,0)
+// // Add the mesh to the scene
+// scene.add( mesh );
+
+
+                  var texture = new THREE.TextureLoader().load( "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif" );
+                  // "https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/crate.gif"
+
+                  var wall_length = 150;
+                  var wall_width = 150;
+                  var wall_height = 300;
+
+                  var geometry = new THREE.CubeGeometry( wall_width, wall_length, wall_height );
+                  var material = new THREE.MeshBasicMaterial( { map: texture } )
+                  var object = new THREE.Mesh( geometry, material );
+                  //var object = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: "red" } ) );
+                  object.position.set(0,0,0)
+                  scene.add( object );
+                  //objects.push( object )
+
+
+                  //allow cross origin loading
+                  // loader.crossOrigin = '';
+                  //
+                  // loader.load("/static/upload/48.jpg", function(tex) {
+                  //      // Once the texture has loaded
+                  //      // Asign it to the material
+                  //      LAST_SELECTED.material.map = tex;
+                  //      LAST_SELECTED.material.map.needsUpdate = true;
+                  //      //$('#curr_func').text(LAST_SELECTED.material.map)
+                  //      document.getElementById("curr_func").textContent = LAST_SELECTED.material.map;
+                  //      //LAST_SELECTED.material.color.setHex(0xffff66)
+                  //     });
+
+                  // LAST_SELECTED.material.map = texture;
+                  // LAST_SELECTED.material.map.needsUpdate = true;
+
+
+                  $('#curr_func').css('background-color','red')
+
+                  //$('#curr_func').css('background-color','blue')
+              }
+
+              //alert("file.fullPath name is " + file.name)
               $('.dz-preview').remove()                       // remove the Thumbnails
               // File upload Progress
           },

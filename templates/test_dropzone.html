@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>test dropzone</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+		<link href="https://fonts.googleapis.com/css?family=Lato:400,700" rel="stylesheet">
+		<link rel="stylesheet" href="/static/css/reset.css"> <!-- CSS reset -->
+		<link rel="stylesheet" href="/static/css/style.css"> <!-- Resource style -->
+
+
+
+    <!-- socket.io -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
+
+
+		<!-- jquery -->
+		<script src="/static/js/jquery.min.js"></script>
+		<!-- jquery-ui -->
+		<script src="/static/js/jquery-ui.js"></script>
+
+		<!-- bootstrap -->
+		<script src="/static/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="/static/css/bootstrap.min.css">
+
+		<!-- Dropzone -->
+
+		<script src="/static/js/dropzone.js"></script>
+		<script src="/static/js/manage_drop.js"></script>
+		<link rel="stylesheet" href="/static/css/dropzone.css">
+
+</head>
+<body>
+
+	<form id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" ></form>     
+
+
+<script>
+
+    manage_drop()                                          // manage the Dropzone
+
+</script>
+
+</body>
+</html>

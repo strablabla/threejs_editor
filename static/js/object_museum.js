@@ -14,6 +14,7 @@ function obj_basics(object, p, r, name){
     object.rotation.x = r.x     // rot x
     object.rotation.y = r.y     // rot y
     object.rotation.z = r.z     // rot z
+    //object.rotation = r.rotation;
     object.castShadow = true;
     object.receiveShadow = true;
     object.name = name;

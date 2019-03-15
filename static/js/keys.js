@@ -30,9 +30,21 @@ function keyDownTextField1(event){
     h : make an horizontal plane
     arrow up : move up
     arrow down : move down
+    SHIFT : pick diff objects..
     */
 
     $('#curr_func').css('background-color','red')
+
+    if(event.keyCode == 16){    												  // Picking
+          select_picking = !select_picking
+          if (select_picking){
+              document.getElementById("curr_func").textContent = "picking";
+          }
+          else{
+            document.getElementById("curr_func").textContent = "";
+          }
+
+      } // end if key code
 
     if(event.keyCode == 38){    												  // Up
           if ( INTERSECTED ){
@@ -173,6 +185,7 @@ function keyDownTextField1(event){
 
             } // end for i
         list_obj_inside = []
+        select_picking = false
   }
 
   function delete_object(){
