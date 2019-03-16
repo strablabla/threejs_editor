@@ -165,7 +165,7 @@ function objects_in_area(){
             objects[i].position.y < maxy )
             {
                 list_obj_inside.push(objects[i])
-                objects[i].material.color.setHex(0xffffff)
+                objects[i].material.color.setHex(0xffcccc) //
             }
 
     } // end for
@@ -248,11 +248,11 @@ function make_limits_mouse(){
 
     var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
     interptsub = mousepos()
-    var creobj0 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
+    var creobj0 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffcccc)
     selpos.push(creobj0)
     list_obj_inside.push(creobj0)      // adding the limits in the list
 
-    var creobj1 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)
+    var creobj1 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffcccc)
     selpos.push(creobj1)
     list_obj_inside.push(creobj1)      // adding the limits in the list
     SELECTED = creobj1
@@ -269,7 +269,8 @@ function mouse_create_object_or_action(){
     if (create_new_obj){
           var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
           interptsub = mousepos()
-          var creobj = make_wall(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffffff)  // new wall created at the momuse's position..
+          listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
+          listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
     }
 
     //------------------------- Mouse select area..
@@ -281,7 +282,6 @@ function mouse_create_object_or_action(){
         */
 
         limits_and_action(make_dotted_area)  // Select a region and select the obects inside
-
 
     } // end select_obj
 
