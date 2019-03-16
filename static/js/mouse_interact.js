@@ -1,3 +1,12 @@
+function random_name(){
+
+    /*
+    Return a random name
+    */
+
+    return Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
+}
+
 function init_drag(){
 
     /*
@@ -240,22 +249,29 @@ function limits_and_action(action){
 
 }
 
+function corner(){
+
+  /*
+  Make a corner
+  */
+
+  interptsub = mousepos()
+  var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, 0xffcccc )
+  selpos.push(creobj)
+  list_obj_inside.push(creobj)      // adding the limits in the list
+  return creobj
+
+}
+
 function make_limits_mouse(){
 
     /*
     Graphical limits moved with the mouse..
     */
 
-    var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
-    interptsub = mousepos()
-    var creobj0 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffcccc)
-    selpos.push(creobj0)
-    list_obj_inside.push(creobj0)      // adding the limits in the list
-
-    var creobj1 = make_mark(newname, interptsub, {"x":0, "y":0, "z":0}, 0xffcccc)
-    selpos.push(creobj1)
-    list_obj_inside.push(creobj1)      // adding the limits in the list
-    SELECTED = creobj1
+    var corner0 = corner()
+    var corner1 = corner()
+    SELECTED = corner1
 
 }
 
