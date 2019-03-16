@@ -2,8 +2,14 @@
 function change_texture_with_dropped_one(tex){
 
   /*
-  Change the texture with the dropped one..
+  Replace the texture with the dropped one..
   */
+
+  // var last_select = listmat[LAST_SELECTED.name]
+  // var texture =  new THREE.ImageUtils.loadTexture( "static/upload/" + tex ) // take texture in static/upload..
+  // last_select.color.setHex(0xffffff);                       // set color to white
+  // last_select.map = texture;                                // change the texture of the last selected object..
+  // last_select.map.needsUpdate = true                        // update the texture
 
   var texture =  new THREE.ImageUtils.loadTexture( "static/upload/" + tex ) // take texture in static/upload..
   listmat[LAST_SELECTED.name].color.setHex(0xffffff);                       // set color to white

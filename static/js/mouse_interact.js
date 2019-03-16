@@ -267,7 +267,7 @@ function mouse_create_object_or_action(){
     */
 
     if (create_new_obj){
-          var newname = Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
+          newname = random_name()
           interptsub = mousepos()
           listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
           listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )

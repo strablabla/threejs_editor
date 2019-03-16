@@ -42,8 +42,9 @@ except:
 @socketio.on('message', namespace='/pos')
 def receive(message):
     '''
-    Retrieve the json and write it in pos.json.. 
+    Retrieve the json from the client and write it in static/pos.json..
     '''
+
     print("position x is {0} ".format(message))
     with open('static/pos.json', 'w') as f:
         f.write(str(message))
@@ -53,12 +54,17 @@ def receive(begin):
     '''
     begin the communication and send the initial positions..
     '''
+
     print("position x is {0} ".format(begin))
     with open('static/pos.json','r') as f:
         data = json.load(f)
     socketio.emit('server_pos', data, namespace='/pos')
 
 def accelero(ser):
+    '''
+    Retrieve the accelerometer value and return it..
+    '''
+
     l = ser.readline()
     return l
 
@@ -67,6 +73,7 @@ def upload_file(debug=1):
     '''
     Upload the datasets from the Dropzone with the same tree structure and make the processing list.
     '''
+
     print('uploading !!! ')
     if request.method == 'POST':
         print("method is POST")

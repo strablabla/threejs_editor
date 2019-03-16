@@ -160,6 +160,15 @@
 				//make_small_seats()     		// make the seats
 				//make_seat()            		// make the seat
 
+				function random_name(){
+
+					  /*
+						Return a random name
+						*/
+
+						return Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
+				}
+
 				listorig = {}
 				listmat = {} // list of materials
 				basic_color = 0xffffff;  // white color by default...
@@ -167,16 +176,15 @@
 
 				function loadwall(k, msg){
 
-					/*
-					Create new wall
-					*/
+							/*
+							Create a new wall
+							*/
 
-					if (msg[k]['type'] == "wall"){
-								listmat[k] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
-								listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )
-					 }
-					listorig[k]['clone_infos'] = msg[k]['clone_infos']
-
+							if (msg[k]['type'] == "wall"){
+										listmat[k] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
+										listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )
+										listorig[k]['clone_infos'] = msg[k]['clone_infos']
+							 }
 				}
 
 				function load_scene(msg){
@@ -289,7 +297,7 @@
 																			 "type": objects[i].type
 																		  };
 											listpos[objects[i].name] = infos_obj;   			// add position to listpos
-											listpos["date"] = moment().format('MMMM Do YYYY, h:mm:ss a');
+											listpos[random_name()] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
 										}    // end if
 									}    // end for
 						socket.emit( 'message', JSON.stringify(listpos));
