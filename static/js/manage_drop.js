@@ -6,11 +6,13 @@ function change_texture_with_dropped_one(tex){
   */
 
   var last_select = listmat[LAST_SELECTED.name]
-  var texture =  new THREE.ImageUtils.loadTexture( "static/upload/" + tex ) // take texture in static/upload..
-  last_select.color.setHex(0xffffff);                       // set color to white
-  last_select.map = texture;                                // change the texture of the last selected object..
-  last_select.map.needsUpdate = true                        // update the texture
-  
+  var tex_addr = "static/upload/" + tex
+  var texture =  new THREE.ImageUtils.loadTexture( tex_addr ) // take texture in static/upload..
+  last_select.color.setHex(0xffffff);                         // set color to white
+  last_select.map = texture;                                  // change the texture of the last selected object..
+  last_select.map.needsUpdate = true                          // update the texture
+  listorig[LAST_SELECTED.name].tex_addr = tex_addr                             // save the new texture address..
+
 }
 
 var manage_drop = function(){

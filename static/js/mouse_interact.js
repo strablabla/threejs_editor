@@ -114,7 +114,6 @@ function onDocumentMouseDown( event ) {
 
     }
 
-
 }
 
 function onDocumentMouseUp( event ) {

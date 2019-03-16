@@ -268,3 +268,34 @@ function make_seat(){
         //objects.push( object );
     } // end for
 } // end function
+
+
+function cubes_col_tex(){
+
+  /*
+  Cubes with color and texture
+  */
+
+  texture1 =  new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
+  //texture1 = new THREE.MeshLambertMaterial( { color: 0x800000 } )
+
+  size = 400;
+  geom_step = new THREE.CubeGeometry( size,size,size )
+  material_step = new THREE.MeshBasicMaterial({ map: texture1 })
+  mesh = new THREE.Mesh( geom_step, material_step )
+  mesh.position.set(0,0,0)
+  scene.add( mesh );
+  objects.push( mesh )
+
+  //----------------------
+
+  size = 400;
+  geom_step0 = new THREE.CubeGeometry( size,size,size )
+  material_step0 = new THREE.MeshLambertMaterial( { color: 0x800000 } )
+  mesh = new THREE.Mesh( geom_step0, material_step0 )
+  var pos_cube = 300
+  mesh.position.set(pos_cube,pos_cube,pos_cube)
+  scene.add( mesh );
+  objects.push( mesh )
+
+}

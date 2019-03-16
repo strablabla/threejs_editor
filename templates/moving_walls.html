@@ -88,7 +88,7 @@
 			var selpos = [];
 			var select_poscam = false; 			    // change camera position with mouse
 			var list_obj_inside = [];  					// list of the objects inside the area..
-			var select_picking = false;
+			var select_picking = false;         // picking the object fr future action..
 
 			//------------------------- Graphical objects
 
@@ -163,7 +163,7 @@
 				listorig = {}
 				listmat = {} // list of materials
 				basic_color = 0xffffff;  // white color by default...
-				basic_tex = new THREE.ImageUtils.loadTexture( "static/upload/Blank.jpg" )
+			  basic_tex_addr = "static/upload/Blank.jpg"
 
 				function loadwall(k, msg){
 
@@ -172,9 +172,12 @@
 							*/
 
 							if (msg[k]['type'] == "wall"){
-										listmat[k] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
-										listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )
-										listorig[k]['clone_infos'] = msg[k]['clone_infos']
+										curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
+										curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // edfault white texture
+										listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : basic_color})
+										listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the wall object
+										listorig[k]['clone_infos'] = msg[k]['clone_infos']                       // add the infos about cloning
+										listorig[k]['tex_addr'] =  curr_tex               											 // texture address
 							 }
 				}
 
@@ -186,34 +189,11 @@
 
 							for (i=0; i < Object.keys(msg).length; i++){ 					// Create the objects at the beginning
 											var k = Object.keys(msg)[i]  									// k is the objects name
-											loadwall(k, msg)
+											loadwall(k, msg)                              // load the objects wall..
 
 									} // end for (loading the scene)
 
 				} // end load_scene..
-
-
-					texture1 =  new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
-					//texture1 = new THREE.MeshLambertMaterial( { color: 0x800000 } )
-
-					size = 400;
-				  geom_step = new THREE.CubeGeometry( size,size,size )
-					material_step = new THREE.MeshBasicMaterial({ map: texture1 })
-					mesh = new THREE.Mesh( geom_step, material_step )
-					mesh.position.set(0,0,0)
-					scene.add( mesh );
-					objects.push( mesh )
-
-					//----------------------
-
-					size = 400;
-					geom_step0 = new THREE.CubeGeometry( size,size,size )
-					material_step0 = new THREE.MeshLambertMaterial( { color: 0x800000 } )
-					mesh = new THREE.Mesh( geom_step0, material_step0 )
-					var pos_cube = 300
-					mesh.position.set(pos_cube,pos_cube,pos_cube)
-					scene.add( mesh );
-					objects.push( mesh )
 
 				//-----------------------------------------
 
@@ -271,8 +251,7 @@
 				function emit_infos_scene(){          									// emits the positions toward the server to save them
 
 						/*
-						Send the informations to the server..
-						Infos about : position, cloning, rotation, type of object..
+						Send the informations (about position, cloning, rotation, type of object..) to the server..
 						*/
 
 						var listpos = {}         														// list of all the positions
@@ -285,10 +264,11 @@
 																			 "pos": objects[i].position,
 											 								 "rot": {x,y,z},
 																			 "clone_infos": objects[i].clone_infos,
-																			 "type": objects[i].type
+																			 "type": objects[i].type,
+																			 'tex_addr' : objects[i].tex_addr
 																		  };
 											listpos[objects[i].name] = infos_obj;   			// add informations about the objects in the scene to listpos
-											listpos[random_name()] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
+											listpos['datetime'] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
 										}    // end if
 									}    // end for
 						socket.emit( 'message', JSON.stringify(listpos));  // send the informations to the server
