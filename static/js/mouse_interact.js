@@ -201,7 +201,7 @@ function nearest_object(currobj){
                       mini = i
                       mindist = dist       // change mini distance..
                   }
-              else{
+              else {
                       objects[i].material.color.setHex(INTERSECTED.currentHex) // initial color
                   }
         } // end if objects[i]

@@ -41,6 +41,9 @@ except:
 
 @socketio.on('message', namespace='/pos')
 def receive(message):
+    '''
+    Retrieve the json and write it in pos.json.. 
+    '''
     print("position x is {0} ".format(message))
     with open('static/pos.json', 'w') as f:
         f.write(str(message))

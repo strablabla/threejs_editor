@@ -6,9 +6,9 @@ function change_texture_with_dropped_one(tex){
   */
 
   var texture =  new THREE.ImageUtils.loadTexture( "static/upload/" + tex ) // take texture in static/upload..
-  listmat[LAST_SELECTED.name].color.setHex(0xffffff);   // set color to white
-  listmat[LAST_SELECTED.name].map = texture;            // change the texture of the last selected object..
-  listmat[LAST_SELECTED.name].map.needsUpdate = true    // update the texture
+  listmat[LAST_SELECTED.name].color.setHex(0xffffff);                       // set color to white
+  listmat[LAST_SELECTED.name].map = texture;                                // change the texture of the last selected object..
+  listmat[LAST_SELECTED.name].map.needsUpdate = true                        // update the texture
 
 }
 
@@ -25,9 +25,6 @@ var manage_drop = function(){
           paramName: "file",                                                 // The name that will be used to transfer the file
           maxFilesize: 2,                                                    // MB
           success: function(file, response) {
-             //alert('helllloooooo Sir !!! ')
-             //alert("file.fullPath in success is " + file.fullPath)
-             //$("#dropz").hide()                                              // hidding dropzone when files are dropped
 
            },
           sending: function(file, xhr, data){
