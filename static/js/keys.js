@@ -14,6 +14,11 @@ function keyDownTextField0(event){
   } // end keyDownTextField2
 
 function rotate_obj(obj){
+
+  /*
+  Make the object rotate.
+  */
+
    obj.rotation.z += -Math.PI/2;
    obj.material.color.setHex( 0xff33f5 ); // change color
 }
@@ -35,30 +40,30 @@ function keyDownTextField1(event){
 
     $('#curr_func').css('background-color','red')
 
-    if(event.keyCode == 16){    												  // Picking objects to aplly the same action after.. 
+    if (event.keyCode == 16){    												  // Picking objects to aplly the same action after..
           select_picking = !select_picking
           if (select_picking){
               document.getElementById("curr_func").textContent = "picking";
           }
-          else{
+          else {
             document.getElementById("curr_func").textContent = "";
           }
 
       } // end if key code
 
-    if(event.keyCode == 38){    												  // Up
+    if (event.keyCode == 38){    												  // Up
           if ( INTERSECTED ){
             INTERSECTED.position.z += 50;
           }
       } // end if key code
 
-    if(event.keyCode == 40){    												  // Down
+    if (event.keyCode == 40){    												  // Down
           if ( INTERSECTED ){
             INTERSECTED.position.z += -50;
           }
       } // end if key code
 
-    if(keyev('r', event)){    												  // Rotation
+    if (keyev('r', event)){    												  // Rotation
           if ( INTERSECTED ){
             INTERSECTED.rotation.z += -Math.PI/2; 		  // Pi/2 rotation
           }
@@ -66,28 +71,28 @@ function keyDownTextField1(event){
             apply_to_all(rotate_obj)
           }
       } // end if key code
-    if(keyev('c', event)){    											    // Clone the selected object
+    if (keyev('c', event)){    											    // Clone the selected object
           if ( INTERSECTED ){
               clone_object()
           }
       } // end if key code
-    if(keyev('d', event)){    											    // Delete object selected
+    if (keyev('d', event)){    											    // Delete object selected
         delete_object()
       } // end if key code
 
-    if(keyev('n', event)){             							    // create or not a new object with the mouse..
+    if (keyev('n', event)){             							    // create or not a new object with the mouse..
          create_new_obj = !create_new_obj
       } // end if key code
 
-    if(keyev('s', event)){             							    // select area..
+    if (keyev('s', event)){             							    // select area..
          select_obj = !select_obj
       } // end if key code
 
-    if(keyev('h', event)){             							    // horizontal plane..
+    if (keyev('h', event)){             							    // horizontal plane..
          make_plane = !make_plane
       } // end if key code
 
-    if(keyev('k', event)){             							    // change camera's position with the mouse.
+    if (keyev('k', event)){             							    // change camera's position with the mouse.
          select_poscam = ! select_poscam;
       } // end if key code
 
@@ -100,18 +105,17 @@ function keyDownTextField1(event){
       */
 
 
-
     } // end keyDownTextField2
 
   //-------------------------
 
-  var selectdic = {'k':select_poscam, 'n':create_new_obj}
+  var selectdic = { 'k' : select_poscam, 'n' : create_new_obj }
   function select_exclude(key){
       // create_new_obj = false;
       // select_poscam = false;
       selectdic[key] = !selectdic[key];
       for (k in Object.keys(selectdic)){
-          if(k != key){
+          if ( k != key ){
               selectdic[k] = false;
           }
       }
