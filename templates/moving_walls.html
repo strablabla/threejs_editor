@@ -160,15 +160,6 @@
 				//make_small_seats()     		// make the seats
 				//make_seat()            		// make the seat
 
-				function random_name(){
-
-					  /*
-						Return a random name
-						*/
-
-						return Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
-				}
-
 				listorig = {}
 				listmat = {} // list of materials
 				basic_color = 0xffffff;  // white color by default...
@@ -232,7 +223,7 @@
 
 				socket.emit( 'begin',  "hello from client"); // send mess to server for ping pong..
 				socket.on('server_pos', function(msg) {
-							load_scene(msg)
+							load_scene(msg)  // When receiving the scene from the server (pos.json), load it in the client..
 					  });// end socket.on
 
 				// var gjson ;
@@ -296,12 +287,12 @@
 																			 "clone_infos": objects[i].clone_infos,
 																			 "type": objects[i].type
 																		  };
-											listpos[objects[i].name] = infos_obj;   			// add position to listpos
+											listpos[objects[i].name] = infos_obj;   			// add informations about the objects in the scene to listpos
 											listpos[random_name()] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
 										}    // end if
 									}    // end for
-						socket.emit( 'message', JSON.stringify(listpos));
-					} // end emit_infos_scene
+						socket.emit( 'message', JSON.stringify(listpos));  // send the informations to the server
+					}    // end emit_infos_scene
 
 				renderer.domElement.addEventListener( 'mouseup', emit_infos_scene, false );
 

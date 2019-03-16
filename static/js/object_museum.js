@@ -186,7 +186,7 @@ function make_wall(name,p,r,material){
     name : name of the object
     p : position of the object
     r : rotation of the object
-    col : color of the object
+    material : color and texture of the object
     */
 
     //wall_color = col;
@@ -195,8 +195,6 @@ function make_wall(name,p,r,material){
     var wall_height = 300;
     p.z = wall_height/2;
     var geometry = new THREE.CubeGeometry( wall_width, wall_length, wall_height );
-    //var material = new THREE.MeshLambertMaterial( { color: wall_color } )
-    //var material = new THREE.MeshBasicMaterial({ map : tex, color : wall_color})
     var object = new THREE.Mesh( geometry, material );
     object = obj_basics(object,p,r,name)
     object.type = "wall"
