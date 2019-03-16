@@ -157,7 +157,23 @@
 				//make_seat()            		// make the seat
 
 				listorig = {}
-				listmat = {}
+				listmat = {} // list of materials
+				basic_color = 0xffffff;  // white color by default...
+				basic_tex = new THREE.ImageUtils.loadTexture( "static/upload/Blank.jpg" )
+
+				function loadwall(k, msg){
+
+					/*
+					Create new wall
+					*/
+
+					if (msg[k]['type'] == "wall"){
+								listmat[k] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
+								listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )
+					 }
+					listorig[k]['clone_infos'] = msg[k]['clone_infos']
+
+				}
 
 				function load_scene(msg){
 
@@ -165,18 +181,9 @@
 							Loading the scene
 							*/
 
-
 							for (i=0; i < Object.keys(msg).length; i++){ 					// Create the objects at the beginning
 											var k = Object.keys(msg)[i]  									// k is the objects name
-											if (msg[k]['type'] == "wall"){
-													wall_color = 0x800000;
-													var tex = new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
-													listmat[k] = new THREE.MeshBasicMaterial({ map : tex, color : wall_color})
-												 	listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], listmat[k] )
-													//listorig[k] = make_wall(k, msg[k]['pos'], msg[k]['rot'], listmat[k])
-
-											 }
-										  listorig[k]['clone_infos'] = msg[k]['clone_infos']
+											loadwall(k, msg)
 
 									} // end for (loading the scene)
 
@@ -265,7 +272,6 @@
 						Infos about : position, cloning, rotation, type of object..
 						*/
 
-
 						var listpos = {}         														// list of all the positions
 						for (i in objects){
 									if (objects[i].type != 'pawn' & objects[i].type != null){
@@ -274,21 +280,16 @@
 											var z = objects[i].rotation.z
 											var infos_obj = {
 																			 "pos": objects[i].position,
-											 								 "rot": {x, y, z},
+											 								 "rot": {x,y,z},
 																			 "clone_infos": objects[i].clone_infos,
 																			 "type": objects[i].type
 																		  };
-
 											listpos[objects[i].name] = infos_obj;   			// add position to listpos
-										} // end if
-									} // end for
-						//listpos = {"a":2, "b":3}
-						// $('#curr_func').css('background-color','red')
-						// $('#curr_func').text(listpos.toString())
-						// console.log(JSON.stringify(listpos))
+										}    // end if
+									}    // end for
 						socket.emit( 'message', JSON.stringify(listpos));
+					} // end emit_infos_scene
 
-						}
 				renderer.domElement.addEventListener( 'mouseup', emit_infos_scene, false );
 
 				//---------------------------
@@ -319,7 +320,6 @@
 		</div>
 
 		<div style="cursor: auto;">
-
 
 			<div class="panel" id="pan" >
 
@@ -396,7 +396,6 @@
 
 		<script>
 
-
 //===================================================================== Simple markdown
 
     /*
@@ -429,7 +428,6 @@
         return htm.html()
     } // end function
 
-
 var keys = function(){/*
     # Keys:
     * action
@@ -440,10 +438,10 @@ var keys = function(){/*
         * d : delete
         * k : select camera position with the mouse..
         * n : new piece with mouse
+				* SHIFT : select many objects separately
         * arrow up : move up
         * arrow down : move down
 */}.toString().slice(14,-3)
-
 
 //===================================================================== keys
 
@@ -493,7 +491,7 @@ var keys = function(){/*
 						$('.panel').css({'top':"10px","left":"-300px"})    // close panel about object infos when mouse leaves..
 				})
 
-    manage_drop()                                          // manage the Dropzone
+    manage_drop()                                              // manage the Dropzone
 
 		</script>
 
