@@ -49,7 +49,7 @@ function onDocumentMouseMove( event ) {
         var interptsub = intersects[ 0 ].point.sub( offset )
         interptsub.z = SELECTED.position.z
         SELECTED.position.copy( interptsub );
-        nearest_object(SELECTED)  // change the color of the nearest objects..
+        nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
 
         return;
 
@@ -79,7 +79,6 @@ function onDocumentMouseMove( event ) {
         container.style.cursor = 'auto';
 
     }
-
 
 } // end mouse move
 
@@ -111,7 +110,6 @@ function onDocumentMouseDown( event ) {
     if (select_picking){
        list_obj_inside.push(SELECTED)
        INTERSECTED.material.color.setHex( 0xebebe0 );
-
     }
 
 }
@@ -183,7 +181,7 @@ function objects_in_area(){
 function getDistance(mesh1, mesh2) {
 
       /*
-      Distance mesh1-mesh2
+      Distance mesh1 to mesh2
       */
 
       var dx = mesh1.position.x - mesh2.position.x;
@@ -197,7 +195,7 @@ function getDistance(mesh1, mesh2) {
 function nearest_object(currobj){
 
     /*
-    Find the nearest object
+    Find the nearest object and change its color in yellow..
     */
 
     var mindist = 200;
@@ -216,7 +214,7 @@ function nearest_object(currobj){
     } // end for
 
     if (mini != -1){
-      objects[mini].material.color.setHex(0xffff66)
+         objects[mini].material.color.setHex(0xffff66) // change the color to yellow
     }
 
 } // end nearest_object
@@ -282,10 +280,13 @@ function mouse_create_object_or_action(){
     */
 
     if (create_new_obj){
+
           newname = random_name()
           interptsub = mousepos()
+          basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // edfault white texture
           listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
           listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
+
     }
 
     //------------------------- Mouse select area..
@@ -300,7 +301,7 @@ function mouse_create_object_or_action(){
 
     } // end select_obj
 
-    //------------------------- Make plane
+    //------------------------- Make an horizontal plane
 
     if (make_plane){              // H key
 
@@ -339,6 +340,7 @@ function give_infos(){
       Infos are :
           * the name
           * the orientation..
+      play with .panel
       */
 
       if ( INTERSECTED ){
@@ -353,7 +355,13 @@ function give_infos(){
                 x[i].style.left = "0px";  				  //  pos x
                 x[i].style.top =  "50px";   				//  pos y
             }
-            $('#name_panel').text(INTERSECTED.name);          //  show the name of the element in the parameter panel..
+            $('#name_panel').text(INTERSECTED.name);                              // name of the element in the parameter panel..
+            $('#width_panel').val(INTERSECTED.width);                             // width  of the element in the parameter panel..
+            $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
+            $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
+            $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
+            $('#texture_panel').val(INTERSECTED.tex);                             // texture of the element in the parameter panel..
+
       }
 
   } // end give infos
