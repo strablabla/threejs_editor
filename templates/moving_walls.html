@@ -19,9 +19,13 @@
 	}
 
 	#dropz {
-		height: 30px;
-		width : 140px;
+		height: 20px;
+		width : 80px;
 		margin-left: 15px;
+	}
+
+	.dz-message {
+		top: 2px;
 	}
 
 	</style>
@@ -333,8 +337,11 @@
 										<input value="color" size=8 id="color_panel">
 								</span>
 						</div>
-						<div> <span> texture: </span><span  >
-										<input value="texture" size=8 id="texture_panel">
+						<div> <span> texture: </span><span >
+										<!-- <input value="texture" size=8 id="texture_panel"> -->
+										<form  id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" >
+													<!-- <div class="dz-message "> hop </div> -->
+										</form>
 								</span>
 						</div>
 
@@ -344,9 +351,20 @@
 
 						<br>
 
-						<form  id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" ></form>
+
 
 						<br><br>
+
+						<script> $('#save_param').click(function(){
+
+								for (i in objects){
+									  if (objects[i].name == $('#name_panel').text()){
+											 objects[i].rotation.z = $('#angle_panel').val()
+										} // end if
+								} // end for
+
+						})
+						</script>
 
 						<!-- <div>
 								  <input type="checkbox" id="rotate" name="rot">
