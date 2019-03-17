@@ -190,13 +190,15 @@ function make_wall(name,p,r,material){
     */
 
     //wall_color = col;
-    var wall_length = 150;
-    var wall_width = 5;
+    var wall_width = 150;
+    var wall_thickness = 5;
     var wall_height = 300;
     p.z = wall_height/2;
-    var geometry = new THREE.CubeGeometry( wall_width, wall_length, wall_height );
+    var geometry = new THREE.CubeGeometry( wall_thickness, wall_width, wall_height );
     var object = new THREE.Mesh( geometry, material );
     object = obj_basics(object,p,r,name)
+    object.width = wall_width;
+    object.height = wall_height;
     object.type = "wall"
     scene.add( object );
     objects.push( object )

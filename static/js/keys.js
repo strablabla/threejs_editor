@@ -167,8 +167,8 @@ function keyDownTextField1(event){
       INTERSECTED.clone_infos.numclone += 1;
       clone.clone_infos = {"numclone":0,"cloned":true,"origclone":INTERSECTED.name}
       //-----------
-      clone.position.x += 100;                // shift position in relation with the original piece
-      clone.material.color.setHex( 0xffffff ); // change color
+      clone.position.x += 100;                      // shift position in relation with the original piece
+      clone.material.color.setHex( 0xcceeff );      // clone color, pale blue
       scene.add(clone)
       objects.push(clone)
 
@@ -185,10 +185,9 @@ function keyDownTextField1(event){
                     if (objects[j].name == list_obj_inside[i].name){
                         func_all(objects[j])
                     } //end if
-                } // end for j
-
-            } // end for i
-        list_obj_inside = []
+                } // end for j (reading the list objects)
+            } // end for i (reading the list list_obj_inside)
+        list_obj_inside = []  // reinitializing list_obj_inside
         select_picking = false
   }
 
