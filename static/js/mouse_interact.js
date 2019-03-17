@@ -104,6 +104,7 @@ function onDocumentMouseDown( event ) {
     }
     else{
         $('.panel').css({'top':"10px","left":"-300px"})  // hide panel when mouse leaves..
+        //$('.panel').css({'top':"10px","left":"0px"})  // hide panel when mouse leaves..
     }
 
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
@@ -272,6 +273,27 @@ function make_limits_mouse(){
 
 }
 
+function newview(selpos){
+
+      /*
+      put the camera at positon selpos[0] and look at selpos[1]
+      */
+
+      var altit = 250;
+      var target_view = new THREE.Vector3(selpos[1].position.x,
+                                          selpos[1].position.y,
+                                          selpos[1].position.z + altit)
+      target_view.z = altit;
+      target_view.opacity = 0;
+      camera.position.z = altit;
+      camera.position.y = selpos[0].position.y;
+      camera.position.x = selpos[0].position.x;
+      camera.up = new THREE.Vector3(0,0,1); // good orientation of the camera..
+      //camera.lookAt(selpos[1].position);
+      controls.target = target_view;
+
+}
+
 function mouse_create_object_or_action(){
 
     /*
@@ -317,15 +339,12 @@ function mouse_create_object_or_action(){
 
     if (select_poscam){
 
-            /*
-            Select camera position with mouse
-            */
+        /*
+        Select camera position with mouse
+        */
 
-            interptsub = mousepos()       // mouse position
-            camera.position.z = 1000;
-            camera.position.y = interptsub.y;
-            camera.position.x = interptsub.x;
-            camera.up = new THREE.Vector3(0,0,1); // good orientation of the camera..
+        limits_and_action(newview)
+
 
       } // end select_poscam
 
@@ -360,7 +379,9 @@ function give_infos(){
             $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
             $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
             $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
-            $('#texture_panel').val(INTERSECTED.tex);                             // texture of the element in the parameter panel..
+            //$('#texture_panel').val(INTERSECTED.tex);                             // texture of the element in the parameter panel..
+            $('.dz-message').css('top','2px')
+            $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
 
       }
 
