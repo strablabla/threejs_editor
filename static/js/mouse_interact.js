@@ -142,10 +142,39 @@ function onDocumentMouseUp( event ) {
     event.preventDefault();
     controls.enabled = true;
     if (nearest_elem){
-        SELECTED.position = nearest_elem.position
+        var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
+        var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
+        modulo_dic = {}
+
+        SELECTED.position.x = nearest_elem.position.x;
+        SELECTED.position.y = nearest_elem.position.y;
+        SELECTED.position.z = nearest_elem.position.z;
+
+        var modulo_diff = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
+        var modulo = Math.round(SELECTED.rotation.z % (Math.PI))
+        //var test_modulo = SELECTED.rotation.z
+        if ( (modulo_diff == 0) ){
+              if (modulo != 0){
+                  SELECTED.position.x += signx*SELECTED.width;
+              }
+              else{
+                  SELECTED.position.y += signy*SELECTED.width;
+              }
+              $('#curr_func').css('background-color','yellow')
+
+        }
+        else{
+
+              SELECTED.position.x += SELECTED.width/2; //
+              SELECTED.position.y += SELECTED.width/2;
+
+
+              $('#curr_func').css('background-color','grey')
+        }
         //$('#curr_func').text(nearest_elem.name)
-        $('#curr_control').html(SELECTED.name + '\n' + nearest_elem.name)
-        SELECTED.position.z += 200;
+        $('#curr_cntrl').html("modulo = " + modulo + '\n'
+                                        + "modulo_diff = " + modulo_diff)
+
     }
 
     if ( INTERSECTED ) {
