@@ -165,15 +165,15 @@ function onDocumentMouseUp( event ) {
         }
         else{
 
-              SELECTED.position.x += SELECTED.width/2; //
-              SELECTED.position.y += SELECTED.width/2;
+              SELECTED.position.x += signx*SELECTED.width/2; //
+              SELECTED.position.y += signy*SELECTED.width/2;
 
 
               $('#curr_func').css('background-color','grey')
         }
         //$('#curr_func').text(nearest_elem.name)
-        $('#curr_cntrl').html("modulo = " + modulo + '\n'
-                                        + "modulo_diff = " + modulo_diff)
+        // $('#curr_cntrl').html("modulo = " + modulo + '\n'
+        //                                 + "modulo_diff = " + modulo_diff)
 
     }
 
