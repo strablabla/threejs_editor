@@ -63,6 +63,28 @@ Indicate which key functon is currently activated..
 }
 
 /*
+Controls
+*/
+
+.current_control {
+
+	font-family: 'Playfair Display';
+	font-size: 1.2em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	text-align: center;
+	padding-top: 2px;
+	height : 400px;
+	width : 150px;
+	right: 5px;
+	top: 100px;
+	z-index: 9000;
+	opacity: 0.4;
+	background-color:green;
+
+}
+
+/*
 Help
 */
 
@@ -128,28 +150,6 @@ Panel inside panel keys of color white
 	border-radius: 10px;
 }
 
-/*
-Panel objects
-*/
-
-.panel_objects {
-	font-family: 'Playfair Display';
-	font-size: 0.85em;
-	letter-spacing: 0.2em;
-	position: absolute;
-	top: 50px;
-	left:20%;
-	margin-left:5px;
-	padding-left: 5px;
-	padding-top: 20px;
-	width: 400px;
-	height: 400px;
-	background-color:#ccffe6; /* green */
-	z-index: 9999;
-	opacity: 1;
-	border-radius: 10px;
-	box-shadow: 10px 10px 12px;
-}
 
 /*
 Panel help
@@ -161,7 +161,7 @@ Panel help
 	letter-spacing: 0.2em;
 	position: absolute;
 	top: 50px;
-	right:10px;
+	right:2px;
 	margin-left:5px;
 	padding-left: 5px;
 	padding-top: 20px;
@@ -171,7 +171,7 @@ Panel help
 	background-color: #fff; /* green */
 	z-index: 9999;
 	opacity: 1;
-	border-radius: 10px;
+	/* border-radius: 10px; */
 	box-shadow: 10px 10px 12px;
 }
 
@@ -239,7 +239,7 @@ Panel objects
 	letter-spacing: 0.2em;
 	position: absolute;
 	top: 50px;
-	right:10px;
+	right:2px;
 	margin-left:5px;
 	padding-left: 10px;
 	padding-top: 20px;
@@ -248,4 +248,46 @@ Panel objects
 	background-color:#fff; /*blue;*/
 	z-index: 9999;
 	opacity: 0.9;
+}
+
+/*
+Panel views
+*/
+
+.panel_views {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	right:2px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 400px;
+	height: 600px;
+	background-color:#fff; /*blue;*/
+	z-index: 9999;
+	opacity: 1;
+}
+
+/*
+Panel scene
+*/
+
+.panel_scene {
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	right:2px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 400px;
+	height: 600px;
+	background-color:#fff; /*blue;*/
+	z-index: 9999;
+	opacity: 1;
 }

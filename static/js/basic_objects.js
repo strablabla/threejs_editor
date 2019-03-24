@@ -1,5 +1,29 @@
 disp = 5
 
+function make_meshFaceMaterial(tex_mult_addr){
+
+      /*
+      Make meshFaceMaterial
+      */
+
+      //$('#curr_func').css('background-color','blue')
+      var tex_addr = "static/upload/" + tex_mult_addr ;
+      var materials = [];
+      for (var i=0; i<6; i++){
+          materials.push(new THREE.MeshBasicMaterial({
+              map:  THREE.ImageUtils.loadTexture( tex_addr + '/' + i +'.jpg' ),
+              color: 0xffffff
+              }) // end MeshBasicMaterial
+         ) // end push
+      } // end for
+      //$('#curr_func').css('background-color','red')
+      //var meshbasemat = new THREE.MeshBasicMaterial( materials );
+      var meshbasemat = new THREE.MeshFaceMaterial( materials );
+
+      return meshbasemat
+
+}
+
 function obj_basics(object, p, r, name){
 
     /*
@@ -79,6 +103,7 @@ function dotted_line(nbelem,elem,kind,posx,posy,size_elem){
           }
           elem_clone.position.z = 25;
           scene.add(elem_clone)
+
       } // end for
 }
 
@@ -88,21 +113,23 @@ function make_dotted_area(selpos){
     Area for selecting the pieces
     */
 
-    var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x)
-    var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y)
+    //var dotted_line_color = 0xffffff
+    var dotted_line_color = 0x000000
+    var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x) // length side1
+    var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y) // length side2
     size_elem = 40
+    //-----------------
     var geometry = new THREE.CubeGeometry( size_elem, size_elem, 3 );
-    var square_color = 0xffffff
-    var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
-
+    var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: dotted_line_color } ) );
+    //----------------- number of elements
     nbelem1 = Math.round(side1/(2*size_elem))
     nbelem2 = Math.round(side2/(2*size_elem))
-
+    //----------------- limits
     var minx = Math.min(selpos[0].position.x,selpos[1].position.x)
     var miny = Math.min(selpos[0].position.y,selpos[1].position.y)
     var maxx = Math.max(selpos[0].position.x,selpos[1].position.x)
     var maxy = Math.max(selpos[0].position.y,selpos[1].position.y)
-
+    //-----------------
     dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem)
 
 } // end function make area
@@ -138,16 +165,22 @@ function make_uniform_ground(){
     */
 
     var size_square = 5000;
-    var geometry = new THREE.CubeGeometry( size_square, size_square, 5 );
-    var square_color = 0xffffff
-    var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
+    var square_color = 0xe0ebeb
+    var texture =  new THREE.ImageUtils.loadTexture( "static/upload/pale-rose.jpg" )//ligthgrey.jpg
+    //var geometry = new THREE.CubeGeometry( size_square, size_square, 5 );
+    var geometry = new THREE.BoxGeometry( size_square, size_square, 5 );
+    var material = new THREE.MeshStandardMaterial( { map : texture } )
+    var object = new THREE.Mesh( geometry, material );
     object.material.ambient = object.material.color;
+    //--------- Position
     object.position.x = 0
     object.position.y = 0
     object.position.z = 0
+    //--------- Shadow
     object.castShadow = true;
     object.receiveShadow = true;
-    object.opacity = 0.2;
+    //---------
+    object.opacity = 1;
     object.name = "ground";
     object.size = size_square;
     scene.add( object );
@@ -163,10 +196,12 @@ function make_ground_chess(){
     var col2 = 0xffffff
     var size_square = 150;
     var geometry = new THREE.CubeGeometry( size_square, size_square, 5 );
+    var texture =  new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
     var square_color
     for ( var i = 0; i < 64; i ++ ) {
         if ((i+Math.floor(i/8))%2==0){square_color = col1}
         else{square_color = col12}
+        //var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { map : texture } ) );
         var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
         object.material.ambient = object.material.color;
         object.position.x = (i%8-4) * size_square
@@ -189,7 +224,6 @@ function make_wall(name,p,r,material){
     material : color and texture of the object
     */
 
-    //wall_color = col;
     var wall_width = 150;
     var wall_thickness = 5;
     var wall_height = 300;
@@ -200,6 +234,42 @@ function make_wall(name,p,r,material){
     object.width = wall_width;
     object.height = wall_height;
     object.type = "wall"
+    scene.add( object );
+    objects.push( object )
+
+    return object
+
+} // end function
+
+
+function make_cube_texture(name,p,r,meshFaceMaterial){
+
+    /*
+
+    Cube with Multiple textures
+
+    name : name of the object
+    p : position of the object
+    r : rotation of the object
+    material : color and texture of the object
+
+    */
+
+    var cube_width = 100;
+    var cube_thickness = 100;
+    var cube_height = 100;
+    p.z = cube_height/2;
+    //$('#curr_func').css('background-color','blue')
+    var geometry = new THREE.BoxGeometry(cube_thickness,cube_width,cube_height);
+    $('#curr_func').css('background-color','red')
+    var object = new THREE.Mesh(geometry, meshFaceMaterial);
+    object.material.ambient = object.material.color;
+    //----------
+    object = obj_basics(object,p,r,name)
+    object.width = cube_width;
+    object.height = cube_height;
+    object.type = 'cube_mult_tex'
+
     scene.add( object );
     objects.push( object )
 

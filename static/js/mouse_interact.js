@@ -1,3 +1,19 @@
+// function camera_pos_orient(pos, target_view){
+//
+//   /*
+//   Change the position and orientation of the camera
+//   */
+//
+//   var targetcam = new THREE.Vector3(target_view.x, target_view.y, target_view.z)
+//   var poscam = new THREE.Vector3(pos.x, pos.y, pos.z)
+//   //-----------
+//   camera.position = poscam
+//   camera.up = new THREE.Vector3(0,0,1);       // good orientation of the camera..
+//   targetcam.opacity = 0;
+//   controls.target = targetcam;
+//
+// }
+
 function random_name(){
 
     /*
@@ -49,7 +65,7 @@ function onDocumentMouseMove( event ) {
         var interptsub = intersects[ 0 ].point.sub( offset )
         interptsub.z = SELECTED.position.z
         SELECTED.position.copy( interptsub );
-        nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
+        nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
 
         return;
 
@@ -108,9 +124,11 @@ function onDocumentMouseDown( event ) {
     }
 
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
-    if (select_picking){
+    if (select_picking){                   // adding the object to the list of the picked elements..
+
        list_obj_inside.push(SELECTED)
        INTERSECTED.material.color.setHex( 0xebebe0 );
+
     }
 
 }
@@ -123,6 +141,13 @@ function onDocumentMouseUp( event ) {
 
     event.preventDefault();
     controls.enabled = true;
+    if (nearest_elem){
+        SELECTED.position = nearest_elem.position
+        //$('#curr_func').text(nearest_elem.name)
+        $('#curr_control').html(SELECTED.name + '\n' + nearest_elem.name)
+        SELECTED.position.z += 200;
+    }
+
     if ( INTERSECTED ) {
         LAST_SELECTED = SELECTED;
         SELECTED = null;
@@ -136,21 +161,21 @@ function onDocumentMouseUp( event ) {
 
 function mousepos(){
 
-      /*
-      Return the mouse coordinates in the horizontal plane
-      */
+    /*
+    Return the mouse coordinates in the horizontal plane
+    */
 
-      event.preventDefault();
-      mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-      mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-      //---------------------------------
-      var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-      projector.unprojectVector( vector, camera );
-      var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-      //---------------------------------
-      var intersects = raycaster.intersectObject( plane );
-      var interptsub = intersects[ 0 ].point.sub( offset )
-      return interptsub
+    event.preventDefault();
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    //---------------------------------
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+    projector.unprojectVector( vector, camera );
+    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+    //---------------------------------
+    var intersects = raycaster.intersectObject( plane );
+    var interptsub = intersects[ 0 ].point.sub( offset )
+    return interptsub
 
 }
 
@@ -172,7 +197,7 @@ function objects_in_area(){
             objects[i].position.y < maxy )
             {
                 list_obj_inside.push(objects[i])
-                objects[i].material.color.setHex(0xffcccc) //
+                objects[i].material.color.setHex(0xffcccc) // light pink color
             }
 
     } // end for
@@ -181,14 +206,14 @@ function objects_in_area(){
 
 function getDistance(mesh1, mesh2) {
 
-      /*
-      Distance mesh1 to mesh2
-      */
+    /*
+    Distance from mesh1 to mesh2
+    */
 
-      var dx = mesh1.position.x - mesh2.position.x;
-      var dy = mesh1.position.y - mesh2.position.y;
-      var dz = mesh1.position.z - mesh2.position.z;
-      return Math.sqrt(dx*dx+dy*dy+dz*dz);
+    var dx = mesh1.position.x - mesh2.position.x;
+    var dy = mesh1.position.y - mesh2.position.y;
+    var dz = mesh1.position.z - mesh2.position.z;
+    return Math.sqrt(dx*dx+dy*dy+dz*dz);
 
 }
 
@@ -201,7 +226,7 @@ function nearest_object(currobj){
 
     var mindist = 200;
     mini = -1;
-    for (i in objects){
+    for ( i in objects ){
         if (objects[i] != currobj){
               var dist = getDistance(currobj, objects[i])
               if ( dist < mindist ){        // smaller distance
@@ -214,9 +239,10 @@ function nearest_object(currobj){
         } // end if objects[i]
     } // end for
 
-    if (mini != -1){
-         objects[mini].material.color.setHex(0xffff66) // change the color to yellow
+    if ( mini != -1 ){
+         objects[mini].material.color.setHex(0xffff66)      // change the color to yellow
     }
+    return objects[mini]
 
 } // end nearest_object
 
@@ -249,15 +275,15 @@ function limits_and_action(action){
 
 function corner(){
 
-  /*
-  Make a corner
-  */
+    /*
+    Make a corner
+    */
 
-  interptsub = mousepos()
-  var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, 0xffcccc )
-  selpos.push(creobj)
-  list_obj_inside.push(creobj)      // adding the limits in the list
-  return creobj
+    interptsub = mousepos()
+    var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, 0xffcccc )
+    selpos.push(creobj)
+    list_obj_inside.push(creobj)      // adding the limits in the list
+    return creobj
 
 }
 
@@ -275,22 +301,17 @@ function make_limits_mouse(){
 
 function newview(selpos){
 
-      /*
-      put the camera at positon selpos[0] and look at selpos[1]
-      */
+    /*
+    put the camera at positon selpos[0] and look at selpos[1]
+    */
 
-      var altit = 250;
-      var target_view = new THREE.Vector3(selpos[1].position.x,
-                                          selpos[1].position.y,
-                                          selpos[1].position.z + altit)
-      target_view.z = altit;
-      target_view.opacity = 0;
-      camera.position.z = altit;
-      camera.position.y = selpos[0].position.y;
-      camera.position.x = selpos[0].position.x;
-      camera.up = new THREE.Vector3(0,0,1); // good orientation of the camera..
-      //camera.lookAt(selpos[1].position);
-      controls.target = target_view;
+    var altit = 250;
+    camera.position.set(selpos[0].position.x,selpos[0].position.y,selpos[0].position.z+altit); // Set position like this
+    camera.up = new THREE.Vector3(0,0,1);
+    controls.target = new THREE.Vector3(selpos[1].position.x,selpos[1].position.y,selpos[1].position.z+altit);
+    select_poscam = false;
+    selpos = []
+    $('#curr_func').css('background-color','blue')
 
 }
 
@@ -301,15 +322,41 @@ function mouse_create_object_or_action(){
      where the mouse is located in the plane.
     */
 
-    if (create_new_obj){
+    if (create_new_obj){           // N key
+
+          /*
+          Create new wall
+          */
 
           newname = random_name()
           interptsub = mousepos()
-          basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // edfault white texture
+          basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
           listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
           listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
 
     }
+
+    if (create_cube){                // M key
+
+          /*
+          Create new cube with texture
+          */
+
+          $('#curr_func').css('background-color','red')
+          newname = random_name()
+          interptsub = mousepos()
+          curr_tex_addr = basic_multiple_tex_addr;
+          $('#curr_func').css('background-color','blue')
+          var meshFaceMaterial = make_meshFaceMaterial('face_color')
+          listorig[newname] = make_cube_texture( newname, interptsub, {"x":0, "y":0, "z":0}, meshFaceMaterial )   // make the wall object
+          listorig[newname]['tex_addr'] =  curr_tex_addr               									// texture address
+          listorig[newname]['tex'] =  curr_tex_addr.split('/').pop(-1)               	  // texture name
+          $('#curr_func').css('background-color','green')
+          // basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
+          // listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
+          // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
+
+    }     // end cube multiple textures...
 
     //------------------------- Mouse select area..
 
@@ -337,7 +384,7 @@ function mouse_create_object_or_action(){
 
     //------------------------- Change the camera point of view
 
-    if (select_poscam){
+    if (select_poscam){            // K key
 
         /*
         Select camera position with mouse
@@ -345,11 +392,26 @@ function mouse_create_object_or_action(){
 
         limits_and_action(newview)
 
-
       } // end select_poscam
 
 } // end mouse_create_object_or_action
 
+function modify_values(INTERSECTED){
+
+    /*
+    Change the vaues in the panel for infos about the object selected..
+    */
+
+    $('#name_panel').text(INTERSECTED.name);                              // name of the element in the parameter panel..
+    $('#width_panel').val(INTERSECTED.width);                             // width  of the element in the parameter panel..
+    $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
+    $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
+    $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
+    //$('#texture_panel').val(INTERSECTED.tex);                             // texture of the element in the parameter panel..
+    $('.dz-message').css('top','2px')
+    $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
+
+}
 
 function give_infos(){
 
@@ -362,27 +424,20 @@ function give_infos(){
       play with .panel
       */
 
-      if ( INTERSECTED ){
+      if (select_obj_infos){       //  select_obj_infos must be activated for accessing to the infos..
+          if ( INTERSECTED ){
+                var x = document.getElementsByClassName("panel");
+                for (var i = 0; i < x.length; i++) {
+                    x[i].style.visibility = "visible";    // make the panel visible
+                    x[i].style.backgroundColor = "white";
+                    // x[i].style.left = event.pageX + "px";  				// using mouse x
+                    // x[i].style.top = event.pageY + "px";   				// using mouse y
+                    x[i].style.left = "0px";  				  //  pos x
+                    x[i].style.top =  "50px";   				//  pos y
+                }
+          modify_values(INTERSECTED)
 
-            var x = document.getElementsByClassName("panel");
-            var i;
-            for (i = 0; i < x.length; i++) {
-                x[i].style.visibility = "visible";
-                x[i].style.backgroundColor = "white";
-                // x[i].style.left = event.pageX + "px";  				// mouse x
-                // x[i].style.top = event.pageY + "px";   				// mouse y
-                x[i].style.left = "0px";  				  //  pos x
-                x[i].style.top =  "50px";   				//  pos y
-            }
-            $('#name_panel').text(INTERSECTED.name);                              // name of the element in the parameter panel..
-            $('#width_panel').val(INTERSECTED.width);                             // width  of the element in the parameter panel..
-            $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
-            $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
-            $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
-            //$('#texture_panel').val(INTERSECTED.tex);                             // texture of the element in the parameter panel..
-            $('.dz-message').css('top','2px')
-            $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
-
+          }
       }
 
   } // end give infos
