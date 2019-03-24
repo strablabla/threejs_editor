@@ -84,6 +84,10 @@ function keyDownTextField1(event){
          create_new_obj = !create_new_obj
       } // end if key code
 
+      if (keyev('m', event)){             							    // create or not a new object with the mouse..
+           create_cube = !create_cube
+        } // end if key code
+
     if (keyev('s', event)){             							    // select area..
          select_obj = !select_obj
       } // end if key code
@@ -94,6 +98,10 @@ function keyDownTextField1(event){
 
     if (keyev('k', event)){             							    // change camera's position with the mouse.
          select_poscam = ! select_poscam;
+      } // end if key code
+
+    if (keyev('i', event)){             							    // infos about the object selected
+         select_obj_infos = ! select_obj_infos;
       } // end if key code
 
   } // end keyDownTextField1
@@ -110,6 +118,7 @@ function keyDownTextField1(event){
   //-------------------------
 
   var selectdic = { 'k' : select_poscam, 'n' : create_new_obj }
+
   function select_exclude(key){
       // create_new_obj = false;
       // select_poscam = false;

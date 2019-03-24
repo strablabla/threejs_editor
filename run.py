@@ -15,6 +15,8 @@ import eventlet
 eventlet.monkey_patch()
 #################
 import os, sys, time, json
+opd, opb = os.path.dirname, os.path.basename
+import shutil as sh
 sys.path.append('/usr/lib/python2.7/dist-packages')
 from threading import Thread
 import flask
@@ -78,17 +80,21 @@ def upload_file(debug=1):
     if request.method == 'POST':
         print("method is POST")
         for f in request.files.getlist('file'):                   # retrieves files names
-            file_in_folder_path = request.form.get('fullPath')
+            folder_file_path = request.form.get('fullPath')
             file_name = request.form.get('name')
-            if file_in_folder_path :
-                if debug>0: print("Server side, file_in_folder_path are ", file_in_folder_path)
-                full_path = os.path.join('static', 'upload', file_in_folder_path)
+            print("#####################")
+            print("full_path ",folder_file_path)
+            print("file_name ",file_name)
+            print("#####################")
+            if folder_file_path :
+                if debug>0: print("Server side, full_path are ", folder_file_path)
+                full_path = os.path.join('static', 'upload', folder_file_path)
                 try:
-                    f.save(full_path)
-                except IOError as e:
                     os.makedirs(os.path.dirname(full_path))    # Makes folder
-                    f.save(full_path)                          # Save locally the file in the folder upload
-                    if debug>0: print("###################### Saved file {0} !!!! ".format(full_path))
+                except:
+                    print("folder yet exists")
+                f.save(full_path)                          # Save locally the file in the folder upload
+                if debug>0: print("###################### Saved file {0} !!!! ".format(full_path))
             elif file_name:
                 print("in file_name")
                 full_path = os.path.join('static', 'upload', file_name)
