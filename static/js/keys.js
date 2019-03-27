@@ -63,14 +63,7 @@ function keyDownTextField1(event){
           }
       } // end if key code
 
-    if (keyev('r', event)){    												  // Rotation
-          if ( INTERSECTED ){
-            INTERSECTED.rotation.z += -Math.PI/2; 		  // Pi/2 rotation
-          }
-          else if(list_obj_inside.length > 0){
-            apply_to_all(rotate_obj)
-          }
-      } // end if key code
+
     if (keyev('c', event)){    											    // Clone the selected object
           if ( INTERSECTED ){
               clone_object()
@@ -80,13 +73,26 @@ function keyDownTextField1(event){
         delete_object()
       } // end if key code
 
+    if (keyev('g', event)){             							    // create or not a new object with the mouse..
+         select_move_group = !select_move_group
+      } // end if key code
+
+    if (keyev('m', event)){             							    // create or not a new object with the mouse..
+         create_cube = !create_cube
+      } // end if key code
+
     if (keyev('n', event)){             							    // create or not a new object with the mouse..
          create_new_obj = !create_new_obj
       } // end if key code
 
-      if (keyev('m', event)){             							    // create or not a new object with the mouse..
-           create_cube = !create_cube
-        } // end if key code
+    if (keyev('r', event)){    												  // Rotation
+          if ( INTERSECTED ){
+            INTERSECTED.rotation.z += -Math.PI/2; 		  // Pi/2 rotation
+          }
+          else if(list_obj_inside.length > 0){
+            apply_to_all(rotate_obj)
+          }
+      } // end if key code
 
     if (keyev('s', event)){             							    // select area..
          select_obj = !select_obj
