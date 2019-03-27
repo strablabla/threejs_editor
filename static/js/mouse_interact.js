@@ -1,3 +1,15 @@
+function copypos(a,b){
+
+      /*
+      Copy the positions from b to a
+      */
+
+      a.position.x = b.position.x;
+      a.position.y = b.position.y;
+      a.position.z = b.position.z;
+
+}
+
 function random_name(){
 
     /*
@@ -29,6 +41,34 @@ function onWindowResize() {
 
 }
 
+function addpos(a,b,c){
+
+      /*
+      Sum positions
+      */
+
+      a.x = b.x + c.x
+      a.y = b.y + c.y
+      a.z = b.z + c.z
+
+      return a
+
+}
+
+function removepos(a,b,c){
+
+      /*
+      Sum positions
+      */
+
+      a.x = b.x - c.x
+      a.y = b.y - c.y
+      a.z = b.z - c.z
+
+      return a
+
+}
+
 function move_group(){
 
       /*
@@ -37,9 +77,21 @@ function move_group(){
 
       for (i in list_obj_inside){
           var name_i = list_obj_inside[i].name
-          list_obj_inside[i].position.x = SELECTED.position.x + dict_pos_relat[name_i].x
-          list_obj_inside[i].position.y = SELECTED.position.y + dict_pos_relat[name_i].y
-          list_obj_inside[i].position.z = SELECTED.position.z + dict_pos_relat[name_i].z
+          addpos(list_obj_inside[i].position, SELECTED.position, dict_pos_relat[name_i])
+      }
+}
+
+function keep_relative_positions(){
+
+      /*
+      Save the relative positions for moving
+       the whole group with the selected object..
+      */
+
+      for (i in list_obj_inside){
+          var name_i = list_obj_inside[i].name
+          dict_pos_relat[name_i] = {'x':0, 'y':0, 'z':0}
+          removepos(dict_pos_relat[name_i], list_obj_inside[i].position, SELECTED.position)
       }
 }
 
@@ -65,7 +117,7 @@ function onDocumentMouseMove( event ) {
         SELECTED.position.copy( interptsub );
         nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
         if (select_move_group){
-            move_group()
+            move_group()  // move the whole group, obj in list_obj_inside
         }
         return;
 
@@ -76,8 +128,6 @@ function onDocumentMouseMove( event ) {
 
         if ( INTERSECTED != intersects[ 0 ].object ) {
 
-            // 0xf0f0f5
-            // INTERSECTED.currentHex
             if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex); //
             INTERSECTED = intersects[ 0 ].object;
             INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
@@ -87,8 +137,7 @@ function onDocumentMouseMove( event ) {
         container.style.cursor = 'pointer';
 
     } else {
-        // 0xf0f0f5
-        // INTERSECTED.currentHex
+
         if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
 
         INTERSECTED = null;
@@ -130,21 +179,8 @@ function onDocumentMouseDown( event ) {
           INTERSECTED.material.color.setHex( 0xebebe0 );
 
     }
-    if (select_move_group){             // move the whole group
-          $('#curr_cntrl').text("oooohhh")
-          $('#curr_cntrl').text(SELECTED.name)
-
-          for (i in list_obj_inside){
-              //posrelat = list_obj_inside[i].position - SELECTED.position
-              var name_i = list_obj_inside[i].name
-              posrelatx = list_obj_inside[i].position.x - SELECTED.position.x
-              posrelaty = list_obj_inside[i].position.y - SELECTED.position.y
-              posrelatz = list_obj_inside[i].position.z - SELECTED.position.z
-              dict_pos_relat[name_i] = {'x' : posrelatx, 'y' :  posrelaty, 'z' :  posrelatz}
-              //dict_pos_relat[list_obj_inside[i]] = posrelat
-
-              $('#curr_cntrl').text(dict_pos_relat[name_i].x)
-          }
+    if (select_move_group){
+          keep_relative_positions()  // save the relative positions inside the group
     }
 
 }
@@ -158,13 +194,11 @@ function magnet_wall(nearest_elem){
       var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
       var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
 
-      SELECTED.position.x = nearest_elem.position.x;
-      SELECTED.position.y = nearest_elem.position.y;
-      SELECTED.position.z = nearest_elem.position.z;
+      copypos(SELECTED,nearest_elem)
 
       var modulo_diff = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
       var modulo = Math.round(SELECTED.rotation.z % (Math.PI))
-      if ( (modulo_diff == 0) ){
+      if ( (modulo_diff == 0) ){          // parallel walls
             if (modulo != 0){
                 SELECTED.position.x += signx*SELECTED.width;
             }
@@ -174,7 +208,7 @@ function magnet_wall(nearest_elem){
             $('#curr_func').css('background-color','yellow')
 
       }
-      else{
+      else{                           // walls at 90°
 
             SELECTED.position.x += signx*SELECTED.width/2; //
             SELECTED.position.y += signy*SELECTED.width/2;
@@ -228,22 +262,34 @@ function mousepos(){
 
 }
 
+function minimaxi(selpos){
+
+      /*
+      Find the objects in the selected area..
+      */
+
+      minx = Math.min(selpos[0].position.x, selpos[1].position.x)
+      maxx = Math.max(selpos[0].position.x, selpos[1].position.x)
+      miny = Math.min(selpos[0].position.y, selpos[1].position.y)
+      maxy = Math.max(selpos[0].position.y, selpos[1].position.y)
+
+      return [minx, maxx, miny, maxy]
+
+}
+
 function objects_in_area(){
 
     /*
     Find the objects in the selected area..
     */
 
-    minx = Math.min(selpos[0].position.x, selpos[1].position.x)
-    maxx = Math.max(selpos[0].position.x, selpos[1].position.x)
-    miny = Math.min(selpos[0].position.y, selpos[1].position.y)
-    maxy = Math.max(selpos[0].position.y, selpos[1].position.y)
+    list_mm = minimaxi(selpos)
 
     for (i in objects){     // if object is inside the area..
-        if (objects[i].position.x > minx &
-            objects[i].position.x < maxx &
-            objects[i].position.y > miny &
-            objects[i].position.y < maxy )
+        if (objects[i].position.x > list_mm[0] &
+            objects[i].position.x < list_mm[1] &
+            objects[i].position.y > list_mm[2] &
+            objects[i].position.y < list_mm[3] )
             {
                 list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
                 objects[i].material.color.setHex(0xffcccc)  // light pink color
