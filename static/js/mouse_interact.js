@@ -277,7 +277,19 @@ function minimaxi(selpos){
 
 }
 
-function objects_in_area(){
+function is_inside(obj, list_mm){
+
+  /*
+  Check if it is inside
+  */
+
+  return  obj.position.x > list_mm[0] &
+          obj.position.x < list_mm[1] &
+          obj.position.y > list_mm[2] &
+          obj.position.y < list_mm[3]
+}
+
+function find_objects_in_area(){
 
     /*
     Find the objects in the selected area..
@@ -286,17 +298,11 @@ function objects_in_area(){
     list_mm = minimaxi(selpos)
 
     for (i in objects){     // if object is inside the area..
-        if (objects[i].position.x > list_mm[0] &
-            objects[i].position.x < list_mm[1] &
-            objects[i].position.y > list_mm[2] &
-            objects[i].position.y < list_mm[3] )
-            {
+        if ( is_inside(objects[i], list_mm) ){
                 list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
                 objects[i].material.color.setHex(0xffcccc)  // light pink color
-            }
-
+            } // end if
     } // end for
-
 } // end objects in area..
 
 function getDistance(mesh1, mesh2) {
@@ -341,29 +347,37 @@ function nearest_object(currobj){
 
 } // end nearest_object
 
-function limits_and_action(action){
+function reinit_glob_var(){
+
+  /*
+  Reinitialize singleton variables
+  */
+
+  selpos = []                     // positions of the corners
+  select_obj = false;
+  make_plane = false;
+  SELECTED = null;
+
+}
+
+function limits_and_action(act_directly){
 
   /*
   Select a region and make action
   */
 
   if ( selpos.length < 2 ){
-      make_limits_mouse() // find the corners and make the area..
-  } // end if selpos.length < 2
+      make_limits_mouse()             // find the corners and make the area..
+  }
   else{
-    if (selpos.length == 2){
-        action(selpos)                  // execute the action with the information of the position of the corners
-        if (select_obj){
-            objects_in_area()           // action on the object in the area..
-        }
-        selpos = []                     // positions of the corners
-        select_obj = false;
-        make_plane = false;
-        SELECTED = null;
-        }
-
+      if (selpos.length == 2){
+          act_directly(selpos)      // execute the action with the information of the position of the corners
+          if (select_obj){
+              find_objects_in_area()
+          }
+          reinit_glob_var()
+      }
   } // end else
-
 }
 
 function corner(){
@@ -399,9 +413,11 @@ function newview(selpos){
     */
 
     var altit = 250;
-    camera.position.set(selpos[0].position.x,selpos[0].position.y,selpos[0].position.z+altit); // Set position like this
+    var s0 = selpos[0].position
+    var s1 = selpos[1].position
+    camera.position.set(s0.x, s0.y, s0.z+altit); // Set position like this
     camera.up = new THREE.Vector3(0,0,1);
-    controls.target = new THREE.Vector3(selpos[1].position.x,selpos[1].position.y,selpos[1].position.z+altit);
+    controls.target = new THREE.Vector3(s1.x, s1.y, s1.z+altit);
     select_poscam = false;
     selpos = []
     $('#curr_func').css('background-color','blue')
