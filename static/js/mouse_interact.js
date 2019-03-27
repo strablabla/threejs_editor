@@ -1,19 +1,3 @@
-// function camera_pos_orient(pos, target_view){
-//
-//   /*
-//   Change the position and orientation of the camera
-//   */
-//
-//   var targetcam = new THREE.Vector3(target_view.x, target_view.y, target_view.z)
-//   var poscam = new THREE.Vector3(pos.x, pos.y, pos.z)
-//   //-----------
-//   camera.position = poscam
-//   camera.up = new THREE.Vector3(0,0,1);       // good orientation of the camera..
-//   targetcam.opacity = 0;
-//   controls.target = targetcam;
-//
-// }
-
 function random_name(){
 
     /*
@@ -45,6 +29,20 @@ function onWindowResize() {
 
 }
 
+function move_group(){
+
+      /*
+      Move the whole group
+      */
+
+      for (i in list_obj_inside){
+          var name_i = list_obj_inside[i].name
+          list_obj_inside[i].position.x = SELECTED.position.x + dict_pos_relat[name_i].x
+          list_obj_inside[i].position.y = SELECTED.position.y + dict_pos_relat[name_i].y
+          list_obj_inside[i].position.z = SELECTED.position.z + dict_pos_relat[name_i].z
+      }
+}
+
 function onDocumentMouseMove( event ) {
 
     /*
@@ -66,7 +64,9 @@ function onDocumentMouseMove( event ) {
         interptsub.z = SELECTED.position.z
         SELECTED.position.copy( interptsub );
         nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
-
+        if (select_move_group){
+            move_group()
+        }
         return;
 
     }
@@ -126,12 +126,62 @@ function onDocumentMouseDown( event ) {
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
     if (select_picking){                   // adding the object to the list of the picked elements..
 
-       list_obj_inside.push(SELECTED)
-       INTERSECTED.material.color.setHex( 0xebebe0 );
+          list_obj_inside.push(SELECTED)
+          INTERSECTED.material.color.setHex( 0xebebe0 );
 
+    }
+    if (select_move_group){             // move the whole group
+          $('#curr_cntrl').text("oooohhh")
+          $('#curr_cntrl').text(SELECTED.name)
+
+          for (i in list_obj_inside){
+              //posrelat = list_obj_inside[i].position - SELECTED.position
+              var name_i = list_obj_inside[i].name
+              posrelatx = list_obj_inside[i].position.x - SELECTED.position.x
+              posrelaty = list_obj_inside[i].position.y - SELECTED.position.y
+              posrelatz = list_obj_inside[i].position.z - SELECTED.position.z
+              dict_pos_relat[name_i] = {'x' : posrelatx, 'y' :  posrelaty, 'z' :  posrelatz}
+              //dict_pos_relat[list_obj_inside[i]] = posrelat
+
+              $('#curr_cntrl').text(dict_pos_relat[name_i].x)
+          }
     }
 
 }
+
+function magnet_wall(nearest_elem){
+
+      /*
+      Wall attracted by the nearest wall..
+      */
+
+      var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
+      var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
+
+      SELECTED.position.x = nearest_elem.position.x;
+      SELECTED.position.y = nearest_elem.position.y;
+      SELECTED.position.z = nearest_elem.position.z;
+
+      var modulo_diff = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
+      var modulo = Math.round(SELECTED.rotation.z % (Math.PI))
+      if ( (modulo_diff == 0) ){
+            if (modulo != 0){
+                SELECTED.position.x += signx*SELECTED.width;
+            }
+            else{
+                SELECTED.position.y += signy*SELECTED.width;
+            }
+            $('#curr_func').css('background-color','yellow')
+
+      }
+      else{
+
+            SELECTED.position.x += signx*SELECTED.width/2; //
+            SELECTED.position.y += signy*SELECTED.width/2;
+            $('#curr_func').css('background-color','grey')
+      }
+
+} // end magnet_wall
 
 function onDocumentMouseUp( event ) {
 
@@ -142,41 +192,11 @@ function onDocumentMouseUp( event ) {
     event.preventDefault();
     controls.enabled = true;
     if (nearest_elem){
-        var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
-        var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
-        modulo_dic = {}
-
-        SELECTED.position.x = nearest_elem.position.x;
-        SELECTED.position.y = nearest_elem.position.y;
-        SELECTED.position.z = nearest_elem.position.z;
-
-        var modulo_diff = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
-        var modulo = Math.round(SELECTED.rotation.z % (Math.PI))
-        //var test_modulo = SELECTED.rotation.z
-        if ( (modulo_diff == 0) ){
-              if (modulo != 0){
-                  SELECTED.position.x += signx*SELECTED.width;
-              }
-              else{
-                  SELECTED.position.y += signy*SELECTED.width;
-              }
-              $('#curr_func').css('background-color','yellow')
-
-        }
-        else{
-
-              SELECTED.position.x += signx*SELECTED.width/2; //
-              SELECTED.position.y += signy*SELECTED.width/2;
-
-
-              $('#curr_func').css('background-color','grey')
-        }
-        //$('#curr_func').text(nearest_elem.name)
-        // $('#curr_cntrl').html("modulo = " + modulo + '\n'
-        //                                 + "modulo_diff = " + modulo_diff)
-
+        magnet_wall(nearest_elem)   // attraction between walls.. by the sides..
     }
-
+    //$('#curr_func').text(nearest_elem.name)
+    // $('#curr_cntrl').html("modulo = " + modulo + '\n'
+    //                                 + "modulo_diff = " + modulo_diff)
     if ( INTERSECTED ) {
         LAST_SELECTED = SELECTED;
         SELECTED = null;
@@ -219,14 +239,14 @@ function objects_in_area(){
     miny = Math.min(selpos[0].position.y, selpos[1].position.y)
     maxy = Math.max(selpos[0].position.y, selpos[1].position.y)
 
-    for (i in objects){
+    for (i in objects){     // if object is inside the area..
         if (objects[i].position.x > minx &
             objects[i].position.x < maxx &
             objects[i].position.y > miny &
             objects[i].position.y < maxy )
             {
-                list_obj_inside.push(objects[i])
-                objects[i].material.color.setHex(0xffcccc) // light pink color
+                list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
+                objects[i].material.color.setHex(0xffcccc)  // light pink color
             }
 
     } // end for
@@ -282,17 +302,15 @@ function limits_and_action(action){
   */
 
   if ( selpos.length < 2 ){
-
-      make_limits_mouse()
-
+      make_limits_mouse() // find the corners and make the area..
   } // end if selpos.length < 2
   else{
     if (selpos.length == 2){
-        action(selpos)
+        action(selpos)                  // execute the action with the information of the position of the corners
         if (select_obj){
             objects_in_area()           // action on the object in the area..
         }
-        selpos = []                     // position of the diagonal of the plane
+        selpos = []                     // positions of the corners
         select_obj = false;
         make_plane = false;
         SELECTED = null;
@@ -344,6 +362,47 @@ function newview(selpos){
 
 }
 
+function make_new_wall(){
+
+    /*
+    Make a new wall
+    */
+
+    newname = random_name()
+    interptsub = mousepos()
+    basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
+    listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
+    listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
+}
+
+function make_new_cube_texture(){
+
+    /*
+    Make a new cube with texture
+    */
+
+    $('#curr_func').css('background-color','red')
+    newname = random_name()
+    interptsub = mousepos()
+    curr_tex_addr = basic_multiple_tex_addr;
+    $('#curr_func').css('background-color','blue')
+    var meshFaceMaterial = make_meshFaceMaterial('face_color')
+    listorig[newname] = make_cube_texture( newname, interptsub, {"x":0, "y":0, "z":0}, meshFaceMaterial )   // make the wall object
+    listorig[newname]['tex_addr'] =  curr_tex_addr               									// texture address
+    listorig[newname]['tex'] =  curr_tex_addr.split('/').pop(-1)               	  // texture name
+    $('#curr_func').css('background-color','green')
+    // basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
+    // listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
+    // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
+}
+
+function link(variable, action, arg){
+    if (variable){
+      if (arg){action(arg)}
+      else {action()}
+    }
+}
+
 function mouse_create_object_or_action(){
 
     /*
@@ -351,77 +410,11 @@ function mouse_create_object_or_action(){
      where the mouse is located in the plane.
     */
 
-    if (create_new_obj){           // N key
-
-          /*
-          Create new wall
-          */
-
-          newname = random_name()
-          interptsub = mousepos()
-          basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
-          listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
-          listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
-
-    }
-
-    if (create_cube){                // M key
-
-          /*
-          Create new cube with texture
-          */
-
-          $('#curr_func').css('background-color','red')
-          newname = random_name()
-          interptsub = mousepos()
-          curr_tex_addr = basic_multiple_tex_addr;
-          $('#curr_func').css('background-color','blue')
-          var meshFaceMaterial = make_meshFaceMaterial('face_color')
-          listorig[newname] = make_cube_texture( newname, interptsub, {"x":0, "y":0, "z":0}, meshFaceMaterial )   // make the wall object
-          listorig[newname]['tex_addr'] =  curr_tex_addr               									// texture address
-          listorig[newname]['tex'] =  curr_tex_addr.split('/').pop(-1)               	  // texture name
-          $('#curr_func').css('background-color','green')
-          // basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
-          // listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
-          // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
-
-    }     // end cube multiple textures...
-
-    //------------------------- Mouse select area..
-
-    if (select_obj){              // S key
-
-        /*
-        Select area
-        */
-
-        limits_and_action(make_dotted_area)  // Select a region and select the obects inside
-
-    } // end select_obj
-
-    //------------------------- Make an horizontal plane
-
-    if (make_plane){              // H key
-
-        /*
-        Make horizontal area
-        */
-
-        limits_and_action(make_horizontal_area) // Select a region and make the corresponding horizontal plane..
-
-    }
-
-    //------------------------- Change the camera point of view
-
-    if (select_poscam){            // K key
-
-        /*
-        Select camera position with mouse
-        */
-
-        limits_and_action(newview)
-
-      } // end select_poscam
+    link(create_new_obj, make_new_wall, null)                  // N key
+    link(create_cube, make_new_cube_texture, null)             // M key
+    link(select_obj, limits_and_action, make_dotted_area)      // S key
+    link(make_plane, limits_and_action, make_horizontal_area)  // H key
+    link(select_poscam, limits_and_action, newview)            // K key
 
 } // end mouse_create_object_or_action
 

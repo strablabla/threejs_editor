@@ -95,6 +95,8 @@
 			var list_obj_inside = [];  					// list of the objects inside the area..
 			var select_picking = false;         // picking the object fr future action..
 			select_obj_infos = false;
+			select_move_group = false;
+			dict_pos_relat = {}
 			nearest_elem = null;
 
 			//------------------------- Graphical objects
@@ -400,7 +402,7 @@
 		<div class="panel_menu1" id="menu1" hidden>  </div>
 		<div class="panel_objects" id="pobj" >  </div>
 		<div class="current_func" id="curr_func" >  </div>
-		<!-- <div class="current_control" id="curr_cntrl" >  </div> -->
+		<div class="current_control" id="curr_cntrl" >  </div>
 
 <!-- Keys -->
 
@@ -414,10 +416,8 @@
 
 					<br><br><br>
 
-					<div  class="help" id="type_obj" > type </div>
-					<br>
-					<div  class="help" id="color_obj" > color </div>
-					<br>
+					<div  class="help" id="type_obj" > type </div><br>
+					<div  class="help" id="color_obj" > color </div><br>
 					<div  class="help" id="angle_obj" > angle </div>
 
 		</div>
@@ -430,12 +430,9 @@
 
 					<br><br><br>
 
-					<div  class="help" id="front_view" > front </div>
-					<br>
-					<div  class="help" id="back_view" > back </div>
-					<br>
-					<div  class="help" id="left_view" > left side </div>
-					<br>
+					<div  class="help" id="front_view" > front </div><br>
+					<div  class="help" id="back_view" > back </div><br>
+					<div  class="help" id="left_view" > left side </div><br>
 					<div  class="help" id="right_view" > right side </div>
 
 		</div>
@@ -448,12 +445,9 @@
 
 							<br><br><br>
 
-							<div  class="help" id="scene_sky" > Sky </div>
-							<br>
-							<div  class="help" id="scene_ground" > Ground </div>
-							<br>
-							<div  class="help" id="scene_light" > Light </div>
-							<br>
+							<div  class="help" id="scene_sky" > Sky </div><br>
+							<div  class="help" id="scene_ground" > Ground </div><br>
+							<div  class="help" id="scene_light" > Light </div><br>
 
 				</div>
 
@@ -465,10 +459,8 @@
 
 					<br><br><br>
 
-					<div  class="help" id="keys" > keys </div>
-					<br>
-					<div  class="help" id="doc" > Documentation </div>
-					<br>
+					<div  class="help" id="keys" > keys </div><br>
+					<div  class="help" id="doc" > Documentation </div><br>
 					<div  class="help" id="ex" > Examples </div>
 
 		</div>
@@ -517,9 +509,10 @@ var keys = function(){/*
 * action
     * c : clone
     * d : delete
+		* move a whole group
     * h : make an horizontal plane..
     * i : infos about the selected object
-    * k : select camera position with the mouse..
+    * k : select camera position and view direction with the mouse..
     * n : new piece with mouse
     * m : cubes with texture
     * r : rotation
