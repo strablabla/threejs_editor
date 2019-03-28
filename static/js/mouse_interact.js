@@ -95,6 +95,14 @@ function keep_relative_positions(){
       }
 }
 
+function color_pick(){
+  if (select_picking){                   // adding the object to the list of the picked elements..
+        for (i in list_obj_inside){
+          list_obj_inside[i].material.color.setHex( orange_medium );
+        }
+  }
+}
+
 function onDocumentMouseMove( event ) {
 
     /*
@@ -104,46 +112,38 @@ function onDocumentMouseMove( event ) {
     event.preventDefault();
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
     var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
     projector.unprojectVector( vector, camera );
     var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-
     if ( SELECTED ) {
-
         var intersects = raycaster.intersectObject( plane );
         var interptsub = intersects[ 0 ].point.sub( offset )
         interptsub.z = SELECTED.position.z
-        SELECTED.position.copy( interptsub );
+        if (list_blocked.indexOf(SELECTED.name) == -1){  // if not blocked..
+            SELECTED.position.copy( interptsub );
+        }
         nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
         if (select_move_group){
             move_group()  // move the whole group, obj in list_obj_inside
         }
         return;
-
     }
-
     var intersects = raycaster.intersectObjects( objects );
     if ( intersects.length > 0 ) {
 
         if ( INTERSECTED != intersects[ 0 ].object ) {
-
             if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex); //
             INTERSECTED = intersects[ 0 ].object;
             INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
-
         }
-
         container.style.cursor = 'pointer';
-
     } else {
-
         if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
-
         INTERSECTED = null;
         container.style.cursor = 'auto';
-
     }
+
+    color_pick()
 
 } // end mouse move
 
@@ -158,26 +158,20 @@ function onDocumentMouseDown( event ) {
     projector.unprojectVector( vector, camera );
     var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
     var intersects = raycaster.intersectObjects( objects );
-
     if ( intersects.length > 0 ) {
-
         controls.enabled = false;
         SELECTED = intersects[ 0 ].object;
         var intersects = raycaster.intersectObject( plane );
         container.style.cursor = 'move';
-
     }
     else{
         $('.panel').css({'top':"10px","left":"-300px"})  // hide panel when mouse leaves..
         //$('.panel').css({'top':"10px","left":"0px"})  // hide panel when mouse leaves..
     }
-
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
     if (select_picking){                   // adding the object to the list of the picked elements..
-
           list_obj_inside.push(SELECTED)
-          INTERSECTED.material.color.setHex( 0xebebe0 );
-
+          INTERSECTED.material.color.setHex( orange_medium ); //
     }
     if (select_move_group){
           keep_relative_positions()  // save the relative positions inside the group
@@ -193,9 +187,7 @@ function magnet_wall(nearest_elem){
 
       var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
       var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
-
       copypos(SELECTED,nearest_elem)
-
       var modulo_diff = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
       var modulo = Math.round(SELECTED.rotation.z % (Math.PI))
       if ( (modulo_diff == 0) ){          // parallel walls
@@ -206,7 +198,6 @@ function magnet_wall(nearest_elem){
                 SELECTED.position.y += signy*SELECTED.width;
             }
             $('#curr_func').css('background-color','yellow')
-
       }
       else{                           // walls at 90°
 
@@ -239,7 +230,7 @@ function onDocumentMouseUp( event ) {
     //    $('.panel').css({'top':"10px","left":"-300px"})  // close panel when mouse leaves..
     // }
     container.style.cursor = 'auto';
-
+    color_pick()
 }
 
 function mousepos(){
@@ -280,7 +271,7 @@ function minimaxi(selpos){
 function is_inside(obj, list_mm){
 
   /*
-  Check if it is inside
+  Check if it is inside, true = inside, false = outside
   */
 
   return  obj.position.x > list_mm[0] &
@@ -347,37 +338,37 @@ function nearest_object(currobj){
 
 } // end nearest_object
 
-function reinit_glob_var(){
+function reinit_glob_var_and_actions(){
 
-  /*
-  Reinitialize singleton variables
-  */
+      /*
+      Reinitialize singleton variables
+      */
 
-  selpos = []                     // positions of the corners
-  select_obj = false;
-  make_plane = false;
-  SELECTED = null;
+      selpos = []                     // positions of the corners
+      select_obj = false;
+      make_plane = false;
+      SELECTED = null;
 
 }
 
 function limits_and_action(act_directly){
 
-  /*
-  Select a region and make action
-  */
+      /*
+      Select a region and make action
+      */
 
-  if ( selpos.length < 2 ){
-      make_limits_mouse()             // find the corners and make the area..
-  }
-  else{
-      if (selpos.length == 2){
-          act_directly(selpos)      // execute the action with the information of the position of the corners
-          if (select_obj){
-              find_objects_in_area()
-          }
-          reinit_glob_var()
+      if ( selpos.length < 2 ){
+          make_limits_mouse()             // find the corners and make the area..
       }
-  } // end else
+      else{
+          if (selpos.length == 2){
+              act_directly(selpos)      // execute the action with the information of the position of the corners
+              if (select_obj){
+                  find_objects_in_area()
+              }
+              reinit_glob_var_and_actions()
+          }
+      } // end else
 }
 
 function corner(){
@@ -415,9 +406,9 @@ function newview(selpos){
     var altit = 250;
     var s0 = selpos[0].position
     var s1 = selpos[1].position
-    camera.position.set(s0.x, s0.y, s0.z+altit); // Set position like this
+    camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
     camera.up = new THREE.Vector3(0,0,1);
-    controls.target = new THREE.Vector3(s1.x, s1.y, s1.z+altit);
+    controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
     select_poscam = false;
     selpos = []
     $('#curr_func').css('background-color','blue')
@@ -458,8 +449,13 @@ function make_new_cube_texture(){
     // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
 }
 
-function link(variable, action, arg){
-    if (variable){
+function link(condition, action, arg){
+
+    /*
+    Linking a conditon with an action (function) with optionnal argument..
+    */
+
+    if (condition){
       if (arg){action(arg)}
       else {action()}
     }
@@ -468,12 +464,12 @@ function link(variable, action, arg){
 function mouse_create_object_or_action(){
 
     /*
-    Create an object (create_new_obj) or an action
+    Create an object (new_wall_ok) or an action
      where the mouse is located in the plane.
     */
 
-    link(create_new_obj, make_new_wall, null)                  // N key
-    link(create_cube, make_new_cube_texture, null)             // M key
+    link(new_wall_ok, make_new_wall, null)                     // N key
+    link(new_cube_texture_ok, make_new_cube_texture, null)     // M key
     link(select_obj, limits_and_action, make_dotted_area)      // S key
     link(make_plane, limits_and_action, make_horizontal_area)  // H key
     link(select_poscam, limits_and_action, newview)            // K key
@@ -491,7 +487,7 @@ function modify_values(INTERSECTED){
     $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
     $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
     $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
-    //$('#texture_panel').val(INTERSECTED.tex);                             // texture of the element in the parameter panel..
+    //$('#texture_panel').val(INTERSECTED.tex);                           // texture of the element in the parameter panel..
     $('.dz-message').css('top','2px')
     $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
 
@@ -514,10 +510,14 @@ function give_infos(){
                 for (var i = 0; i < x.length; i++) {
                     x[i].style.visibility = "visible";    // make the panel visible
                     x[i].style.backgroundColor = "white";
-                    // x[i].style.left = event.pageX + "px";  				// using mouse x
-                    // x[i].style.top = event.pageY + "px";   				// using mouse y
-                    x[i].style.left = "0px";  				  //  pos x
-                    x[i].style.top =  "50px";   				//  pos y
+                    if (infos_in_place){
+                        x[i].style.left = event.pageX + "px";  				// using mouse x
+                        x[i].style.top = event.pageY + "px";   				// using mouse y
+                    }
+                    else{               // upper left, hidden..
+                        x[i].style.left = "0px";  				  //  pos x
+                        x[i].style.top =  "50px";   				//  pos y
+                    }
                 }
           modify_values(INTERSECTED)
 

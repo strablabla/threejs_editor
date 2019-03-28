@@ -38,7 +38,7 @@ function keyDownTextField(event){
       } // end if key code
 
     if(keyev('n', event)){             							    // create or not a new object with the mouse..
-         create_new_obj = !create_new_obj
+         new_wall_ok = !new_wall_ok
       } // end if key code
 
     if(keyev('s', event)){             							    // select area..
@@ -55,9 +55,9 @@ function keyDownTextField(event){
 
   //------------------------- Keys actions
 
-  var selectdic = {'k':select_poscam, 'n':create_new_obj}
+  var selectdic = {'k':select_poscam, 'n':new_wall_ok}
   function select_exclude(key){
-      // create_new_obj = false;
+      // new_wall_ok = false;
       // select_poscam = false;
       selectdic[key] = !selectdic[key];
       for (k in Object.keys(selectdic)){

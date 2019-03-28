@@ -24,6 +24,7 @@ from flask import Flask, render_template, session, request
 from flask_socketio import SocketIO, emit
 from time import sleep
 import serial
+from datetime import datetime
 import platform
 platf = platform.system()
 
@@ -47,7 +48,11 @@ def receive(message):
     Retrieve the json from the client and write it in static/pos.json..
     '''
 
-    print("position x is {0} ".format(message))
+    print("infos are {0} ".format(message))
+    date = datetime.now().strftime('%Y-%m-%d-%H-%M')
+    with open('static/pos.json', 'r') as f:
+        with open('static/old/pos_{}.json'.format(date), 'w') as g:
+            g.write(f.read())
     with open('static/pos.json', 'w') as f:
         f.write(str(message))
 
