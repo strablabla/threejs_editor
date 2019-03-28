@@ -7,7 +7,7 @@ function keyDownTextField0(event){
     if(event.keyCode == 14){    												  //
           $('#curr_func').click(function(){
                 $(this).css('background-color','red')
-                //create_new_obj = true
+                //new_wall_ok = true
           })
       } // end if key code
 
@@ -78,11 +78,11 @@ function keyDownTextField1(event){
       } // end if key code
 
     if (keyev('m', event)){             							    // create or not a new object with the mouse..
-         create_cube = !create_cube
+         new_cube_texture_ok = !new_cube_texture_ok
       } // end if key code
 
     if (keyev('n', event)){             							    // create or not a new object with the mouse..
-         create_new_obj = !create_new_obj
+         new_wall_ok = !new_wall_ok
       } // end if key code
 
     if (keyev('r', event)){    												  // Rotation
@@ -123,10 +123,10 @@ function keyDownTextField1(event){
 
   //-------------------------
 
-  var selectdic = { 'k' : select_poscam, 'n' : create_new_obj }
+  var selectdic = { 'k' : select_poscam, 'n' : new_wall_ok }
 
   function select_exclude(key){
-      // create_new_obj = false;
+      // new_wall_ok = false;
       // select_poscam = false;
       selectdic[key] = !selectdic[key];
       for (k in Object.keys(selectdic)){
