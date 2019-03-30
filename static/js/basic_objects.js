@@ -43,6 +43,7 @@ function obj_basics(object, p, r, name){
     object.receiveShadow = true;
     object.name = name;
     object.clone_infos = {"cloned":false,"origclone":"", "numclone":0}
+    object.blocked = false
     return object;
 }
 
