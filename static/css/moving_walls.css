@@ -195,7 +195,7 @@ Panel giving infos about the object. Open close to the object
 	letter-spacing: 0.2em;
 	position: absolute;
 	top: 50px;
-	left:10px;
+	left:5px;
 	margin-left:5px;
 	padding-left: 40px;
 	padding-top: 20px;
@@ -310,4 +310,22 @@ Panel scene
 	z-index: 9999;
 	opacity: 1;
 
+}
+
+#save_param {
+	margin-left: -40px
+}
+
+#block_pos {
+	margin-left: -40px
+}
+
+#dropz {
+	height: 20px;
+	width : 80px;
+	margin-left: 15px;
+}
+
+.dz-message {
+	top: 2px;
 }

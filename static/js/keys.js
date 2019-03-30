@@ -110,6 +110,10 @@ function keyDownTextField1(event){
          select_obj_infos = ! select_obj_infos;
       } // end if key code
 
+    if (keyev('t', event)){             							    // infos about the object selected
+         select_traj = ! select_traj;
+      } // end if key code
+
   } // end keyDownTextField1
 
   function keyDownTextField2(event){
