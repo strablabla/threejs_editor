@@ -1,5 +1,18 @@
 disp = 5
 
+function sphere_blocked(pos){
+
+      var radius = 20;
+      var geometry = new THREE.SphereGeometry( radius, 32, 32 );
+      var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+      var sphere = new THREE.Mesh( geometry, material );
+      scene.add( sphere );
+      sphere.position.set(pos.x, pos.y, 0)
+
+      return sphere
+
+}
+
 function make_meshFaceMaterial(tex_mult_addr){
 
       /*

@@ -1,13 +1,23 @@
-function message_block_unblock(){
+function actions_with_block_unblock(obj){
 
-  if (LAST_SELECTED.blocked){ $('#block_pos').text('unblock') }
-  else{ $('#block_pos').text('block') }
+  if (LAST_SELECTED.blocked){
+      $('#block_pos').text('unblock')
+      sphblk = sphere_blocked(obj.position)
+      dic_sphere_blocked[obj.name] = sphblk;
+   }
+  else{
+      $('#block_pos').text('block')
+      var objname = dic_sphere_blocked[obj.name]
+      scene.remove( objname )
+      delete(objname)
+
+   }
 
 }
 
 function init_interf_actions(){
 
-      $('.panel_keys').html(simple_md(keys))
+         $('.panel_keys').html(simple_md(keys))
 
          //---------------------- Keys
 
@@ -84,11 +94,10 @@ function init_interf_actions(){
                for (i in objects){
                    if (objects[i].name == $('#name_panel').text()){
                       objects[i].blocked = ! objects[i].blocked;
-                      message_block_unblock()
+                      actions_with_block_unblock(objects[i])
                    } // end if
                } // end for
-
-         })
+         }) // end block_pos.click
 
          $('#save_param').click(function(){
 

@@ -482,10 +482,10 @@ function mouse_create_object_or_action(){
 function show_block_unblock(){
 
     /*
-    Value button bloc, unblock
+    Value button block, unblock
     */
 
-    if (INTERSECTED.blocked){ $('#block_pos').text('unblock') }
+    if (LAST_SELECTED.blocked){ $('#block_pos').text('unblock') }
     else{ $('#block_pos').text('block') }
 
 }
