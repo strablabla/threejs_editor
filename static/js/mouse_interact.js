@@ -508,6 +508,40 @@ function modify_values(INTERSECTED){
 
 }
 
+function show_infos_at_mouse_pos(x,i){
+
+    x[i].style.left = event.pageX + "px";  				// using mouse x
+    x[i].style.top = event.pageY + "px";   				// using mouse y
+
+}
+
+function show_infos_upper_left(x,i){
+
+  x[i].style.left = "0px";  				  //  pos x
+  x[i].style.top =  "50px";   				//  pos y
+
+}
+
+function show_infos(){
+
+      /*
+      Show or hide the informations about the object..
+      */
+
+      var x = document.getElementsByClassName("panel");
+      for (var i = 0; i < x.length; i++) {
+        x[i].style.visibility = "visible";    // make the panel visible
+        x[i].style.backgroundColor = "white";
+        if (infos_in_place){
+              show_infos_at_mouse_pos(x,i)
+          }
+          else{                         // upper left, hidden..
+              show_infos_upper_left(x,i)
+          }
+      } // end for
+} // end show_hide_infos
+
+//
 function give_infos(){
 
       /*
@@ -521,22 +555,9 @@ function give_infos(){
 
       if (select_obj_infos){       //  select_obj_infos must be activated for accessing to the infos..
           if ( INTERSECTED ){
-                var x = document.getElementsByClassName("panel");
-                for (var i = 0; i < x.length; i++) {
-                    x[i].style.visibility = "visible";    // make the panel visible
-                    x[i].style.backgroundColor = "white";
-                    if (infos_in_place){
-                        x[i].style.left = event.pageX + "px";  				// using mouse x
-                        x[i].style.top = event.pageY + "px";   				// using mouse y
-                    }
-                    else{               // upper left, hidden..
-                        x[i].style.left = "0px";  				  //  pos x
-                        x[i].style.top =  "50px";   				//  pos y
-                    }
+                show_infos()
                 }
-          modify_values(INTERSECTED)
+          modify_values(INTERSECTED) // give the current values
 
-          }
-      }
-
-  } // end give infos
+        } // end if select_obj_infos
+} // end give infos
