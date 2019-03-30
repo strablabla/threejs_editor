@@ -18,6 +18,10 @@
 		margin-left: -40px
 	}
 
+	#block_pos {
+		margin-left: -40px
+	}
+
 	#dropz {
 		height: 20px;
 		width : 80px;
@@ -127,6 +131,19 @@
 			animate();
 			ptlock()
 
+			function load_params(k, msg, curr_tex_addr){
+
+					/*
+					Load the parameters of each object..
+					*/
+
+					listorig[k]['clone_infos'] = msg[k]['clone_infos']                       // add the infos about cloning
+					listorig[k]['tex_addr'] =  curr_tex_addr               									 // texture address
+					listorig[k]['tex'] =  curr_tex_addr.split('/').pop(-1)
+					listorig[k]['blocked'] =  msg[k]['blocked']             		 // texture name
+
+			}
+
 			function load_object(k, msg){
 
 						/*
@@ -141,9 +158,7 @@
 									curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
 									listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : basic_color})
 									listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the wall object
-									listorig[k]['clone_infos'] = msg[k]['clone_infos']                       // add the infos about cloning
-									listorig[k]['tex_addr'] =  curr_tex_addr               									 // texture address
-									listorig[k]['tex'] =  curr_tex_addr.split('/').pop(-1)               		 // texture name
+									load_params(k, msg, curr_tex_addr)
 						 } // end if
 
 						//-------------- Cube with textures
@@ -154,9 +169,8 @@
 									 curr_tex_mult = 'face_color';                                										// name of the folder for the textures
 									 listmat[k] = make_meshFaceMaterial(curr_tex_mult)                                // texture for each face
 									 listorig[k] = make_cube_texture( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the cube with texture
-									 listorig[k]['clone_infos'] = msg[k]['clone_infos']                               // add the infos about cloning
-									 listorig[k]['tex_addr'] =  curr_tex_mult_addr               									    // texture address
-									 listorig[k]['tex'] =  curr_tex_mult_addr.split('/').pop(-1)
+									 load_params(k, msg, curr_tex_addr)
+
 									 //listorig[k].material.color = 0xffffff            	  // color
 
 							} // end if
@@ -194,7 +208,8 @@
 																		 "rot": {x,y,z},
 																		 "clone_infos": objects[i].clone_infos,
 																		 "type": objects[i].type,
-																		 'tex_addr' : objects[i].tex_addr
+																		 'tex_addr' : objects[i].tex_addr,
+																		 'blocked' : objects[i].blocked
 																		};
 										listpos[objects[i].name] = infos_obj;   			// add informations about the objects in the scene to listpos
 										listpos['datetime'] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
@@ -386,7 +401,7 @@
 								</span>
 						</div>
 
-						<br><br>
+						<br>
 
 						<center> <button id="block_pos" type="button" class="btn btn-alert"> block </button> </center>
 
@@ -614,11 +629,11 @@ var keys = function(){/*
 			// 			controls.enabled = true;
 			// 			//document.addEventListener("keydown", keyDownTextField1, false);
 			// 	})
-			$('#block_pos').click(function(){
+			$('#block_pos').click(function(){     // block the movement of the object..
 
 						for (i in objects){
 								if (objects[i].name == $('#name_panel').text()){
-									 list_blocked.push(objects[i].name)
+									 objects[i].blocked = ! objects[i].blocked;
 								} // end if
 						} // end for
 

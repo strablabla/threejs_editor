@@ -119,9 +119,12 @@ function onDocumentMouseMove( event ) {
         var intersects = raycaster.intersectObject( plane );
         var interptsub = intersects[ 0 ].point.sub( offset )
         interptsub.z = SELECTED.position.z
-        if (list_blocked.indexOf(SELECTED.name) == -1){  // if not blocked..
-            SELECTED.position.copy( interptsub );
+        if (!SELECTED.blocked){
+              SELECTED.position.copy( interptsub );
         }
+        // if (list_blocked.indexOf(SELECTED.name) == -1){  // if not blocked..
+        //     SELECTED.position.copy( interptsub );
+        // }
         nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
         if (select_move_group){
             move_group()  // move the whole group, obj in list_obj_inside
@@ -476,6 +479,17 @@ function mouse_create_object_or_action(){
 
 } // end mouse_create_object_or_action
 
+function show_block_unblock(){
+
+    /*
+    Value button bloc, unblock
+    */
+
+    if (INTERSECTED.blocked){ $('#block_pos').text('unblock') }
+    else{ $('#block_pos').text('block') }
+
+}
+
 function modify_values(INTERSECTED){
 
     /*
@@ -490,6 +504,7 @@ function modify_values(INTERSECTED){
     //$('#texture_panel').val(INTERSECTED.tex);                           // texture of the element in the parameter panel..
     $('.dz-message').css('top','2px')
     $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
+    show_block_unblock()
 
 }
 
