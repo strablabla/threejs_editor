@@ -120,6 +120,22 @@ function make_raycaster(event){
 
 }
 
+function action_on_selected_when_moving(raycaster){
+
+      /*
+      Action when selected and moving
+      */
+
+      var intersects = raycaster.intersectObject( plane );
+      var interptsub = intersects[ 0 ].point.sub( offset )
+      interptsub.z = SELECTED.position.z
+      if ( !SELECTED.blocked ){ SELECTED.position.copy( interptsub ) } // move the object selected..
+      nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
+      if (select_move_group){
+          move_group()  // move the whole group, obj in list_obj_inside
+      }
+}
+
 function onDocumentMouseMove( event ) {
 
     /*
@@ -129,24 +145,11 @@ function onDocumentMouseMove( event ) {
     var raycaster = make_raycaster(event)
 
     if ( SELECTED ) {
-        var intersects = raycaster.intersectObject( plane );
-        var interptsub = intersects[ 0 ].point.sub( offset )
-        interptsub.z = SELECTED.position.z
-        if (!SELECTED.blocked){
-              SELECTED.position.copy( interptsub );
-        }
-        // if (list_blocked.indexOf(SELECTED.name) == -1){  // if not blocked..
-        //     SELECTED.position.copy( interptsub );
-        // }
-        nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
-        if (select_move_group){
-            move_group()  // move the whole group, obj in list_obj_inside
-        }
+        action_on_selected_when_moving(raycaster)
         return;
-    }
+    } // end if SELECTED
     var intersects = raycaster.intersectObjects( objects );
     if ( intersects.length > 0 ) {
-
         if ( INTERSECTED != intersects[ 0 ].object ) {
             if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex); //
             INTERSECTED = intersects[ 0 ].object;
@@ -163,6 +166,17 @@ function onDocumentMouseMove( event ) {
 
 } // end mouse move
 
+function picking_action(){
+
+  /*
+  Picking
+  */
+
+  list_obj_inside.push(SELECTED)
+  INTERSECTED.material.color.setHex( orange_medium ); //
+
+}
+
 function onDocumentMouseDown( event ) {
 
     /*
@@ -177,31 +191,10 @@ function onDocumentMouseDown( event ) {
         var intersects = raycaster.intersectObject( plane );
         container.style.cursor = 'move';
     }
-    else{
-        $('.panel').css({'top':"10px","left":"-300px"})  // hide panel when mouse leaves..
-        //$('.panel').css({'top':"10px","left":"0px"})  // hide panel when mouse leaves..
-    }
+    else{ $('.panel').css({'top':"10px","left":"-300px"}) } // hide panel when mouse leaves..
     if ( INTERSECTED ) INTERSECTED.material.color.setHex( 0x66ff33 );       // changing color in green when selected
-    if (select_picking){                   // adding the object to the list of the picked elements..
-          list_obj_inside.push(SELECTED)
-          INTERSECTED.material.color.setHex( orange_medium ); //
-    }
-    if (select_move_group){
-          keep_relative_positions()  // save the relative positions inside the group
-    }
-
-}
-
-function signxy(){
-
-      /*
-      Signs: signx and signy according to the position
-      */
-
-      var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
-      var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
-
-      return [signx, signy]
+    if (select_picking){ picking_action() }                // adding the object to the list of the picked elements..
+    if (select_move_group){ keep_relative_positions() } // save the relative positions inside the group
 
 }
 
@@ -438,15 +431,27 @@ function make_limits_mouse(){
 
 }
 
+function params_newview(selpos){
+
+    /*
+    newview parameters
+    */
+
+    var altit = 250;
+    var s0 = selpos[0].position
+    var s1 = selpos[1].position
+
+    return [altit, s0, s1]
+
+}
+
 function newview(selpos){
 
     /*
     put the camera at positon selpos[0] and look at selpos[1]
     */
 
-    var altit = 250;
-    var s0 = selpos[0].position
-    var s1 = selpos[1].position
+    var [altit, s0, s1] = params_newview(selpos)
     camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
     camera.up = new THREE.Vector3(0,0,1);
     controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
