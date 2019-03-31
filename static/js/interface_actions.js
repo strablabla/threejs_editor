@@ -94,7 +94,6 @@ function hide_show_views(){
           $('.panel_views').toggle()
       })
 
-
     $(document).ready(function(){
 
           $('#front_view').click(function(){
