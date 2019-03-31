@@ -1,3 +1,15 @@
+function mouseleave_hide_panel(class_panel){
+
+    /*
+    Hide when leaving the panel
+    */
+
+    $(class_panel).mouseleave(function(){
+          $(class_panel).hide()
+      })
+
+}
+
 function block_obj(obj){
 
   /*
@@ -47,9 +59,8 @@ function hide_show_keys(){
     $('#keys').click(function(){
           $('.panel_keys').toggle() 											     // show hide the key panel
       })
-    $('.panel_keys').mouseleave(function(){
-          $('.panel_keys').hide()
-      })
+
+    mouseleave_hide_panel('.panel_keys')
 
 }
 
@@ -63,15 +74,12 @@ function hide_show_objects(){
           //$('.panel_keys').toggle() 										     // show hide the Objects panel
           $('.panel_objects').toggle()
       })
-    $('.panel_objects').mouseleave(function(){
-          $('.panel_objects').hide()
-      })
-
     $('.panel').hover(function(){
           controls.enabled = false;    											         // deactivate the controls when mouse is hover..
           $('#curr_func').css('background-color','yellow')
           //document.removeEventListener("keydown", keyDownTextField1, true);
       })
+    mouseleave_hide_panel('.panel_objects')
 
 }
 
@@ -85,20 +93,19 @@ function hide_show_views(){
           //$('.panel_keys').toggle() 										     // show hide the views panel
           $('.panel_views').toggle()
       })
-    $('.panel_views').mouseleave(function(){
-          $('.panel_views').hide()
-      })
+
 
     $(document).ready(function(){
 
-    $('#front_view').click(function(){
-          alert('hello')
-          //camera_pos_orient({-300,0,100}, {0,0,0})
-      })
+          $('#front_view').click(function(){
+                alert('hello')
+                //camera_pos_orient({-300,0,100}, {0,0,0})
+            })
+      })// end ready
 
-  })
+    mouseleave_hide_panel('.panel_views')
 
-}
+} // end hide_show_views
 
 function hide_show_scenes(){
 
@@ -110,10 +117,7 @@ function hide_show_scenes(){
           //$('.panel_keys').toggle() 										     // show hide the views panel
           $('.panel_scene').toggle()
       })
-
-    $('.panel_scene').mouseleave(function(){
-          $('.panel_scene').hide()
-      })
+    mouseleave_hide_panel('.panel_scene')
 }
 
 function hide_show_help(){
@@ -126,9 +130,7 @@ function hide_show_help(){
           //$('.panel_keys').toggle() 										    // show hide the key panel
           $('.panel_help').toggle()
       })
-    $('.panel_help').mouseleave(function(){
-            $('.panel_help').hide() 											    // show hide the help panel
-        })
+    mouseleave_hide_panel('.panel_help')
 
 }
 
