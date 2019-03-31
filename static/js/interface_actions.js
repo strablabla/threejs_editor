@@ -1,125 +1,195 @@
+function block_obj(obj){
+
+  /*
+  Block
+  */
+
+  $('#block_pos').text('block')
+  var objname = dic_sphere_blocked[obj.name]
+  scene.remove( objname )
+  delete(objname)
+
+}
+
+function unblock_obj(obj){
+
+  /*
+  Unblock
+  */
+
+  $('#block_pos').text('unblock')
+  sphblk = sphere_blocked(obj.position)
+  dic_sphere_blocked[obj.name] = sphblk;
+}
+
 function actions_with_block_unblock(obj){
 
+  /*
+  Block or unblock the objects
+  */
+
   if (LAST_SELECTED.blocked){
-      $('#block_pos').text('unblock')
-      sphblk = sphere_blocked(obj.position)
-      dic_sphere_blocked[obj.name] = sphblk;
+      unblock_obj(obj)
    }
   else{
-      $('#block_pos').text('block')
-      var objname = dic_sphere_blocked[obj.name]
-      scene.remove( objname )
-      delete(objname)
-
+      block_obj(obj)
    }
+}
+
+function hide_show_keys(){
+
+    /*
+    panel keys actions
+    */
+
+    $('.panel_keys').html(simple_md(keys))
+
+    $('#keys').click(function(){
+          $('.panel_keys').toggle() 											     // show hide the key panel
+      })
+    $('.panel_keys').mouseleave(function(){
+          $('.panel_keys').hide()
+      })
+
+}
+
+function hide_show_objects(){
+
+    /*
+    panel object actions
+    */
+
+    $("#objects").click(function(){
+          //$('.panel_keys').toggle() 										     // show hide the Objects panel
+          $('.panel_objects').toggle()
+      })
+    $('.panel_objects').mouseleave(function(){
+          $('.panel_objects').hide()
+      })
+
+    $('.panel').hover(function(){
+          controls.enabled = false;    											         // deactivate the controls when mouse is hover..
+          $('#curr_func').css('background-color','yellow')
+          //document.removeEventListener("keydown", keyDownTextField1, true);
+      })
+
+}
+
+function hide_show_views(){
+
+    /*
+    panel views actions
+    */
+
+    $("#views").click(function(){
+          //$('.panel_keys').toggle() 										     // show hide the views panel
+          $('.panel_views').toggle()
+      })
+    $('.panel_views').mouseleave(function(){
+          $('.panel_views').hide()
+      })
+
+    $(document).ready(function(){
+
+    $('#front_view').click(function(){
+          alert('hello')
+          //camera_pos_orient({-300,0,100}, {0,0,0})
+      })
+
+  })
+
+}
+
+function hide_show_scenes(){
+
+    /*
+    panel scene actions
+    */
+
+    $("#scene").click(function(){
+          //$('.panel_keys').toggle() 										     // show hide the views panel
+          $('.panel_scene').toggle()
+      })
+
+    $('.panel_scene').mouseleave(function(){
+          $('.panel_scene').hide()
+      })
+}
+
+function hide_show_help(){
+
+    /*
+    panel help actions
+    */
+
+    $("#help").click(function(){
+          //$('.panel_keys').toggle() 										    // show hide the key panel
+          $('.panel_help').toggle()
+      })
+    $('.panel_help').mouseleave(function(){
+            $('.panel_help').hide() 											    // show hide the help panel
+        })
+
+}
+
+function block_pos_object(){
+
+    /*
+    block/unblock
+    */
+
+    $('#block_pos').click(function(){     // block the movement of the object..
+
+          for (i in objects){
+              if (objects[i].name == $('#name_panel').text()){
+                 objects[i].blocked = ! objects[i].blocked;
+                 actions_with_block_unblock(objects[i])
+              } // end if
+          } // end for
+    }) // end block_pos.click
+
+}
+
+function save_params_panel_object(){
+
+    /*
+    Save the params
+    */
+
+    $('#save_param').click(function(){
+
+        $('.panel').css({'top':"10px","left":"-300px"})            // close panel about object infos when mouse leaves..
+        controls.enabled = true;
+
+        for (i in objects){
+            if (objects[i].name == $('#name_panel').text()){
+               objects[i].rotation.z = $('#angle_panel').val()     // change the angle
+            } // end if
+        } // end for
+    })
+
 
 }
 
 function init_interf_actions(){
 
-         $('.panel_keys').html(simple_md(keys))
+      /*
+      Define the actions in the interface..
+      */
 
-         //---------------------- Keys
+      hide_show_keys()       //---------------------- Keys
+      hide_show_objects()    //---------------------- Objects..
+      hide_show_views()      //---------------------- Views..
+      hide_show_scenes()     //---------------------- scene
+      hide_show_help()       //---------------------- Help
 
-         $('#keys').click(function(){
-               $('.panel_keys').toggle() 											     // show hide the key panel
-           })
-         // $('#keys').hover(function(){
-         // 			$('.panel_keys').show() 											     // show hide the key panel
-         // 	})
+      // Actions
 
-         $('.panel_keys').mouseleave(function(){
-               $('.panel_keys').hide()
-           })
+      block_pos_object()     //-------------------- Block
+      save_params_panel_object()  //--------- Save Parameters
 
-         //---------------------- Objects..
+      //---------------------- Dropzone for textures
 
-         $("#objects").hover(function(){
-               //$('.panel_keys').toggle() 										     // show hide the Objects panel
-               $('.panel_objects').show()
-           })
-         $('.panel_objects').mouseleave(function(){
-               $('.panel_objects').hide()
-           })
-
-         //---------------------- Views..
-
-         $("#views").hover(function(){
-               //$('.panel_keys').toggle() 										     // show hide the views panel
-               $('.panel_views').show()
-           })
-         $('.panel_views').mouseleave(function(){
-               $('.panel_views').hide()
-           })
-
-         $(document).ready(function(){
-
-           $('#front_view').click(function(){
-                 alert('hello')
-                 //camera_pos_orient({-300,0,100}, {0,0,0})
-             })
-
-         })
-
-         //---------------------- scene
-
-         $("#scene").hover(function(){
-               //$('.panel_keys').toggle() 										     // show hide the views panel
-               $('.panel_scene').show()
-           })
-
-         $('.panel_scene').mouseleave(function(){
-               $('.panel_scene').hide()
-           })
-
-         //---------------------- Help
-
-         $("#help").hover(function(){
-               //$('.panel_keys').toggle() 										    // show hide the key panel
-               $('.panel_help').show()
-           })
-         $('.panel_help').mouseleave(function(){
-                 $('.panel_help').hide() 											    // show hide the help panel
-             })
-
-         //---------------------- Actions on the panel about object
-         //
-         // $('.panel').mouseleave(function(){                       // panel about the object..
-         // 			$('.panel').css({'top':"10px","left":"-300px"})    // close panel about object infos when mouse leaves..
-         // 			controls.enabled = true;
-         // 			//document.addEventListener("keydown", keyDownTextField1, false);
-         // 	})
-         $('#block_pos').click(function(){     // block the movement of the object..
-
-               for (i in objects){
-                   if (objects[i].name == $('#name_panel').text()){
-                      objects[i].blocked = ! objects[i].blocked;
-                      actions_with_block_unblock(objects[i])
-                   } // end if
-               } // end for
-         }) // end block_pos.click
-
-         $('#save_param').click(function(){
-
-             $('.panel').css({'top':"10px","left":"-300px"})            // close panel about object infos when mouse leaves..
-             controls.enabled = true;
-
-             for (i in objects){
-                 if (objects[i].name == $('#name_panel').text()){
-                    objects[i].rotation.z = $('#angle_panel').val()     // change the angle
-                 } // end if
-             } // end for
-
-         })
-
-         $('.panel').hover(function(){
-               controls.enabled = false;    											         // deactivate the controls when mouse is hover..
-               $('#curr_func').css('background-color','yellow')
-               //document.removeEventListener("keydown", keyDownTextField1, true);
-           })
-
-         //---------------------- Dropzone for textures
-
-       manage_drop()                                              // manage the Dropzone
+      manage_drop()  // manage the Dropzone
 
  }
