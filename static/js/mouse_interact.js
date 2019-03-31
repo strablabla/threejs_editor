@@ -103,18 +103,31 @@ function color_pick(){
   }
 }
 
+function make_raycaster(event){
+
+      /*
+      raycaster
+      */
+
+      event.preventDefault();
+      mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+      mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+      var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+      projector.unprojectVector( vector, camera );
+      var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+      return raycaster
+
+}
+
 function onDocumentMouseMove( event ) {
 
     /*
     Mouse moving
     */
 
-    event.preventDefault();
-    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-    projector.unprojectVector( vector, camera );
-    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+    var raycaster = make_raycaster(event)
+
     if ( SELECTED ) {
         var intersects = raycaster.intersectObject( plane );
         var interptsub = intersects[ 0 ].point.sub( offset )
@@ -156,10 +169,7 @@ function onDocumentMouseDown( event ) {
     Mouse down
     */
 
-    event.preventDefault();
-    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-    projector.unprojectVector( vector, camera );
-    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+    var raycaster = make_raycaster(event)
     var intersects = raycaster.intersectObjects( objects );
     if ( intersects.length > 0 ) {
         controls.enabled = false;
@@ -182,77 +192,105 @@ function onDocumentMouseDown( event ) {
 
 }
 
+function signxy(){
+
+      /*
+      Signs: signx and signy according to the position
+      */
+
+      var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
+      var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
+
+      return [signx, signy]
+
+}
+
+function magnet_parallel_walls(rot_abs, signx, signy){
+
+      /*
+      Magnet for parallel walls
+      */
+
+      if (rot_abs != 0){ SELECTED.position.x += signx*SELECTED.width }
+      else{ SELECTED.position.y += signy*SELECTED.width }
+      $('#curr_func').css('background-color','yellow')
+
+}
+
+function magnet_perpendicular_walls(signx, signy){
+
+      /*
+      Magnet for perpendicular walls
+      */
+
+      SELECTED.position.x += signx*SELECTED.width/2; //
+      SELECTED.position.y += signy*SELECTED.width/2;
+      $('#curr_func').css('background-color','grey')
+
+}
+
+function signxy(SELECTED, nearest_elem){
+
+      /*
+      Signs: signx and signy according to the position
+      */
+
+      var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
+      var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
+
+      return [signx, signy]
+
+}
+
+function rotation_relative_absolute(SELECTED, nearest_elem){
+
+      var rot_relat = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
+      var rot_abs = Math.round(SELECTED.rotation.z % Math.PI)
+
+      return [rot_relat, rot_abs]
+}
+
 function magnet_wall(nearest_elem){
 
       /*
       Wall attracted by the nearest wall..
       */
 
-      var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
-      var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
-      copypos(SELECTED,nearest_elem)
-      var modulo_diff = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
-      var modulo = Math.round(SELECTED.rotation.z % (Math.PI))
-      if ( (modulo_diff == 0) ){          // parallel walls
-            if (modulo != 0){
-                SELECTED.position.x += signx*SELECTED.width;
-            }
-            else{
-                SELECTED.position.y += signy*SELECTED.width;
-            }
-            $('#curr_func').css('background-color','yellow')
-      }
-      else{                           // walls at 90°
-
-            SELECTED.position.x += signx*SELECTED.width/2; //
-            SELECTED.position.y += signy*SELECTED.width/2;
-            $('#curr_func').css('background-color','grey')
-      }
+      [signx, signy] = signxy(SELECTED, nearest_elem)
+      copypos(SELECTED, nearest_elem)
+      var [rot_relat, rot_abs] = rotation_relative_absolute(SELECTED, nearest_elem)
+      if ( (rot_relat == 0) ){ magnet_parallel_walls(rot_abs, signx, signy) }
+      else{ magnet_perpendicular_walls(signx, signy) }
 
 } // end magnet_wall
 
 function onDocumentMouseUp( event ) {
 
-    /*
-    Mouse up
-    */
+      /*
+      Mouse up
+      */
 
-    event.preventDefault();
-    controls.enabled = true;
-    if (nearest_elem){
-        magnet_wall(nearest_elem)   // attraction between walls.. by the sides..
-    }
-    //$('#curr_func').text(nearest_elem.name)
-    // $('#curr_cntrl').html("modulo = " + modulo + '\n'
-    //                                 + "modulo_diff = " + modulo_diff)
-    if ( INTERSECTED ) {
-        LAST_SELECTED = SELECTED;
-        SELECTED = null;
-    }
-    // else{                                               // no intesection, close the panel about the objects..
-    //    $('.panel').css({'top':"10px","left":"-300px"})  // close panel when mouse leaves..
-    // }
-    container.style.cursor = 'auto';
-    color_pick()
+      event.preventDefault();
+      controls.enabled = true;
+      if (nearest_elem){ magnet_wall(nearest_elem) }  // attraction between walls.. by the sides..
+      if ( INTERSECTED ) {
+          LAST_SELECTED = SELECTED;
+          SELECTED = null;
+      }
+      container.style.cursor = 'auto';
+      color_pick()
 }
 
 function mousepos(){
 
-    /*
-    Return the mouse coordinates in the horizontal plane
-    */
+      /*
+      Return the mouse coordinates in the horizontal plane
+      */
 
-    event.preventDefault();
-    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    //---------------------------------
-    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-    projector.unprojectVector( vector, camera );
-    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
-    //---------------------------------
-    var intersects = raycaster.intersectObject( plane );
-    var interptsub = intersects[ 0 ].point.sub( offset )
-    return interptsub
+      var raycaster = make_raycaster(event)
+      var intersects = raycaster.intersectObject( plane );
+      var interptsub = intersects[ 0 ].point.sub( offset )
+      return interptsub
 
 }
 
