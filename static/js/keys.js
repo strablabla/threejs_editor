@@ -34,6 +34,13 @@ function link_toggle(event, namekey, nameparam){
     } // end if key code
 }
 
+function indicate_picking(){
+
+  if (select_picking){ document.getElementById("curr_func").textContent = "picking" }
+  else { document.getElementById("curr_func").textContent = "" }
+
+}
+
 function keyDownTextField1(event){
 
     /*
@@ -51,82 +58,26 @@ function keyDownTextField1(event){
 
     $('#curr_func').css('background-color','red')
 
-    if (event.keyCode == 16){    												  // Picking objects to aplly the same action after..
+    if (event.keyCode == 16){    												  // SHIFT key, Picking objects to apply the same action after..
           select_picking = !select_picking
-          if (select_picking){
-              document.getElementById("curr_func").textContent = "picking";
-          }
-          else {
-            document.getElementById("curr_func").textContent = "";
-          }
-
+          indicate_picking()
       } // end if key code
+    if (event.keyCode == 38 & INTERSECTED){ INTERSECTED.position.z += 50 }   						 // Up
+    if (event.keyCode == 40 & INTERSECTED){ INTERSECTED.position.z += -50 }              // Down
+    if (keyev('c', event) & INTERSECTED){ clone_object() }          // Clone the selected object
+    if (keyev('d', event)){ delete_object() }   				  // Delete object selected
+    if (keyev('b', event)){  delete_area() }              // Delete selection area
 
-    if (event.keyCode == 38){    												  // Up
-          if ( INTERSECTED ){ INTERSECTED.position.z += 50 }
-      } // end if key code
+    //--------------------- Change variables
 
-    if (event.keyCode == 40){    												  // Down
-          if ( INTERSECTED ){ INTERSECTED.position.z += -50 }
-      } // end if key code
-
-    if (keyev('c', event)){    											    // Clone the selected object
-          if ( INTERSECTED ){
-              clone_object()
-          }
-      } // end if key code
-
-    if (keyev('d', event)){    											    // Delete object selected
-        delete_object()
-      } // end if key code
-
-
-  if (keyev('g', event)){             							    // create or not a new object with the mouse..
-       select_move_group = !select_move_group
-    } // end if key code
-
-  if (keyev('m', event)){             							    // create or not a new object with the mouse..
-       new_cube_texture_ok = !new_cube_texture_ok
-    } // end if key code
-
-  if (keyev('n', event)){             							    // create or not a new object with the mouse..
-       new_wall_ok = !new_wall_ok
-} // end if key code
-
-if (keyev('s', event)){             							    // select area..
-       select_obj = !select_obj
-    } // end if key code
-
-  if (keyev('h', event)){             							    // horizontal plane..
-       make_plane = !make_plane
-    } // end if key code
-
-  if (keyev('k', event)){             							    // change camera's position with the mouse.
-       select_poscam = ! select_poscam;
-    } // end if key code
-
-  if (keyev('i', event)){             							    // infos about the object selected
-       select_obj_infos = ! select_obj_infos;
-    } // end if key code
-
-  if (keyev('t', event)){             							    // infos about the object selected
-       select_traj = ! select_traj;
-    } // end if key code
-
-  if (keyev('b', event)){    											    // Delete selection area
-      delete_area()
-} // end if key code
-
-
-    // link_toggle(event, 'g', 'select_move_group')          // move group
-    // link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
-    // link_toggle(event, 'n', 'new_wall_ok')                // create new wall
-    // link_toggle(event, 's', 'select_obj')                 // select object in area
-    // link_toggle(event, 'h', 'make_plane')                 // horizontal plane
-    // link_toggle(event, 'k', 'select_poscam')              // create new wall
-    // link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
-    // link_toggle(event, 't', 'select_traj')                // create a trajectory
-    // link_toggle(event, 'b', 'delete_area')                // delete area
+    link_toggle(event, 'g', 'select_move_group')          // move group
+    link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
+    link_toggle(event, 'n', 'new_wall_ok')                // create new wall
+    link_toggle(event, 's', 'select_obj')                 // select object in area
+    link_toggle(event, 'h', 'make_plane')                 // horizontal plane
+    link_toggle(event, 'k', 'select_poscam')              // create new wall
+    link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
+    link_toggle(event, 't', 'select_traj')                // create a trajectory
 
     if (keyev('r', event)){    												  // Rotation
           if ( INTERSECTED ){
