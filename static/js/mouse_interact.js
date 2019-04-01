@@ -27,7 +27,9 @@ function init_drag(){
 
     projector = new THREE.Projector();
     var size_plane = 10000
-    plane = new THREE.Mesh( new THREE.PlaneGeometry( size_plane, size_plane, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
+    var geom = new THREE.PlaneGeometry( size_plane, size_plane, 8, 8 )
+    var mat = new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } )
+    plane = new THREE.Mesh( geom, mat );
     plane.visible = true;
     scene.add( plane );
 
@@ -96,11 +98,16 @@ function keep_relative_positions(){
 }
 
 function color_pick(){
-  if (select_picking){                   // adding the object to the list of the picked elements..
-        for (i in list_obj_inside){
-          list_obj_inside[i].material.color.setHex( orange_medium );
-        }
-  }
+
+      /*
+      Color the picked objects..
+      */
+
+      if (select_picking){                   // adding the object to the list of the picked elements..
+            for (i in list_obj_inside){
+              list_obj_inside[i].material.color.setHex( orange_medium );
+            }
+      }
 }
 
 function make_raycaster(event){
@@ -132,7 +139,7 @@ function action_on_selected_when_moving(raycaster){
       if ( !SELECTED.blocked ){ SELECTED.position.copy( interptsub ) } // move the object selected..
       nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
       if (select_move_group){
-          move_group()  // move the whole group, obj in list_obj_inside
+            move_group()  // move the whole group, obj in list_obj_inside
       }
 }
 
@@ -143,6 +150,19 @@ function onDocumentMouseMove( event ) {
     */
 
     var raycaster = make_raycaster(event)
+
+    if (select_obj){
+
+        //alert(SELECTED.position.x)
+        var selpos_interm = [selpos[0],SELECTED]
+        //selpos.push(SELECTED)
+        //delete_area()
+        make_dotted_area(selpos_interm)
+        delete_area()
+        make_dotted_area(selpos_interm)
+        //selpos.pop()
+
+     }
 
     if ( SELECTED ) {
         action_on_selected_when_moving(raycaster)
@@ -162,7 +182,7 @@ function onDocumentMouseMove( event ) {
         container.style.cursor = 'auto';
     }
 
-    color_pick()
+    color_pick() // Color the picked objects..
 
 } // end mouse move
 
@@ -271,7 +291,7 @@ function onDocumentMouseUp( event ) {
           SELECTED = null;
       }
       container.style.cursor = 'auto';
-      color_pick()
+      color_pick() // Color the picked objects..
 }
 
 function mousepos(){
@@ -391,10 +411,13 @@ function limits_and_action(act_directly){
       Select a region and make action
       */
 
-      if ( selpos.length < 2 ){ make_limits_mouse() }   // find the corners and make the area..
+      if ( selpos.length < 2 ){
+            make_limits_mouse()
+            controls.enabled = false
+           }   // find the corners and make the area..
       else{
           if (selpos.length == 2){
-              act_directly(selpos)      // execute the action with the information of the position of the corners
+              //act_directly(selpos)      // execute the action with the information of the position of the corners
               if (select_obj){ find_objects_in_area() }
               reinit_glob_var_and_actions()
           }
