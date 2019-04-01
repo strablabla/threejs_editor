@@ -86,20 +86,20 @@ function make_mark(name,p,r,col){
 
 } // end function
 
-function dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem){
+function dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem_dotted_line){
 
     /*
     Dotted area
     */
 
-    dotted_line(nbelem2,elem,'x',minx,miny,size_elem)
-    dotted_line(nbelem1,elem,'y',minx,miny,size_elem)
-    dotted_line(nbelem2,elem,'x',maxx,miny,size_elem)
-    dotted_line(nbelem1,elem,'y',minx,maxy,size_elem)
+    dotted_line(nbelem2,elem,'x',minx,miny,size_elem_dotted_line)
+    dotted_line(nbelem1,elem,'y',minx,miny,size_elem_dotted_line)
+    dotted_line(nbelem2,elem,'x',maxx,miny,size_elem_dotted_line)
+    dotted_line(nbelem1,elem,'y',minx,maxy,size_elem_dotted_line)
 
 }
 
-function dotted_line(nbelem,elem,kind,posx,posy,size_elem){
+function dotted_line(nbelem,elem,kind,posx,posy,size_elem_dotted_line){
 
     /*
     Dotted lines
@@ -109,14 +109,15 @@ function dotted_line(nbelem,elem,kind,posx,posy,size_elem){
           var elem_clone = elem.clone()
           if (kind == "x"){
               elem_clone.position.x = posx;
-              elem_clone.position.y = posy+2*i*size_elem;
+              elem_clone.position.y = posy+2*i*size_elem_dotted_line;
           }
           else if (kind == 'y'){
-              elem_clone.position.x = posx+2*i*size_elem;
+              elem_clone.position.x = posx+2*i*size_elem_dotted_line;
               elem_clone.position.y = posy
           }
           elem_clone.position.z = 25;
           scene.add(elem_clone)
+          list_dotted_area.push(elem_clone)
 
       } // end for
 }
@@ -127,24 +128,22 @@ function make_dotted_area(selpos){
     Area for selecting the pieces
     */
 
-    //var dotted_line_color = 0xffffff
-    var dotted_line_color = 0x000000
     var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x) // length side1
     var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y) // length side2
-    size_elem = 40
+    size_elem_dotted_line = 40
     //-----------------
-    var geometry = new THREE.CubeGeometry( size_elem, size_elem, 3 );
+    var geometry = new THREE.CubeGeometry( size_elem_dotted_line, size_elem_dotted_line, 3 );
     var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: dotted_line_color } ) );
     //----------------- number of elements
-    nbelem1 = Math.round(side1/(2*size_elem))
-    nbelem2 = Math.round(side2/(2*size_elem))
+    nbelem1 = Math.round(side1/(2*size_elem_dotted_line))
+    nbelem2 = Math.round(side2/(2*size_elem_dotted_line))
     //----------------- limits
     var minx = Math.min(selpos[0].position.x,selpos[1].position.x)
     var miny = Math.min(selpos[0].position.y,selpos[1].position.y)
     var maxx = Math.max(selpos[0].position.x,selpos[1].position.x)
     var maxy = Math.max(selpos[0].position.y,selpos[1].position.y)
     //-----------------
-    dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem)
+    dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem_dotted_line)
 
 } // end function make area
 
