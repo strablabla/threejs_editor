@@ -142,9 +142,12 @@ function make_dotted_area(selpos){
     Area for selecting the pieces
     */
 
+    //alert("selpos.length " + selpos.length)
     var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x) // length side1
     var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y) // length side2
-    size_elem_dotted_line = 40
+    //alert(side1 + '__' + side2)
+    $('#curr_func').css('background-color','grey')
+
     //-----------------
     var geometry = new THREE.CubeGeometry( size_elem_dotted_line, size_elem_dotted_line, 3 );
     var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: dotted_line_color } ) );
