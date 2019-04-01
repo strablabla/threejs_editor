@@ -23,6 +23,17 @@ function rotate_obj(obj){
    obj.material.color.setHex( 0xff33f5 ); // change color
 }
 
+function link_toggle(event, namekey, nameparam){
+
+  /*
+  Toggle value of parameter with keys
+  */
+
+  if (keyev(namekey, event)){             							    // create or not a new object with the mouse..
+       window[nameparam] = !window[nameparam]
+    } // end if key code
+}
+
 function keyDownTextField1(event){
 
     /*
@@ -52,17 +63,12 @@ function keyDownTextField1(event){
       } // end if key code
 
     if (event.keyCode == 38){    												  // Up
-          if ( INTERSECTED ){
-            INTERSECTED.position.z += 50;
-          }
+          if ( INTERSECTED ){ INTERSECTED.position.z += 50 }
       } // end if key code
 
     if (event.keyCode == 40){    												  // Down
-          if ( INTERSECTED ){
-            INTERSECTED.position.z += -50;
-          }
+          if ( INTERSECTED ){ INTERSECTED.position.z += -50 }
       } // end if key code
-
 
     if (keyev('c', event)){    											    // Clone the selected object
           if ( INTERSECTED ){
@@ -74,17 +80,53 @@ function keyDownTextField1(event){
         delete_object()
       } // end if key code
 
-    if (keyev('g', event)){             							    // create or not a new object with the mouse..
-         select_move_group = !select_move_group
-      } // end if key code
 
-    if (keyev('m', event)){             							    // create or not a new object with the mouse..
-         new_cube_texture_ok = !new_cube_texture_ok
-      } // end if key code
+  if (keyev('g', event)){             							    // create or not a new object with the mouse..
+       select_move_group = !select_move_group
+    } // end if key code
 
-    if (keyev('n', event)){             							    // create or not a new object with the mouse..
-         new_wall_ok = !new_wall_ok
-      } // end if key code
+  if (keyev('m', event)){             							    // create or not a new object with the mouse..
+       new_cube_texture_ok = !new_cube_texture_ok
+    } // end if key code
+
+  if (keyev('n', event)){             							    // create or not a new object with the mouse..
+       new_wall_ok = !new_wall_ok
+} // end if key code
+
+if (keyev('s', event)){             							    // select area..
+       select_obj = !select_obj
+    } // end if key code
+
+  if (keyev('h', event)){             							    // horizontal plane..
+       make_plane = !make_plane
+    } // end if key code
+
+  if (keyev('k', event)){             							    // change camera's position with the mouse.
+       select_poscam = ! select_poscam;
+    } // end if key code
+
+  if (keyev('i', event)){             							    // infos about the object selected
+       select_obj_infos = ! select_obj_infos;
+    } // end if key code
+
+  if (keyev('t', event)){             							    // infos about the object selected
+       select_traj = ! select_traj;
+    } // end if key code
+
+  if (keyev('b', event)){    											    // Delete selection area
+      delete_area()
+} // end if key code
+
+
+    // link_toggle(event, 'g', 'select_move_group')          // move group
+    // link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
+    // link_toggle(event, 'n', 'new_wall_ok')                // create new wall
+    // link_toggle(event, 's', 'select_obj')                 // select object in area
+    // link_toggle(event, 'h', 'make_plane')                 // horizontal plane
+    // link_toggle(event, 'k', 'select_poscam')              // create new wall
+    // link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
+    // link_toggle(event, 't', 'select_traj')                // create a trajectory
+    // link_toggle(event, 'b', 'delete_area')                // delete area
 
     if (keyev('r', event)){    												  // Rotation
           if ( INTERSECTED ){
@@ -93,30 +135,6 @@ function keyDownTextField1(event){
           else if(list_obj_inside.length > 0){
             apply_to_all(rotate_obj)
           }
-      } // end if key code
-
-    if (keyev('s', event)){             							    // select area..
-         select_obj = !select_obj
-      } // end if key code
-
-    if (keyev('h', event)){             							    // horizontal plane..
-         make_plane = !make_plane
-      } // end if key code
-
-    if (keyev('k', event)){             							    // change camera's position with the mouse.
-         select_poscam = ! select_poscam;
-      } // end if key code
-
-    if (keyev('i', event)){             							    // infos about the object selected
-         select_obj_infos = ! select_obj_infos;
-      } // end if key code
-
-    if (keyev('t', event)){             							    // infos about the object selected
-         select_traj = ! select_traj;
-      } // end if key code
-
-    if (keyev('b', event)){    											    // Delete selection area
-        delete_area()
       } // end if key code
 
   } // end keyDownTextField1
@@ -215,18 +233,6 @@ function keyDownTextField1(event){
         select_picking = false
   }
 
-  function delete_area(){
-
-      /*
-      Delete area
-      */
-
-      for (i in list_dotted_area){
-        scene.remove(list_dotted_area[i])
-      } // end for
-      list_dotted_area = []
-  } // end delete_area
-
   function delete_objects_inside(){
 
       /*
@@ -236,12 +242,12 @@ function keyDownTextField1(event){
       for (i in list_obj_inside){
             for (j in objects){
                   if (objects[j].name == list_obj_inside[i].name){
-                      delete objects[j];
+                      objects[j].del = true
+                      scene.remove(objects[j])
                   } //end if
-              } // end for
-            scene.remove(list_obj_inside[i]);
-            //delete list_obj_inside[i];
-          } // end for
+              } // end for j
+          } // end for i
+      list_obj_inside = []
   } // end delete_objects_inside
 
   function delete_object(){
@@ -250,19 +256,24 @@ function keyDownTextField1(event){
       Delete the selected object
       */
 
-      if ( INTERSECTED){
+      if(list_obj_inside.length > 0){ delete_objects_inside() } // end else if
+      else if ( INTERSECTED ){
           for (i in objects){
                 if (objects[i].name == INTERSECTED.name){
-                    delete objects[i];
-                }
-            }
-          scene.remove( INTERSECTED )
-      }
-      else if(list_obj_inside.length > 0){ delete_objects_inside() } // end else if
-      else{ console.log('delete nothing') }
-      list_obj_inside = []
+                    INTERSECTED.del = true
+                } // end if
+            } // end for
 
-    } // end delete_object
+      } // end else if
+
+      objects.forEach(function(elem){
+          if (elem.del){
+            scene.remove(elem)
+          }
+      })
+      emit_infos_scene()
+
+} // end delete_object
 
 
   document.addEventListener("keydown", keyDownTextField1, false);

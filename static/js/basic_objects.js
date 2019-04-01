@@ -57,6 +57,7 @@ function obj_basics(object, p, r, name){
     object.name = name;
     object.clone_infos = {"cloned":false,"origclone":"", "numclone":0}
     object.blocked = false
+    object.del = false
     return object;
 }
 
@@ -85,6 +86,19 @@ function make_mark(name,p,r,col){
     return object
 
 } // end function
+
+function delete_area(){
+
+    /*
+    Delete area
+    */
+
+    for (i in list_dotted_area){
+      scene.remove(list_dotted_area[i])
+    } // end for
+    list_dotted_area = []
+} // end delete_area
+
 
 function dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem_dotted_line){
 
