@@ -63,7 +63,8 @@ function load_params(k, msg, curr_tex_addr){
     listorig[k]['clone_infos'] = msg[k]['clone_infos']                       // add the infos about cloning
     listorig[k]['tex_addr'] =  curr_tex_addr               									 // texture address
     listorig[k]['tex'] =  curr_tex_addr.split('/').pop(-1)
-    listorig[k]['blocked'] =  msg[k]['blocked']             		 // texture name
+    listorig[k]['blocked'] =  msg[k]['blocked']             		            // blocked
+    listorig[k]['del'] =  msg[k]['del']             		                    // delete autorization
 
 }
 
@@ -122,7 +123,7 @@ function emit_infos_scene(){          									// emits the positions toward the
 
     var listpos = {}         // dictionary of all the informations about the scene to be saved in a json file..
     for (i in objects){
-          if (objects[i].type != 'pawn' & objects[i].type != null){
+          if (objects[i].type != 'pawn' & objects[i].type != null & !objects[i].del){ // & !objects[i].del
               var x = objects[i].rotation.x
               var y = objects[i].rotation.y
               var z = objects[i].rotation.z
@@ -205,10 +206,7 @@ function init() {
 
   listorig = {}
   listmat = {} 																	// list of materials
-  basic_color = 0xffffff;  											// white color by default...
-  basic_tex_addr = "static/upload/Blank.jpg"  	// default texture
-  //basic_multiple_tex_addr = "static/upload/face_blank"  	// default texture
-  basic_multiple_tex_addr = "static/upload/face_color"  	// default texture
+
 
   //-----------------------------------------
 

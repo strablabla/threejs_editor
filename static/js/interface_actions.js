@@ -40,12 +40,8 @@ function actions_with_block_unblock(obj){
   Block or unblock the objects
   */
 
-  if (LAST_SELECTED.blocked){
-      unblock_obj(obj)
-   }
-  else{
-      block_obj(obj)
-   }
+  if (LAST_SELECTED.blocked){ unblock_obj(obj) }
+  else{ block_obj(obj) }
 }
 
 function hide_show_keys(){
@@ -55,11 +51,9 @@ function hide_show_keys(){
     */
 
     $('.panel_keys').html(simple_md(keys))
-
     $('#keys').click(function(){
           $('.panel_keys').toggle() 											     // show hide the key panel
       })
-
     mouseleave_hide_panel('.panel_keys')
 
 }
