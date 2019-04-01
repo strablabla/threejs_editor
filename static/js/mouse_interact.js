@@ -391,19 +391,15 @@ function limits_and_action(act_directly){
       Select a region and make action
       */
 
-      if ( selpos.length < 2 ){
-          make_limits_mouse()             // find the corners and make the area..
-      }
+      if ( selpos.length < 2 ){ make_limits_mouse() }   // find the corners and make the area..
       else{
           if (selpos.length == 2){
               act_directly(selpos)      // execute the action with the information of the position of the corners
-              if (select_obj){
-                  find_objects_in_area()
-              }
+              if (select_obj){ find_objects_in_area() }
               reinit_glob_var_and_actions()
           }
       } // end else
-}
+} //  end limits_and_action
 
 function corner(){
 
@@ -575,12 +571,8 @@ function show_infos(){
       for (var i = 0; i < x.length; i++) {
         x[i].style.visibility = "visible";    // make the panel visible
         x[i].style.backgroundColor = "white";
-        if (infos_in_place){
-              show_infos_at_mouse_pos(x,i)
-          }
-          else{                         // upper left, hidden..
-              show_infos_upper_left(x,i)
-          }
+        if (infos_in_place){ show_infos_at_mouse_pos(x,i) }
+        else{ show_infos_upper_left(x,i) } // upper left, hidden..
       } // end for
 } // end show_hide_infos
 
@@ -597,9 +589,7 @@ function give_infos(){
       */
 
       if (select_obj_infos){       //  select_obj_infos must be activated for accessing to the infos..
-          if ( INTERSECTED ){
-                show_infos()
-                }
+          if ( INTERSECTED ){ show_infos() }
           modify_values(INTERSECTED) // give the current values
 
         } // end if select_obj_infos

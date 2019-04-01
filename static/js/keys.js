@@ -69,6 +69,7 @@ function keyDownTextField1(event){
               clone_object()
           }
       } // end if key code
+
     if (keyev('d', event)){    											    // Delete object selected
         delete_object()
       } // end if key code
@@ -112,6 +113,10 @@ function keyDownTextField1(event){
 
     if (keyev('t', event)){             							    // infos about the object selected
          select_traj = ! select_traj;
+      } // end if key code
+
+    if (keyev('b', event)){    											    // Delete selection area
+        delete_area()
       } // end if key code
 
   } // end keyDownTextField1
@@ -210,6 +215,35 @@ function keyDownTextField1(event){
         select_picking = false
   }
 
+  function delete_area(){
+
+      /*
+      Delete area
+      */
+
+      for (i in list_dotted_area){
+        scene.remove(list_dotted_area[i])
+      } // end for
+      list_dotted_area = []
+  } // end delete_area
+
+  function delete_objects_inside(){
+
+      /*
+      Delete the objects inside the area
+      */
+
+      for (i in list_obj_inside){
+            for (j in objects){
+                  if (objects[j].name == list_obj_inside[i].name){
+                      delete objects[j];
+                  } //end if
+              } // end for
+            scene.remove(list_obj_inside[i]);
+            //delete list_obj_inside[i];
+          } // end for
+  } // end delete_objects_inside
+
   function delete_object(){
 
       /*
@@ -224,26 +258,12 @@ function keyDownTextField1(event){
             }
           scene.remove( INTERSECTED )
       }
-
-      else if(list_obj_inside.length > 0){
-          for (i in list_obj_inside){
-                for (j in objects){
-                      if (objects[j].name == list_obj_inside[i].name){
-                          delete objects[j];
-                      } //end if
-                  } // end for
-                scene.remove(list_obj_inside[i]);
-                //delete list_obj_inside[i];
-              } // end for
-        } // end else if
-      else{
-          console.log('delete nothing')
-        }
+      else if(list_obj_inside.length > 0){ delete_objects_inside() } // end else if
+      else{ console.log('delete nothing') }
       list_obj_inside = []
 
     } // end delete_object
 
-//}
 
   document.addEventListener("keydown", keyDownTextField1, false);
   //document.addEventListener("keydown", keyDownTextField0, false);
