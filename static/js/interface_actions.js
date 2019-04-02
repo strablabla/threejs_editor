@@ -1,3 +1,9 @@
+/*
+
+Different actions on the scene
+
+*/
+
 function mouseleave_hide_panel(class_panel){
 
     /*

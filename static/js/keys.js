@@ -1,3 +1,9 @@
+/*
+
+Keys for interacting with the scene.. 
+
+*/
+
 function keyDownTextField0(event){
 
     /*
