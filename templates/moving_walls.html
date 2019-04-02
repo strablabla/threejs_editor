@@ -92,6 +92,9 @@
 		var orange_medium = 0xffddcc;
 		dotted_line_color = 0x000000;
 		basic_color = 0xffffcc;  											// white color by default...
+		color_near_object = 0xffff66;
+		color_green_intersected = 0x66ff33;
+		color_pink_object_inside = 0xffcccc;
 		basic_tex_addr = "static/upload/Blank.jpg"  	// default texture
 		//basic_multiple_tex_addr = "static/upload/face_blank"  	// default texture
 		basic_multiple_tex_addr = "static/upload/face_color"  	// default texture
@@ -117,13 +120,13 @@
 		//ptlock()
 
 		function animate() {
-			requestAnimationFrame( animate );
-			render();
+				requestAnimationFrame( animate );
+				render();
 		}
 
 		function render() {
-			controls.update();
-			renderer.render( scene, camera );
+				controls.update();
+				renderer.render( scene, camera );
 		}
 
 		</script>
