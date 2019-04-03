@@ -1,6 +1,6 @@
 /*
 
-Initialization of the scene.. 
+Initialization of the scene..
 
 */
 
@@ -86,10 +86,21 @@ function load_object(k, msg){
 
             curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
             curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
-            listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : basic_color})
+            listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey})
             listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the wall object
             load_params(k, msg, curr_tex_addr)
        } // end if
+
+       //-------------- Simple Cube
+
+       else if (msg[k]['type'] == "simple_cube"){  // simple_cube
+
+             curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
+             curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
+             listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey})
+             listorig[k] = make_simple_cube( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the simple_cube object
+             load_params(k, msg, curr_tex_addr)
+        } // end if
 
       //-------------- Cube with textures
 
