@@ -112,8 +112,6 @@ function load_object(k, msg){
              listorig[k] = make_cube_texture( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the cube with texture
              load_params(k, msg, curr_tex_addr)
 
-             //listorig[k].material.color = 0xffffff            	  // color
-
         } // end if
 } // end load_object ...
 
@@ -130,6 +128,43 @@ function load_scene(msg){
           } // end for
 
 } // end load_scene..
+
+
+function set_controls(controls){
+
+      /*
+      Setting the controls parameters..
+      */
+
+      controls.rotateSpeed = 1.0;
+      controls.zoomSpeed = 4; // 1.2 original //
+      controls.panSpeed = 2;
+      controls.noZoom = false;
+      controls.noPan = false;
+      controls.staticMoving = true;
+      controls.dynamicDampingFactor = 0.3;
+
+}
+
+function set_light(light){
+
+      /*
+      Setting the light parameters..
+      */
+
+      light.position.set( 200, 500, 5000 );
+      light.castShadow = true;
+
+      // ----------------------------------------------- Shadow
+
+      light.shadowCameraNear = 200;
+      light.shadowCameraFar = camera.far;
+      light.shadowCameraFov = 50;
+      // -------------------------
+      light.shadowBias = -0.00022;
+      light.shadowDarkness = 0.5;
+
+}
 
 
 function emit_infos_scene(){          									// emits the positions toward the server to save them
@@ -171,23 +206,17 @@ function init() {
   //------------------------- Camera
 
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-  camera.position.z = 2000;
-  camera.position.y = -2000;
-  camera.position.x = 0;
+  camera.position.set(0,-2000,2000)
+  // camera.position.z = 2000;
+  // camera.position.y = -2000;
+  // camera.position.x = 0;
 
   //------------------------- Control the view
 
   controls = new THREE.TrackballControls( camera );
-  controls.rotateSpeed = 1.0;
-  controls.zoomSpeed = 4; // 1.2 original //
-  controls.panSpeed = 2;
-  controls.noZoom = false;
-  controls.noPan = false;
-  controls.staticMoving = true;
-  controls.dynamicDampingFactor = 0.3;
+  set_controls(controls)
 
   scene = new THREE.Scene();
-
   scene.add( new THREE.AmbientLight( 0x505050 ) );
 
   // ----------------------------------------------- Light
@@ -199,18 +228,7 @@ function init() {
   // );
 
   var light = new THREE.SpotLight( 0xffffff, 1.5 );
-  light.position.set( 200, 500, 5000 );
-  light.castShadow = true;
-
-  // ----------------------------------------------- Shadow
-
-  light.shadowCameraNear = 200;
-  light.shadowCameraFar = camera.far;
-  light.shadowCameraFov = 50;
-  // -------------------------
-  light.shadowBias = -0.00022;
-  light.shadowDarkness = 0.5;
-
+  set_light(light)
   scene.add( light );
 
   //make_objects_onflat()
@@ -223,7 +241,6 @@ function init() {
 
   listorig = {}
   listmat = {} 																	// list of materials
-
 
   //-----------------------------------------
 

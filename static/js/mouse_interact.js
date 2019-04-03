@@ -259,6 +259,18 @@ function magnet_parallel_walls(rot_abs, signx, signy){
 
 }
 
+function magnet_face_to_face(signx,signy,face){
+
+      /*
+      Magnet for parallel walls
+      */
+
+      if (face == 'facex'){ SELECTED.position.x += signx*SELECTED.width }
+      else{ SELECTED.position.y += signy*SELECTED.width }
+      $('#curr_func').css('background-color','yellow')
+
+}
+
 function magnet_perpendicular_walls(signx, signy){
 
       /*
@@ -271,24 +283,29 @@ function magnet_perpendicular_walls(signx, signy){
 
 }
 
-function signxy(SELECTED, nearest_elem){
+function signxy_face(SELECTED, nearest_elem){
 
       /*
-      Signs: signx and signy according to the position
+      signs: signx and signy according to the position
+      face : face to be glued..
       */
 
-      var signx = Math.sign(SELECTED.position.x - nearest_elem.position.x)
-      var signy = Math.sign(SELECTED.position.y - nearest_elem.position.y)
+      var diffx = SELECTED.position.x - nearest_elem.position.x
+      var diffy = SELECTED.position.y - nearest_elem.position.y
+      var signx = Math.sign(diffx)
+      var signy = Math.sign(diffy)
+      if (Math.abs(diffx) < Math.abs(diffy)){ var face = "facey" }
+      else{var face = "facex"}
 
-      return [signx, signy]
+      return [signx, signy, face]
 
 }
 
 function rotation_relative_absolute(SELECTED, nearest_elem){
 
       /*
-      rot_relat : diff of angle between SELECTED and nearest..
-      rot_abs : angle of SELECTED
+      rot_relat : angle difference between SELECTED and nearest_elem..
+      rot_abs : absolute angle of SELECTED
       */
 
       var rot_relat = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
@@ -297,19 +314,36 @@ function rotation_relative_absolute(SELECTED, nearest_elem){
       return [rot_relat, rot_abs]
 }
 
-function magnet_wall(nearest_elem){
+function magnet_wall_wall(){
+      /*
+      Case magnet wall to wall
+      */
+      return (SELECTED.type == 'wall' &  nearest_elem.type == 'wall')
+}
+
+function magnet_cube_cube(){
+      /*
+      Case magnet cube cube
+      */
+      return (SELECTED.type == 'simple_cube' &  nearest_elem.type == 'simple_cube')
+}
+
+function magnet_between_objects(nearest_elem){
 
       /*
-      Wall attracted by the nearest wall..
+      Magnetism between objects
       */
 
-      [signx, signy] = signxy(SELECTED, nearest_elem)
-      copypos(SELECTED, nearest_elem)
+      [signx, signy, face] = signxy_face(SELECTED, nearest_elem)
+      copypos(SELECTED, nearest_elem)                 // position on same axe..
       var [rot_relat, rot_abs] = rotation_relative_absolute(SELECTED, nearest_elem)
-      if ( (rot_relat == 0) ){ magnet_parallel_walls(rot_abs, signx, signy) }
-      else{ magnet_perpendicular_walls(signx, signy) }
+      if (magnet_wall_wall()){
+            if ( (rot_relat == 0) ){ magnet_parallel_walls(rot_abs, signx, signy) }
+            else{ magnet_perpendicular_walls(signx, signy)}
+      }
+      else if (magnet_cube_cube()){ magnet_face_to_face(signx, signy,face) }
 
-} // end magnet_wall
+} // end magnet_between_objects
 
 function onDocumentMouseUp( event ) {
 
@@ -319,13 +353,18 @@ function onDocumentMouseUp( event ) {
 
       event.preventDefault();
       controls.enabled = true;
-      if (nearest_elem){ magnet_wall(nearest_elem) }  // attraction between walls.. by the sides..
+      if (nearest_elem){ magnet_between_objects(nearest_elem) }  // attraction between walls.. by the sides..
       if ( INTERSECTED ) {
           LAST_SELECTED = SELECTED;
           SELECTED = null;
       }
       container.style.cursor = 'auto';
       color_pick() // Color the picked objects..
+      // if (selpos.length == 2){
+      //       for (i in selpos){ scene.remove(selpos[i]) } // end for
+      //       selpos = []
+      // }
+
 }
 
 function mousepos(){
@@ -419,7 +458,7 @@ function nearest_object(currobj){
       Find the nearest object and change its color in yellow..
       */
 
-      var mindist = 50;
+      var mindist = 200;
       mini = -1;
       for ( i in objects ){
           if (objects[i] != currobj){
@@ -459,18 +498,33 @@ function limits_and_action(act_directly){
       } // end else if
 } //  end limits_and_action
 
-function corner(){
+function corner(col){
 
       /*
       Make a corner for area delimitation (selpos list)
       */
 
       interptsub = mousepos()
-      var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, 0xffcccc )
+      var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, col )
       selpos.push(creobj)
-      list_obj_inside.push(creobj)      // adding the limits in the list
+      //list_obj_inside.push(creobj)      // adding the limits in the list
+      //list_marks.push(creobj)
+      //if (select_obj){list_dotted_area.push(creobj)}
 
       return creobj
+
+}
+
+function color_corner(){
+
+      /*
+      Color of the marks
+      */
+
+      if (select_obj){col = color_mark_quite_grey}
+      else{col = color_mark_pale_rose}
+
+      return col
 
 }
 
@@ -480,8 +534,9 @@ function make_limits_mouse(){
       Graphical limits moved with the mouse..
       */
 
-      var corner0 = corner()
-      var corner1 = corner()
+      col = color_corner()
+      var corner0 = corner(col)
+      var corner1 = corner(col)
       SELECTED = corner1
       controls.enabled = false
 
@@ -677,11 +732,12 @@ function show_infos(){
 
       var x = document.getElementsByClassName("panel");
       for (var i = 0; i < x.length; i++) {
-        x[i].style.visibility = "visible";    // make the panel visible
-        x[i].style.backgroundColor = "white";
-        if (infos_in_place){ show_infos_at_mouse_pos(x,i) }
-        else{ show_infos_upper_left(x,i) } // upper left, hidden..
+          x[i].style.visibility = "visible";    // make the panel visible
+          x[i].style.backgroundColor = "white";
+          if (infos_in_place){ show_infos_at_mouse_pos(x,i) }
+          else{ show_infos_upper_left(x,i) } // upper left, hidden..
       } // end for
+
 } // end show_hide_infos
 
 //
