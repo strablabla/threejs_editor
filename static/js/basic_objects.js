@@ -93,18 +93,20 @@ function delete_area(){
     Delete area
     */
 
-    for (i in list_dotted_area){
-      scene.remove(list_dotted_area[i])
-    } // end for
+    for (i in list_dotted_area){ scene.remove(list_dotted_area[i]) } // end for
     list_dotted_area = []
+    reinit_selection()
+
 } // end delete_area
 
-
-function dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem_dotted_line){
+function dotted_area(nbelem,elem, limits_minmax, size_elem_dotted_line){
 
     /*
     Dotted area
     */
+
+    var [minx, maxx, miny, maxy] = limits_minmax
+    var [nbelem1,nbelem2] = nbelem
 
     dotted_line(nbelem2,elem,'x',minx,miny,size_elem_dotted_line)
     dotted_line(nbelem1,elem,'y',minx,miny,size_elem_dotted_line)
@@ -150,7 +152,7 @@ function make_dotted_area(selpos){
 
     //-----------------
     var geometry = new THREE.CubeGeometry( size_elem_dotted_line, size_elem_dotted_line, 3 );
-    var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: dotted_line_color } ) );
+    var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: color_dotted_line_black } ) );
     //----------------- number of elements
     nbelem1 = Math.round(side1/(2*size_elem_dotted_line))
     nbelem2 = Math.round(side2/(2*size_elem_dotted_line))
@@ -160,7 +162,9 @@ function make_dotted_area(selpos){
     var maxx = Math.max(selpos[0].position.x,selpos[1].position.x)
     var maxy = Math.max(selpos[0].position.y,selpos[1].position.y)
     //-----------------
-    dotted_area(nbelem1,nbelem2,elem, minx, maxx, miny, maxy, size_elem_dotted_line)
+    var limits_minmax = [minx, maxx, miny, maxy]
+    var nbelem = [nbelem1,nbelem2]
+    dotted_area(nbelem,elem, limits_minmax, size_elem_dotted_line)
 
 } // end function make area
 
@@ -244,6 +248,30 @@ function make_ground_chess(){
     }
 } // end function
 
+function simple_parallelepiped(name,p,r,material,dim,type){
+
+    /*
+    SImple parallelepiped
+    name : name of the object
+    p : position of the object
+    r : rotation of the object
+    material : color and texture of the object
+    */
+
+    p.z = dim.height/2;
+    var geometry = new THREE.CubeGeometry( dim.thickness, dim.width, dim.height );
+    var object = new THREE.Mesh( geometry, material );
+    object = obj_basics(object,p,r,name)
+    object.width = dim.width;
+    object.height = dim.height;
+    object.type = type
+    scene.add( object );
+    objects.push( object )
+
+    return object
+
+} // end function
+
 function make_wall(name,p,r,material){
 
     /*
@@ -254,20 +282,27 @@ function make_wall(name,p,r,material){
     material : color and texture of the object
     */
 
-    var wall_width = 150;
-    var wall_thickness = 5;
-    var wall_height = 300;
-    p.z = wall_height/2;
-    var geometry = new THREE.CubeGeometry( wall_thickness, wall_width, wall_height );
-    var object = new THREE.Mesh( geometry, material );
-    object = obj_basics(object,p,r,name)
-    object.width = wall_width;
-    object.height = wall_height;
-    object.type = "wall"
-    scene.add( object );
-    objects.push( object )
+    var dim = { width : 150, height : 300, thickness : 5}
+    var wall = simple_parallelepiped(name,p,r,material,dim,"wall")
 
-    return object
+    return wall
+
+} // end function
+
+function make_simple_cube(name,p,r,material){
+
+    /*
+    Simple Cube
+    name : name of the object
+    p : position of the object
+    r : rotation of the object
+    material : color and texture of the object
+    */
+    var size_simple_cube = 150
+    var dim = { width : size_simple_cube, height : size_simple_cube, thickness : size_simple_cube}
+    var simple_cube = simple_parallelepiped(name,p,r,material,dim,"simple_cube")
+
+    return simple_cube
 
 } // end function
 

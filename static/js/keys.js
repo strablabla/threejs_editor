@@ -1,6 +1,6 @@
 /*
 
-Keys for interacting with the scene.. 
+Keys for interacting with the scene..
 
 */
 
@@ -26,7 +26,27 @@ function rotate_obj(obj){
   */
 
    obj.rotation.z += -Math.PI/2;
-   obj.material.color.setHex( 0xff33f5 ); // change color
+
+}
+
+function move_obj_up(obj){
+
+  /*
+  Make the object going up.
+  */
+
+   obj.position.z += step_up_down;
+
+}
+
+function move_obj_down(obj){
+
+  /*
+  Make the object going down
+  */
+
+   obj.position.z += -step_up_down;
+
 }
 
 function link_toggle(event, namekey, nameparam){
@@ -47,16 +67,26 @@ function indicate_picking(){
 
 }
 
+function apply_to_one_obj_or_group(action, oneshot){
+
+  if ( INTERSECTED ){ action(INTERSECTED)} // Pi/2 rotation
+  else if(list_obj_inside.length > 0){ apply_to_all(action, oneshot) }
+
+}
+
 function keyDownTextField1(event){
 
     /*
-    r : rotate
+
     c : clone
     d : delete
-    n : new piece with mouse
-    s : selected area (dotted area)
     k : select camera position with mouse..
     h : make an horizontal plane
+    l : simple cube
+    m : cube with multiple texture
+    n : new piece with mouse
+    r : rotate
+    s : selected area (dotted area)
     arrow up : move up
     arrow down : move down
     SHIFT : pick diff objects..
@@ -64,35 +94,29 @@ function keyDownTextField1(event){
 
     $('#curr_func').css('background-color','red')
 
-    if (event.keyCode == 16){    												  // SHIFT key, Picking objects to apply the same action after..
+    if (event.keyCode == 16){    	         // SHIFT key, Picking objects to apply the same action after..
           select_picking = !select_picking
           indicate_picking()
       } // end if key code
-    if (event.keyCode == 38 & INTERSECTED){ INTERSECTED.position.z += 50 }   						 // Up
-    if (event.keyCode == 40 & INTERSECTED){ INTERSECTED.position.z += -50 }              // Down
-    if (keyev('c', event) & INTERSECTED){ clone_object() }          // Clone the selected object
-    if (keyev('d', event)){ delete_object() }   				  // Delete object selected
-    if (keyev('b', event)){  delete_area() }              // Delete selection area
+    if (event.keyCode == 38 ){ apply_to_one_obj_or_group(move_obj_up, false)  }  // Up
+    if (event.keyCode == 40 ){ apply_to_one_obj_or_group(move_obj_down, false) } // Down
+    if ( keyev('c', event) ){ if (INTERSECTED){ clone_object() } }   						 // Clone the selected object
+    if ( keyev('d', event) ){ delete_object() }   				  // Delete object selected
+    if ( keyev('b', event) ){ delete_area() }               // Delete selection area
+    if ( keyev('r', event) ){ apply_to_one_obj_or_group(rotate_obj, true) } 						// Rotation
 
     //--------------------- Change variables
 
     link_toggle(event, 'g', 'select_move_group')          // move group
     link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
     link_toggle(event, 'n', 'new_wall_ok')                // create new wall
+    link_toggle(event, 'l', 'new_simple_cube_ok')         // create new simple cube
     link_toggle(event, 's', 'select_obj')                 // select object in area
     link_toggle(event, 'h', 'make_plane')                 // horizontal plane
     link_toggle(event, 'k', 'select_poscam')              // create new wall
     link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
     link_toggle(event, 't', 'select_traj')                // create a trajectory
 
-    if (keyev('r', event)){    												  // Rotation
-          if ( INTERSECTED ){
-            INTERSECTED.rotation.z += -Math.PI/2; 		  // Pi/2 rotation
-          }
-          else if(list_obj_inside.length > 0){
-            apply_to_all(rotate_obj)
-          }
-      } // end if key code
 
   } // end keyDownTextField1
 
@@ -114,9 +138,7 @@ function keyDownTextField1(event){
       // select_poscam = false;
       selectdic[key] = !selectdic[key];
       for (k in Object.keys(selectdic)){
-          if ( k != key ){
-              selectdic[k] = false;
-          }
+          if ( k != key ){ selectdic[k] = false; }
       }
 
   }
@@ -145,11 +167,9 @@ function keyDownTextField1(event){
         if (event.keyCode == key.charCodeAt(0)-32 ){
             curr_func(key)
             return true
-        }
-        else{
-            return false
-        }
-      }
+        }else{ return false }
+
+      } // end keyev
 
 //------------------------- Keys actions
 
@@ -159,6 +179,7 @@ function keyDownTextField1(event){
       Clone the selected object
       */
 
+      dict_shit_clone = {"wall":100, "simple_cube":200}     // shift distance for clone
       clone = INTERSECTED.clone();
       clone.name = INTERSECTED.name + "_" + INTERSECTED.clone_infos.numclone;
       clone.type = INTERSECTED.type;
@@ -166,14 +187,25 @@ function keyDownTextField1(event){
       INTERSECTED.clone_infos.numclone += 1;
       clone.clone_infos = {"numclone":0,"cloned":true,"origclone":INTERSECTED.name}
       //-----------
-      clone.position.x += 100;                      // shift position in relation with the original piece
-      clone.material.color.setHex( 0xcceeff );      // clone color, pale blue
+      clone.position.x += dict_shit_clone[clone.type];                      // shift position in relation with the original piece
+      clone.material.color.setHex( color_clone_pale_blue );      // clone color, pale blue
       scene.add(clone)
       objects.push(clone)
 
   }
 
-  function apply_to_all(func_all){
+  function reinit_selection(){
+
+        /*
+         Reinitialize the selection
+        */
+
+        list_obj_inside = []  // reinitializing list_obj_inside
+        select_picking = false
+
+  }
+
+  function apply_to_all(func_all, oneshot){
 
         /*
          Apply the same func_all to all the objects..
@@ -186,8 +218,10 @@ function keyDownTextField1(event){
                     } //end if
                 } // end for j (reading the list objects)
             } // end for i (reading the list list_obj_inside)
-        list_obj_inside = []  // reinitializing list_obj_inside
-        select_picking = false
+        if (oneshot){
+            reinit_selection()
+        }
+
   }
 
   function delete_objects_inside(){
@@ -224,11 +258,9 @@ function keyDownTextField1(event){
       } // end else if
 
       objects.forEach(function(elem){
-          if (elem.del){
-            scene.remove(elem)
-          }
+          if (elem.del){ scene.remove(elem) } // remove all the element with the del attribute at true..
       })
-      emit_infos_scene()
+      emit_infos_scene() // send infos to the server..
 
 } // end delete_object
 

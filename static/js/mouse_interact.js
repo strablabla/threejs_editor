@@ -18,26 +18,26 @@ function copypos(a,b){
 
 function random_name(){
 
-    /*
-    Return a random name
-    */
+      /*
+      Return a random name
+      */
 
-    return Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
+      return Math.random().toString(36).substring(2, 15) ; // + Math.random().toString(36).substring(2, 15)
 }
 
 function init_drag(){
 
-    /*
-    Init the dragging function..
-    */
+      /*
+      Init the dragging function..
+      */
 
-    projector = new THREE.Projector();
-    var size_plane = 10000
-    var geom = new THREE.PlaneGeometry( size_plane, size_plane, 8, 8 )
-    var mat = new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } )
-    plane = new THREE.Mesh( geom, mat );
-    plane.visible = true;
-    scene.add( plane );
+      projector = new THREE.Projector();
+      var size_plane = 10000
+      var geom = new THREE.PlaneGeometry( size_plane, size_plane, 8, 8 )
+      var mat = new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } )
+      plane = new THREE.Mesh( geom, mat );
+      plane.visible = true;
+      scene.add( plane );
 
 }
 
@@ -144,9 +144,8 @@ function action_on_selected_when_moving(raycaster){
       interptsub.z = SELECTED.position.z
       if ( !SELECTED.blocked ){ SELECTED.position.copy( interptsub ) } // move the object selected..
       nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
-      if (select_move_group){
-            move_group()  // move the whole group, obj in list_obj_inside
-      }
+      if (select_move_group){ move_group() } // move the whole group, obj in list_obj_inside
+
 }
 
 function refresh_dotted_area(){
@@ -228,6 +227,7 @@ function mouse_down_case_intersections(intersects,raycaster){
       SELECTED = intersects[ 0 ].object;
       intersects = raycaster.intersectObject( plane );
       container.style.cursor = 'move';
+
       return intersects
 }
 
@@ -241,7 +241,7 @@ function onDocumentMouseDown( event ) {
       var intersects = raycaster.intersectObjects( objects );
       if ( intersects.length > 0 ) { intersects = mouse_down_case_intersections(intersects,raycaster) }
       else{ $('.panel').css({'top':"10px","left":"-300px"}) }             // hide panel when mouse leaves..
-      if ( INTERSECTED ) INTERSECTED.material.color.setHex( color_green_intersected );   // changing color in green when selected
+      if ( INTERSECTED ) INTERSECTED.material.color.setHex( color_intersected_green );   // changing color in green when selected
       if (select_picking){ picking_action() }                             // adding the object to the list of the picked elements..
       if (select_move_group){ keep_relative_positions() }                 // save the relative positions inside the group
 
@@ -378,7 +378,7 @@ function find_objects_in_area(){
       for (i in objects){     // if object is inside the area..
           if ( is_inside(objects[i], list_mm) ){
                   list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
-                  objects[i].material.color.setHex(color_pink_object_inside)  // light pink color
+                  objects[i].material.color.setHex(color_object_inside_pink)  // light pink color
               } // end if
       } // end for
 } // end objects in area..
@@ -408,8 +408,7 @@ function near_mindist_mini(currobj,i,mindist,mini){
       if ( dist < mindist ){        // smaller distance
               mini = i
               mindist = dist       // change mini distance..
-          }
-      else { objects[i].material.color.setHex(INTERSECTED.currentHex) } // initial color
+      } else { objects[i].material.color.setHex(INTERSECTED.currentHex) } // initial color
 
       return [mindist,mini]
 }
@@ -420,20 +419,20 @@ function nearest_object(currobj){
       Find the nearest object and change its color in yellow..
       */
 
-      var mindist = 200;
+      var mindist = 50;
       mini = -1;
       for ( i in objects ){
           if (objects[i] != currobj){
                 [mindist,mini] = near_mindist_mini(currobj,i,mindist,mini)  // find mindist and mini
             } // end if objects[i]
-      } // end for
-      if ( mini != -1 ){ objects[mini].material.color.setHex(color_near_object) }    // change the color to yellow
+        } // end for
+      if ( mini != -1 ){ objects[mini].material.color.setHex(color_near_object_yellow) }    // change the color to yellow
 
       return objects[mini]  // return the nearest object..
 
 } // end nearest_object
 
-function reinit_glob_var_and_actions(){
+function limits_and_action_reinit_var(){
 
       /*
       Reinitialize singleton variables
@@ -452,17 +451,12 @@ function limits_and_action(act_directly){
       Select a region and make action
       */
 
-      if ( selpos.length < 2 ){
-            make_limits_mouse()
-            controls.enabled = false
-           }   // find the corners and make the area..
-      else{
-          if (selpos.length == 2){
+      if ( selpos.length < 2 ){ make_limits_mouse() }   // find the corners and make the area..
+      else if (selpos.length == 2){
               if (act_directly){ act_directly(selpos) } // execute the action with the information of the position of the corners
               if (select_obj){ find_objects_in_area() }
-              reinit_glob_var_and_actions()
-          }
-      } // end else
+              limits_and_action_reinit_var()
+      } // end else if
 } //  end limits_and_action
 
 function corner(){
@@ -482,27 +476,28 @@ function corner(){
 
 function make_limits_mouse(){
 
-    /*
-    Graphical limits moved with the mouse..
-    */
+      /*
+      Graphical limits moved with the mouse..
+      */
 
-    var corner0 = corner()
-    var corner1 = corner()
-    SELECTED = corner1
+      var corner0 = corner()
+      var corner1 = corner()
+      SELECTED = corner1
+      controls.enabled = false
 
 }
 
 function params_newview(selpos){
 
-    /*
-    newview parameters
-    */
+      /*
+      newview parameters
+      */
 
-    var altit = 250;
-    var s0 = selpos[0].position
-    var s1 = selpos[1].position
+      var altit = 250;
+      var s0 = selpos[0].position
+      var s1 = selpos[1].position
 
-    return [altit, s0, s1]
+      return [altit, s0, s1]
 
 }
 
@@ -520,136 +515,157 @@ function reinit_params_newview(){
 
 function newview(selpos){
 
-    /*
-    put the camera at positon selpos[0] and look at selpos[1]
-    */
+      /*
+      put the camera at positon selpos[0] and look at selpos[1]
+      */
 
-    var [altit, s0, s1] = params_newview(selpos)
-    camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
-    camera.up = new THREE.Vector3(0,0,1);
-    controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
-    reinit_params_newview()
+      var [altit, s0, s1] = params_newview(selpos)
+      camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
+      camera.up = new THREE.Vector3(0,0,1);
+      controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
+      reinit_params_newview()
 
 }
 
 function random_name_mousepos(){
 
-    /*
-    Return a random name and the position of the mouse
-    */
+      /*
+      Return a random name and the position of the mouse
+      */
 
-    return [random_name(), mousepos()]
+      return [random_name(), mousepos()]
+
+}
+
+function make_new_parallelepiped(make_type){
+
+      /*
+      Make a new parallelepiped
+      */
+
+      var [newname, interptsub] = random_name_mousepos()
+      basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
+      listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : color_basic_default_pale_grey})
+      listorig[newname] = make_type( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
 
 }
 
 function make_new_wall(){
 
-    /*
-    Make a new wall
-    */
+      /*
+      Make a new wall
+      */
 
-    var [newname, interptsub] = random_name_mousepos()
-    basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
-    listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
-    listorig[newname] = make_wall( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
+      make_new_parallelepiped(make_wall)
+
+}
+
+function make_new_simple_cube(){
+
+      /*
+      Make a new simple cube
+      */
+
+      make_new_parallelepiped(make_simple_cube)
 
 }
 
 function make_new_cube_texture(){
 
-    /*
-    Make a new cube with texture
-    */
+      /*
+      Make a new cube with texture
+      */
 
-    $('#curr_func').css('background-color','red')
-    var [newname, interptsub] = random_name_mousepos()
-    curr_tex_addr = basic_multiple_tex_addr;
-    $('#curr_func').css('background-color','blue')
-    var meshFaceMaterial = make_meshFaceMaterial('face_color')
-    listorig[newname] = make_cube_texture( newname, interptsub, {"x":0, "y":0, "z":0}, meshFaceMaterial )   // make the wall object
-    listorig[newname]['tex_addr'] =  curr_tex_addr               									// texture address
-    listorig[newname]['tex'] =  curr_tex_addr.split('/').pop(-1)               	  // texture name
-    $('#curr_func').css('background-color','green')
-    // basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
-    // listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : basic_color})
-    // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
+      $('#curr_func').css('background-color','red')
+      var [newname, interptsub] = random_name_mousepos()
+      curr_tex_addr = basic_multiple_tex_addr;
+      $('#curr_func').css('background-color','blue')
+      var meshFaceMaterial = make_meshFaceMaterial(default_texture)
+      listorig[newname] = make_cube_texture( newname, interptsub, {"x":0, "y":0, "z":0}, meshFaceMaterial )   // make the wall object
+      listorig[newname]['tex_addr'] =  curr_tex_addr               									// texture address
+      listorig[newname]['tex'] =  curr_tex_addr.split('/').pop(-1)               	  // texture name
+      $('#curr_func').css('background-color','green')
+      // basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
+      // listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : color_basic_default_pale_grey})
+      // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
 }
 
 function link(condition, action, arg){
 
-    /*
-    Linking a conditon with an action (function) with optionnal argument..
-    */
+      /*
+      Linking a conditon with an action (function) with optionnal argument..
+      */
 
-    if (condition){
-        if (arg){action(arg)}
-        else {action()}
-    }
+      if (condition){
+            if (arg){action(arg)}
+            else {action()}
+      }
 }
 
 function mouse_create_object_or_action(){
 
-    /*
-    Create an object (new_wall_ok) or an action
-     where the mouse is located in the plane.
-    */
+      /*
+      Create an object (new_wall_ok) or an action
+       where the mouse is located in the plane.
+      */
 
-    link(new_wall_ok, make_new_wall, null)                     // N key
-    link(new_cube_texture_ok, make_new_cube_texture, null)     // M key
-    link(select_obj, limits_and_action, null)                  // S key.. make_dotted_area
-    link(make_plane, limits_and_action, make_horizontal_area)  // H key
-    link(select_poscam, limits_and_action, newview)            // K key
+      link(new_wall_ok, make_new_wall, null)                     // N key
+      link(new_simple_cube_ok, make_new_simple_cube, null)              // L key
+      link(new_cube_texture_ok, make_new_cube_texture, null)     // M key
+      link(select_obj, limits_and_action, null)                  // S key.. make_dotted_area
+      link(make_plane, limits_and_action, make_horizontal_area)  // H key
+      link(select_poscam, limits_and_action, newview)            // K key
 
 } // end mouse_create_object_or_action
 
 function show_block_unblock(){
 
-    /*
-    Value button block, unblock
-    */
+      /*
+      Value button block, unblock
+      */
 
-    if (LAST_SELECTED.blocked){ $('#block_pos').text('unblock') }
-    else{ $('#block_pos').text('block') }
+      if (LAST_SELECTED.blocked){ $('#block_pos').text('unblock') }
+      else{ $('#block_pos').text('block') }
 
 }
 
 function modify_values(INTERSECTED){
 
-    /*
-    Change the vaues in the panel for infos about the object selected..
-    */
+      /*
+      Change the vaues in the panel for infos about the object selected..
+      */
 
-    $('#name_panel').text(INTERSECTED.name);                              // name of the element in the parameter panel..
-    $('#width_panel').val(INTERSECTED.width);                             // width  of the element in the parameter panel..
-    $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
-    $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
-    $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
-    //$('#texture_panel').val(INTERSECTED.tex);                           // texture of the element in the parameter panel..
-    $('.dz-message').css('top','2px')
-    $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
-    show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
+      $('#name_panel').text(INTERSECTED.name);                              // name of the element in the parameter panel..
+      $('#width_panel').val(INTERSECTED.width);                             // width  of the element in the parameter panel..
+      $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
+      $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
+      $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
+      //$('#texture_panel').val(INTERSECTED.tex);                           // texture of the element in the parameter panel..
+      $('.dz-message').css('top','2px')
+      $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
+      show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
 
 }
 
 function show_infos_at_mouse_pos(x,i){
 
-    /*
-    Show the infos in the place of the object..
-    */
+      /*
+      Show the infos in the place of the object..
+      */
 
-    x[i].style.left = event.pageX + "px";  				// using mouse x
-    x[i].style.top = event.pageY + "px";   				// using mouse y
+      x[i].style.left = event.pageX + "px";  				// using mouse x
+      x[i].style.top = event.pageY + "px";   				// using mouse y
 
 }
 
 function show_infos_upper_left(x,i){
 
-  /*
-  Show the infos on the upper left corner
-  */
+      /*
+      Show the infos on the upper left corner
+      */
 
-  x[i].style.left = "0px";  				  //  pos x
-  x[i].style.top =  "50px";   				//  pos y
+      x[i].style.left = "0px";  				  //  pos x
+      x[i].style.top =  "50px";   				//  pos y
 
 }
 

@@ -10,9 +10,7 @@ function mouseleave_hide_panel(class_panel){
     Hide when leaving the panel
     */
 
-    $(class_panel).mouseleave(function(){
-          $(class_panel).hide()
-      })
+    $(class_panel).mouseleave(function(){ $(class_panel).hide() })
 
 }
 
@@ -57,9 +55,7 @@ function hide_show_keys(){
     */
 
     $('.panel_keys').html(simple_md(keys))
-    $('#keys').click(function(){
-          $('.panel_keys').toggle() 											     // show hide the key panel
-      })
+    $('#keys').click(function(){ $('.panel_keys').toggle() })			// show hide the key panel
     mouseleave_hide_panel('.panel_keys')
 
 }
