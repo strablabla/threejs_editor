@@ -179,16 +179,19 @@ function keyDownTextField1(event){
       Clone the selected object
       */
 
-      dict_shit_clone = {"wall":100, "simple_cube":200}     // shift distance for clone
+      dict_shift_clone = {"wall":100, "simple_cube":200}     // shift distance for clone
       clone = INTERSECTED.clone();
       clone.name = INTERSECTED.name + "_" + INTERSECTED.clone_infos.numclone;
       clone.type = INTERSECTED.type;
+      clone.tex_addr = INTERSECTED.tex_addr;
+      clone.blocked = INTERSECTED.blocked;
       //-----------  Clone infos
       INTERSECTED.clone_infos.numclone += 1;
       clone.clone_infos = {"numclone":0,"cloned":true,"origclone":INTERSECTED.name}
       //-----------
-      clone.position.x += dict_shit_clone[clone.type];                      // shift position in relation with the original piece
+      clone.position.x += dict_shift_clone[clone.type];                      // shift position in relation with the original piece
       clone.material.color.setHex( color_clone_pale_blue );      // clone color, pale blue
+      //-----------
       scene.add(clone)
       objects.push(clone)
 
@@ -196,31 +199,31 @@ function keyDownTextField1(event){
 
   function reinit_selection(){
 
-        /*
-         Reinitialize the selection
-        */
+      /*
+       Reinitialize the selection
+      */
 
-        list_obj_inside = []  // reinitializing list_obj_inside
-        select_picking = false
+      list_obj_inside = []  // reinitializing list_obj_inside
+      select_picking = false
 
   }
 
   function apply_to_all(func_all, oneshot){
 
-        /*
-         Apply the same func_all to all the objects..
-        */
+      /*
+       Apply the same func_all to all the objects..
+      */
 
-        for (i in list_obj_inside){
-              for (j in objects){
-                    if (objects[j].name == list_obj_inside[i].name){
-                        func_all(objects[j])
-                    } //end if
-                } // end for j (reading the list objects)
-            } // end for i (reading the list list_obj_inside)
-        if (oneshot){
-            reinit_selection()
-        }
+      for (i in list_obj_inside){
+            for (j in objects){
+                  if (objects[j].name == list_obj_inside[i].name){
+                      func_all(objects[j])
+                  } //end if
+              } // end for j (reading the list objects)
+          } // end for i (reading the list list_obj_inside)
+      if (oneshot){
+          reinit_selection()
+      }
 
   }
 
@@ -239,6 +242,7 @@ function keyDownTextField1(event){
               } // end for j
           } // end for i
       list_obj_inside = []
+
   } // end delete_objects_inside
 
   function delete_object(){
