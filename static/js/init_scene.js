@@ -60,68 +60,62 @@ var keys = function(){/*
 */}.toString().slice(14,-3)
 
 
-function load_params(k, msg, curr_tex_addr){
+function load_params(name, msg, curr_tex_addr){
 
     /*
     Load the parameters of each object..
     */
 
-    listorig[k]['clone_infos'] = msg[k]['clone_infos']                       // add the infos about cloning
-    listorig[k]['tex_addr'] =  curr_tex_addr               									 // texture address
-    listorig[k]['tex'] =  curr_tex_addr.split('/').pop(-1)
-    listorig[k]['blocked'] =  msg[k]['blocked']             		            // blocked
-    listorig[k]['del'] =  msg[k]['del']             		                    // delete autorization
+    listorig[name]['clone_infos'] = msg[name]['clone_infos']                       // add the infos about cloning
+    listorig[name]['tex_addr'] =  curr_tex_addr               									 // texture address
+    listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
+    listorig[name]['blocked'] =  msg[name]['blocked']             		            // blocked
+    listorig[name]['del'] =  msg[name]['del']             		                    // delete autorization
 
 }
 
-function load_object(k, msg){
+dic_type_parall = { "wall" : make_wall,
+                    "simple_cube" : make_simple_cube,
+                    "pavement" : make_pavement
+                   }
+
+function load_parallelepiped_shapes(name, msg){
+
+      /*
+      Load parallelepipedic objects
+      */
+
+      curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
+      curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
+      listmat[name] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey })
+      listorig[name] = dic_type_parall[msg[name]['type']]( name, msg[name]['pos'], msg[name]['rot'], listmat[name] )   // make the wall object
+      load_params(name, msg, curr_tex_addr)
+
+}
+
+function load_cube_mult_tex(name, msg){
+
+      /*
+      cube multitexture
+      */
+
+      curr_tex_mult_addr = msg[name]['tex_addr'] || basic_multiple_tex_addr;
+      curr_tex_mult = 'face_color';                                										// name of the folder for the textures
+      listmat[name] = make_meshFaceMaterial(curr_tex_mult)                                // texture for each face
+      listorig[name] = make_cube_texture( name, msg[name]['pos'], msg[name]['rot'], listmat[name] )   // make the cube with texture
+      load_params(name, msg, curr_tex_addr)
+
+}
+
+function load_object(name, msg){
 
       /*
       Create a new object json file containing all the information about the scene..
       */
 
-      //-------------- Wall
-
-      if (msg[k]['type'] == "wall"){  // wall
-
-            curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
-            curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
-            listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey})
-            listorig[k] = make_wall( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the wall object
-            load_params(k, msg, curr_tex_addr)
-       } // end if
-
-       //-------------- Simple Cube
-
-       else if (msg[k]['type'] == "simple_cube"){  // simple_cube
-
-             curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
-             curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
-             listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey})
-             listorig[k] = make_simple_cube( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the simple_cube object
-             load_params(k, msg, curr_tex_addr)
-        } // end if
-
-        else if (msg[k]['type'] == "pavement"){  // simple_cube
-
-              curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
-              curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
-              listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey})
-              listorig[k] = make_pavement( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the simple_cube object
-              load_params(k, msg, curr_tex_addr)
-         } // end if
-
-      //-------------- Cube with textures
-
-      else if (msg[k]['type'] == "cube_mult_tex"){  // cube
-
-             curr_tex_mult_addr = msg[k]['tex_addr'] || basic_multiple_tex_addr;
-             curr_tex_mult = 'face_color';                                										// name of the folder for the textures
-             listmat[k] = make_meshFaceMaterial(curr_tex_mult)                                // texture for each face
-             listorig[k] = make_cube_texture( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the cube with texture
-             load_params(k, msg, curr_tex_addr)
-
-        } // end if
+      if (msg[name]['type'] in dic_type_parall){ load_parallelepiped_shapes(name, msg) }
+      else if (msg[name]['type'] == "cube_mult_tex"){ load_cube_mult_tex(name, msg) } // end else
+      
 } // end load_object ...
 
 function load_scene(msg){
@@ -131,8 +125,8 @@ function load_scene(msg){
       */
 
       for (i=0; i < Object.keys(msg).length; i++){ 					// Create the objects at the beginning
-              var k = Object.keys(msg)[i]  									// k is the objects name
-              load_object(k, msg)                           // load the objects wall..
+              var name = Object.keys(msg)[i]  									// k is the objects name
+              load_object(name, msg)                           // load the objects wall..
 
           } // end for
 
