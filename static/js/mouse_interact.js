@@ -142,9 +142,9 @@ function action_on_selected_when_moving(raycaster){
       var intersects = raycaster.intersectObject( plane );
       var interptsub = intersects[ 0 ].point.sub( offset )
       interptsub.z = SELECTED.position.z
-      if ( !SELECTED.blocked ){ SELECTED.position.copy( interptsub ) } // move the object selected..
-      nearest_elem = nearest_object(SELECTED)      // change the color of the nearest objects in yellow..
-      if (select_move_group){ move_group() } // move the whole group, obj in list_obj_inside
+      if ( !SELECTED.blocked ){ SELECTED.position.copy( interptsub ) }  // move the object selected if not blocked..
+      nearest_elem = nearest_object(SELECTED)                           // change the color of the nearest objects in yellow..
+      if (select_move_group){ move_group() }                            // move the whole group, obj in list_obj_inside
 
 }
 
@@ -328,6 +328,13 @@ function magnet_cube_cube(){
       return (SELECTED.type == 'simple_cube' &  nearest_elem.type == 'simple_cube')
 }
 
+function magnet_pavement_pavement(){
+      /*
+      Case magnet pavement pavement
+      */
+      return (SELECTED.type == 'pavement' &  nearest_elem.type == 'pavement')
+}
+
 function magnet_between_objects(nearest_elem){
 
       /*
@@ -342,6 +349,7 @@ function magnet_between_objects(nearest_elem){
             else{ magnet_perpendicular_walls(signx, signy)}
       }
       else if (magnet_cube_cube()){ magnet_face_to_face(signx, signy,face) }
+      else if (magnet_pavement_pavement()){ magnet_face_to_face(signx, signy,face) }
 
 } // end magnet_between_objects
 
@@ -359,11 +367,7 @@ function onDocumentMouseUp( event ) {
           SELECTED = null;
       }
       container.style.cursor = 'auto';
-      color_pick() // Color the picked objects..
-      // if (selpos.length == 2){
-      //       for (i in selpos){ scene.remove(selpos[i]) } // end for
-      //       selpos = []
-      // }
+      color_pick()                          // Color the picked objects..
 
 }
 
@@ -625,6 +629,16 @@ function make_new_simple_cube(){
 
 }
 
+function make_new_pavement(){
+
+      /*
+      Make Pavement
+      */
+
+      make_new_parallelepiped(make_pavement)
+
+}
+
 function make_new_cube_texture(){
 
       /*
@@ -665,7 +679,8 @@ function mouse_create_object_or_action(){
       */
 
       link(new_wall_ok, make_new_wall, null)                     // N key
-      link(new_simple_cube_ok, make_new_simple_cube, null)              // L key
+      link(new_simple_cube_ok, make_new_simple_cube, null)       // L key
+      link(new_pavement_ok, make_new_pavement, null)            // P key
       link(new_cube_texture_ok, make_new_cube_texture, null)     // M key
       link(select_obj, limits_and_action, null)                  // S key.. make_dotted_area
       link(make_plane, limits_and_action, make_horizontal_area)  // H key
