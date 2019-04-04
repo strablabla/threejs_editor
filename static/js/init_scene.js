@@ -102,6 +102,15 @@ function load_object(k, msg){
              load_params(k, msg, curr_tex_addr)
         } // end if
 
+        else if (msg[k]['type'] == "pavement"){  // simple_cube
+
+              curr_tex_addr = msg[k]['tex_addr'] || basic_tex_addr;
+              curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
+              listmat[k] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey})
+              listorig[k] = make_pavement( k, msg[k]['pos'], msg[k]['rot'], listmat[k] )   // make the simple_cube object
+              load_params(k, msg, curr_tex_addr)
+         } // end if
+
       //-------------- Cube with textures
 
       else if (msg[k]['type'] == "cube_mult_tex"){  // cube

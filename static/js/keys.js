@@ -49,28 +49,52 @@ function move_obj_down(obj){
 
 }
 
-function link_toggle(event, namekey, nameparam){
+function color_group(){
 
   /*
-  Toggle value of parameter with keys
+  Indicate the group
   */
 
-  if (keyev(namekey, event)){             							    // create or not a new object with the mouse..
-       window[nameparam] = !window[nameparam]
-    } // end if key code
+  for (var i in list_obj_inside) {
+       list_obj_inside[i].material.color.setHex(color_group_medium_blue)
+   }
+
+}
+
+function color_toggle(nameparam){
+
+  /*
+  Changing the color
+  */
+
+  if (nameparam == 'select_move_group'){color_group()}
+
+}
+
+function link_toggle(event, namekey, nameparam){
+
+      /*
+      Toggle value of parameter with keys
+      */
+
+      if (keyev(namekey, event)){            // create or not a new object with the mouse..
+           window[nameparam] = !window[nameparam]
+        } // end if key code
+      color_toggle(nameparam)
+      
 }
 
 function indicate_picking(){
 
-  if (select_picking){ document.getElementById("curr_func").textContent = "picking" }
-  else { document.getElementById("curr_func").textContent = "" }
+      if (select_picking){ document.getElementById("curr_func").textContent = "picking" }
+      else { document.getElementById("curr_func").textContent = "" }
 
 }
 
 function apply_to_one_obj_or_group(action, oneshot){
 
-  if ( INTERSECTED ){ action(INTERSECTED)} // Pi/2 rotation
-  else if(list_obj_inside.length > 0){ apply_to_all(action, oneshot) }
+      if ( INTERSECTED ){ action(INTERSECTED)} // Pi/2 rotation
+      else if(list_obj_inside.length > 0){ apply_to_all(action, oneshot) }
 
 }
 
@@ -111,6 +135,7 @@ function keyDownTextField1(event){
     link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
     link_toggle(event, 'n', 'new_wall_ok')                // create new wall
     link_toggle(event, 'l', 'new_simple_cube_ok')         // create new simple cube
+    link_toggle(event, 'p', 'new_pavement_ok')            // create new pavement
     link_toggle(event, 's', 'select_obj')                 // select object in area
     link_toggle(event, 'h', 'make_plane')                 // horizontal plane
     link_toggle(event, 'k', 'select_poscam')              // create new wall
@@ -179,7 +204,7 @@ function keyDownTextField1(event){
       Clone the selected object
       */
 
-      dict_shift_clone = {"wall":100, "simple_cube":200}     // shift distance for clone
+      dict_shift_clone = {"wall":100, "simple_cube":200, "pavement": 200}     // shift distance for clone
       clone = INTERSECTED.clone();
       clone.name = INTERSECTED.name + "_" + INTERSECTED.clone_infos.numclone;
       clone.type = INTERSECTED.type;

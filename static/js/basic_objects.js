@@ -89,7 +89,7 @@ function delete_area(){
         Delete area
         */
 
-        for (i in list_dotted_area){ scene.remove(list_dotted_area[i]) } 
+        for (i in list_dotted_area){ scene.remove(list_dotted_area[i]) }
         list_dotted_area = []
         reinit_selection()
 
@@ -303,6 +303,24 @@ function make_simple_cube(name,p,r,material){
         var simple_cube = simple_parallelepiped(name,p,r,material,dim,"simple_cube")
 
         return simple_cube
+
+} // end function
+
+function make_pavement(name,p,r,material){
+
+        /*
+        Pavement
+        name : name of the object
+        p : position of the object
+        r : rotation of the object
+        material : color and texture of the object
+        */
+
+        var size_pavement = 150
+        var dim = { width : size_pavement, height : 4, thickness : size_pavement}
+        var pavement = simple_parallelepiped(name,p,r,material,dim,"pavement")
+
+        return pavement
 
 } // end function
 
