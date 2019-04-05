@@ -705,12 +705,13 @@ function modify_values(INTERSECTED){
       Change the vaues in the panel for infos about the object selected..
       */
 
-      $('#name_panel').text(INTERSECTED.name);                              // name of the element in the parameter panel..
-      $('#width_panel').val(INTERSECTED.width);                             // width  of the element in the parameter panel..
-      $('#height_panel').val(INTERSECTED.height);                           // height of the element in the parameter panel..
-      $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle of the element in the parameter panel..
-      $('#color_panel').val(INTERSECTED.material.color.getHex());           // color of the element in the parameter panel..
-      //$('#texture_panel').val(INTERSECTED.tex);                           // texture of the element in the parameter panel..
+      $('#name_panel').text(INTERSECTED.name);                              // name
+      $('#width_panel').val(INTERSECTED.width);                             // width
+      $('#height_panel').val(INTERSECTED.height);                           // height
+      $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle
+      $('#color_panel').val(INTERSECTED.material.color.getHex());           // color
+      $('#alpha_panel').val(INTERSECTED.material.opacity);                  // opacity
+      //$('#texture_panel').val(INTERSECTED.tex);                           // texture
       $('.dz-message').css('top','2px')
       $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
       show_block_unblock()  // show if the object position is blocked or not with the message on the button ..

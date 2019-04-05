@@ -4,6 +4,24 @@ Different actions on the scene
 
 */
 
+
+function generic_action_panel(name_obj, class_obj){
+
+      /*
+      Typical actions
+      */
+
+      $(name_obj).click(function(){
+            //$('.panel_keys').toggle() 										     // show hide the views panel
+            $(class_obj).toggle()
+        })
+      $(name_obj).hover(function(){
+            controls.enabled = false;    											         // deactivate the controls when mouse is hover..
+        })
+      mouseleave_hide_panel(class_obj)
+
+}
+
 function mouseleave_hide_panel(class_panel){
 
     /*
@@ -36,6 +54,7 @@ function unblock_obj(obj){
   $('#block_pos').text('unblock')
   sphblk = sphere_blocked(obj.position)
   dic_sphere_blocked[obj.name] = sphblk;
+
 }
 
 function actions_with_block_unblock(obj){
@@ -66,16 +85,11 @@ function hide_show_objects(){
     panel object actions
     */
 
-    $("#objects").click(function(){
-          //$('.panel_keys').toggle() 										     // show hide the Objects panel
-          $('.panel_objects').toggle()
-      })
-    $('.panel').hover(function(){
+    generic_action_panel("#objects", '.panel_objects')
+
+    $(".panel").hover(function(){
           controls.enabled = false;    											         // deactivate the controls when mouse is hover..
-          $('#curr_func').css('background-color','yellow')
-          //document.removeEventListener("keydown", keyDownTextField1, true);
       })
-    mouseleave_hide_panel('.panel_objects')
 
 }
 
@@ -85,20 +99,14 @@ function hide_show_views(){
     panel views actions
     */
 
-    $("#views").click(function(){
-          //$('.panel_keys').toggle() 										     // show hide the views panel
-          $('.panel_views').toggle()
-      })
+    generic_action_panel("#views", '.panel_views')
 
     $(document).ready(function(){
-
           $('#front_view').click(function(){
                 alert('hello')
                 //camera_pos_orient({-300,0,100}, {0,0,0})
             })
       })// end ready
-
-    mouseleave_hide_panel('.panel_views')
 
 } // end hide_show_views
 
@@ -108,11 +116,18 @@ function hide_show_scenes(){
     panel scene actions
     */
 
-    $("#scene").click(function(){
-          //$('.panel_keys').toggle() 										     // show hide the views panel
-          $('.panel_scene').toggle()
-      })
-    mouseleave_hide_panel('.panel_scene')
+    generic_action_panel("#scene", '.panel_scene')
+
+}
+
+function hide_show_tools(){
+
+    /*
+    panel tools actions
+    */
+
+    generic_action_panel("#tools", '.panel_tools')
+
 }
 
 function hide_show_help(){
@@ -157,10 +172,11 @@ function save_params_panel_object(){
 
         $('.panel').css({'top':"10px","left":"-300px"})            // close panel about object infos when mouse leaves..
         controls.enabled = true;
-
         for (i in objects){
             if (objects[i].name == $('#name_panel').text()){
-               objects[i].rotation.z = $('#angle_panel').val()     // change the angle
+               objects[i].rotation.z = $('#angle_panel').val()            // change the angle
+               objects[i].material.opacity = $('#alpha_panel').val()      // change the opacity
+               objects[i].material.needsUpdate = true;
             } // end if
         } // end for
     })
