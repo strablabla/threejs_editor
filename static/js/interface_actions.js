@@ -67,6 +67,19 @@ function actions_with_block_unblock(obj){
   else{ block_obj(obj) }
 }
 
+//------------------------   dicths, panels
+
+dicths = {}
+list_panels = ['objects', 'views', 'scene', 'tools', 'help']
+
+function one_element_dicths(name_panel){
+    dicths[name_panel] = function(){ generic_action_panel("#" + name_panel, '.panel_' + name_panel) }}
+for (var i in list_panels){ one_element_dicths(list_panels[i]) } // make_dicths
+
+$(".panel").hover(function(){ controls.enabled = false })   											         // deactivate the controls when mouse is hover..
+
+//------------------------
+
 function hide_show_keys(){
 
     /*
@@ -79,70 +92,26 @@ function hide_show_keys(){
 
 }
 
-function hide_show_objects(){
+$(document).ready(function(){
+      $('#front_view').click(function(){
+            alert('hello')
+            //camera_pos_orient({-300,0,100}, {0,0,0})
+        })
+  })// end ready
 
-    /*
-    panel object actions
-    */
-
-    generic_action_panel("#objects", '.panel_objects')
-
-    $(".panel").hover(function(){
-          controls.enabled = false;    											         // deactivate the controls when mouse is hover..
-      })
-
-}
-
-function hide_show_views(){
-
-    /*
-    panel views actions
-    */
-
-    generic_action_panel("#views", '.panel_views')
-
-    $(document).ready(function(){
-          $('#front_view').click(function(){
-                alert('hello')
-                //camera_pos_orient({-300,0,100}, {0,0,0})
-            })
-      })// end ready
-
-} // end hide_show_views
-
-function hide_show_scenes(){
-
-    /*
-    panel scene actions
-    */
-
-    generic_action_panel("#scene", '.panel_scene')
-
-}
-
-function hide_show_tools(){
-
-    /*
-    panel tools actions
-    */
-
-    generic_action_panel("#tools", '.panel_tools')
-
-}
-
-function hide_show_help(){
-
-    /*
-    panel help actions
-    */
-
-    $("#help").click(function(){
-          //$('.panel_keys').toggle() 										    // show hide the key panel
-          $('.panel_help').toggle()
-      })
-    mouseleave_hide_panel('.panel_help')
-
-}
+// function hide_show_help(){
+//
+//     /*
+//     panel help actions
+//     */
+//
+//     $("#help").click(function(){
+//           //$('.panel_keys').toggle() 										    // show hide the key panel
+//           $('.panel_help').toggle()
+//       })
+//     mouseleave_hide_panel('.panel_help')
+//
+// }
 
 function block_pos_object(){
 
@@ -169,7 +138,6 @@ function save_params_panel_object(){
     */
 
     $('#save_param').click(function(){
-
         $('.panel').css({'top':"10px","left":"-300px"})            // close panel about object infos when mouse leaves..
         controls.enabled = true;
         for (i in objects){
@@ -181,7 +149,6 @@ function save_params_panel_object(){
         } // end for
     })
 
-
 }
 
 function init_interf_actions(){
@@ -191,10 +158,11 @@ function init_interf_actions(){
       */
 
       hide_show_keys()       //---------------------- Keys
-      hide_show_objects()    //---------------------- Objects..
-      hide_show_views()      //---------------------- Views..
-      hide_show_scenes()     //---------------------- scene
-      hide_show_help()       //---------------------- Help
+      dicths.objects()    //---------------------- Objects..
+      dicths.views()      //---------------------- Views..
+      dicths.scene()     //---------------------- scene
+      dicths.tools()     //---------------------- scene
+      dicths.help()       //---------------------- Help
 
       // Actions
 
