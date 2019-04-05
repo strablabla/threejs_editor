@@ -424,6 +424,7 @@ function find_objects_in_area(){
                   objects[i].material.color.setHex(color_object_inside_pink)  // light pink color
               } // end if
       } // end for
+
 } // end objects in area..
 
 function getDistance(mesh1, mesh2) {
@@ -454,6 +455,7 @@ function near_mindist_mini(currobj,i,mindist,mini){
       } else { objects[i].material.color.setHex(INTERSECTED.currentHex) } // initial color
 
       return [mindist,mini]
+
 }
 
 function nearest_object(currobj){
@@ -500,6 +502,7 @@ function limits_and_action(act_directly){
               if (select_obj){ find_objects_in_area() }
               limits_and_action_reinit_var()
       } // end else if
+
 } //  end limits_and_action
 
 function corner(col){
@@ -511,9 +514,6 @@ function corner(col){
       interptsub = mousepos()
       var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, col )
       selpos.push(creobj)
-      //list_obj_inside.push(creobj)      // adding the limits in the list
-      //list_marks.push(creobj)
-      //if (select_obj){list_dotted_area.push(creobj)}
 
       return creobj
 
@@ -525,8 +525,8 @@ function color_corner(){
       Color of the marks
       */
 
-      if (select_obj){col = color_mark_quite_grey}
-      else{col = color_mark_pale_rose}
+      if (select_obj){ col = color_mark_quite_grey }
+      else{ col = color_mark_pale_rose }
 
       return col
 
@@ -596,6 +596,8 @@ function random_name_mousepos(){
 
 }
 
+var dict_parall = {}
+
 function make_new_parallelepiped(make_type){
 
       /*
@@ -609,35 +611,15 @@ function make_new_parallelepiped(make_type){
 
 }
 
-function make_new_wall(){
+//------------------------ dictp, parallelepipedic shapes..
 
-      /*
-      Make a new wall
-      */
+dictp = {}
+list_func_par = ['make_wall', 'make_simple_cube', 'make_pavement']
+function one_element_dictp(name_func){
+    dictp[name_func] = function(){ make_new_parallelepiped(window[name_func]) }}
+for (var i in list_func_par){ one_element_dictp(list_func_par[i]) } // make_dictp
 
-      make_new_parallelepiped(make_wall)
-
-}
-
-function make_new_simple_cube(){
-
-      /*
-      Make a new simple cube
-      */
-
-      make_new_parallelepiped(make_simple_cube)
-
-}
-
-function make_new_pavement(){
-
-      /*
-      Make Pavement
-      */
-
-      make_new_parallelepiped(make_pavement)
-
-}
+//------------------------ Multiple texture
 
 function make_new_cube_texture(){
 
@@ -678,9 +660,11 @@ function mouse_create_object_or_action(){
        where the mouse is located in the plane.
       */
 
-      link(new_wall_ok, make_new_wall, null)                     // N key
-      link(new_simple_cube_ok, make_new_simple_cube, null)       // L key
-      link(new_pavement_ok, make_new_pavement, null)            // P key
+'make_wall', 'make_simple_cube', 'make_pavement'
+
+      link(new_wall_ok, dictp.make_wall, null)                     // N key
+      link(new_simple_cube_ok, dictp.make_simple_cube, null)       // L key
+      link(new_pavement_ok, dictp.make_pavement, null)             // P key
       link(new_cube_texture_ok, make_new_cube_texture, null)     // M key
       link(select_obj, limits_and_action, null)                  // S key.. make_dotted_area
       link(make_plane, limits_and_action, make_horizontal_area)  // H key
@@ -768,9 +752,9 @@ function give_infos(){
       play with .panel
       */
 
-      if (select_obj_infos){       //  select_obj_infos must be activated for accessing to the infos..
+      if (select_obj_infos){                    //  select_obj_infos must be activated for accessing to the infos..
           if ( INTERSECTED ){ show_infos() }
-          modify_values(INTERSECTED) // give the current values
-
+          modify_values(INTERSECTED)            // give the current values
         } // end if select_obj_infos
+
 } // end give infos
