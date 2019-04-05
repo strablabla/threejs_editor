@@ -239,7 +239,7 @@ Panel menu
 	height: 200px;
 	background-color:grey;
 	z-index: 9999;
-	opacity: 0.8;
+	opacity: 1;
 
 }
 
@@ -262,7 +262,7 @@ Panel objects
 	height: 600px;
 	background-color:#fff; /*blue;*/
 	z-index: 9999;
-	opacity: 0.9;
+	opacity: 1;
 
 }
 
@@ -312,6 +312,29 @@ Panel scene
 
 }
 
+/*
+Panel scene
+*/
+
+.panel_tools {
+
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	right:2px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 400px;
+	height: 600px;
+	background-color:#fff; /*blue;*/
+	z-index: 9999;
+	opacity: 1;
+
+}
+
 #save_param {
 	margin-left: -40px
 }
@@ -328,4 +351,8 @@ Panel scene
 
 .dz-message {
 	top: 2px;
+}
+
+.input_interface * {
+	border:none;
 }

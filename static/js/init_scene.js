@@ -50,10 +50,12 @@ var keys = function(){/*
     * h : make an horizontal plane..
     * i : infos about the selected object
     * k : select camera position and view direction with the mouse..
-    * n : new piece with mouse
+    * l : simple cube
     * m : cubes with texture
+    * n : wall
     * r : rotation
     * s : select an area
+    * p : pavement
     * SHIFT : select many objects separately
     * arrow up : move up
     * arrow down : move down
@@ -71,6 +73,7 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
     listorig[name]['blocked'] =  msg[name]['blocked']             		            // blocked
     listorig[name]['del'] =  msg[name]['del']             		                    // delete autorization
+    listorig[name].material['opacity'] =  msg[name]['opacity']             		                    // delete autorization
 
 }
 
@@ -87,7 +90,7 @@ function load_parallelepiped_shapes(name, msg){
 
       curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
       curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
-      listmat[name] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey })
+      listmat[name] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey, transparent : true, opacity : 1 })
       listorig[name] = dic_type_parall[msg[name]['type']]( name, msg[name]['pos'], msg[name]['rot'], listmat[name] )   // make the wall object
       load_params(name, msg, curr_tex_addr)
 
@@ -115,7 +118,7 @@ function load_object(name, msg){
 
       if (msg[name]['type'] in dic_type_parall){ load_parallelepiped_shapes(name, msg) }
       else if (msg[name]['type'] == "cube_mult_tex"){ load_cube_mult_tex(name, msg) } // end else
-      
+
 } // end load_object ...
 
 function load_scene(msg){
@@ -127,7 +130,6 @@ function load_scene(msg){
       for (i=0; i < Object.keys(msg).length; i++){ 					// Create the objects at the beginning
               var name = Object.keys(msg)[i]  									// k is the objects name
               load_object(name, msg)                           // load the objects wall..
-
           } // end for
 
 } // end load_scene..
@@ -169,16 +171,31 @@ function set_light(light){
 
 }
 
+function condition_emit(i){
+
+      /*
+      Deal with the conditions
+      */
+
+      var emit_conditions = objects[i].type != 'pawn' &
+                            objects[i].type != null &
+                            !objects[i].del
+
+      return emit_conditions
+
+}
 
 function emit_infos_scene(){          									// emits the positions toward the server to save them
 
     /*
-    Send the informations (about position, cloning, rotation, type of object..) to the server..
+    Send the informations (about position, cloning,
+        rotation, type of object..) to the server..
     */
 
     var listpos = {}         // dictionary of all the informations about the scene to be saved in a json file..
+
     for (i in objects){
-          if (objects[i].type != 'pawn' & objects[i].type != null & !objects[i].del){ // & !objects[i].del
+          if (condition_emit(i)){
               var x = objects[i].rotation.x
               var y = objects[i].rotation.y
               var z = objects[i].rotation.z
@@ -188,7 +205,8 @@ function emit_infos_scene(){          									// emits the positions toward the
                                "clone_infos": objects[i].clone_infos,
                                "type": objects[i].type,
                                'tex_addr' : objects[i].tex_addr,
-                               'blocked' : objects[i].blocked
+                               'blocked' : objects[i].blocked,
+                               'opacity' : objects[i].material.opacity
                               };
               listpos[objects[i].name] = infos_obj;   			// add informations about the objects in the scene to listpos
               listpos['datetime'] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
@@ -210,14 +228,13 @@ function init() {
 
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
   camera.position.set(0,-2000,2000)
-  // camera.position.z = 2000;
-  // camera.position.y = -2000;
-  // camera.position.x = 0;
 
   //------------------------- Control the view
 
   controls = new THREE.TrackballControls( camera );
   set_controls(controls)
+
+  //------------------------- Scene
 
   scene = new THREE.Scene();
   scene.add( new THREE.AmbientLight( 0x505050 ) );

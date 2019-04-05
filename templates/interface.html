@@ -3,13 +3,14 @@
     <div class="menu" style='left:70px' id="scene"> Scene </div>
     <div class="menu" style='left:200px' id="objects" > Object </div>
     <div class="menu" style='left:330px' id="views" > Views </div>
+    <div class="menu" style='left:460px' id="tools" > Tools </div>
     <div class="menu" style='left: 90%' id="help" > Help </div>
 
 </div>
 
 <div style="cursor: auto;">
 
-  <div class="panel" id="pan" >
+  <div class="panel input_interface" id="pan" >
 
         <div class="titlepanel" > Parameters </div>
 
@@ -21,7 +22,7 @@
         </div>
         <br><br>
         <div> <span> width: </span><span>
-                <input value="width" size=8 id="width_panel">
+                <input  value="width" size=8 id="width_panel">
             </span>
         </div>
         <div> <span> height: </span><span>
@@ -36,6 +37,10 @@
                 <input value="color" size=8 id="color_panel">
             </span>
         </div>
+        <div> <span> alpha: </span><span>
+                <input value="alpha" size=8 id="alpha_panel">
+            </span>
+        </div>
         <div> <span> texture: </span><span >
                 <!-- <input value="texture" size=8 id="texture_panel"> -->
                 <form  id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" >
@@ -44,34 +49,20 @@
             </span>
         </div>
 
-        <br>
-
+        <br><br>
         <center> <button id="block_pos" type="button" class="btn btn-alert"> block </button> </center>
-
         <br>
-
         <center> <button id="save_param" type="button" class="btn btn-success"> save </button> </center>
-
         <br>
 
         <br><br>
-
-        <!-- <div>
-              <input type="checkbox" id="rotate" name="rot">
-              <label for="rotate">Rotation</label>
-        </div> -->
-
-        <!-- <div>
-              <input type="checkbox" id="infos" name="inf">
-              <label for="informatons">Show Infos</label>
-        </div> -->
 
   </div>
 
 </div>
 
 <div class="panel_menu1" id="menu1" hidden>  </div>
-<div class="panel_objects" id="pobj" >  </div>
+<!-- <div class="panel_objects" id="pobj" >  </div> -->
 <div class="current_func" id="curr_func" >  </div>
 <div class="current_control" id="curr_cntrl" >  </div>
 
@@ -81,7 +72,7 @@
 
 <!-- Objects -->
 
-<div class="panel_objects" hidden >
+<div class="panel_objects  input_interface" hidden >
 
   <div class="titlepanel" > Object </div>
 
@@ -95,7 +86,7 @@
 
 <!-- Views -->
 
-<div class="panel_views" hidden >
+<div class="panel_views  input_interface" hidden >
 
   <div class="titlepanel" > Views </div>
 
@@ -110,15 +101,33 @@
 
 <!-- Scene -->
 
-    <div class="panel_scene" hidden >
+    <div class="panel_scene input_interface" hidden >
 
       <div class="titlepanel" > Scene </div>
 
           <br><br><br>
 
+          <div  class="help" > <span> Name: </span><span> </span>
+                  <input  value="    None" size=16 id="scene_name">
+          </div> <br>
           <div  class="help" id="scene_sky" > Sky </div><br>
           <div  class="help" id="scene_ground" > Ground </div><br>
           <div  class="help" id="scene_light" > Light </div><br>
+
+          <center> <button id="save_scene" type="button" class="btn btn-success"> save </button> </center>
+
+          <br>
+
+    </div>
+
+
+    <div class="panel_tools input_interface" hidden >
+
+      <div class="titlepanel" > Tools </div>
+
+          <br><br><br>
+
+          <div  class="help" id="distance" > distance </div><br>
 
     </div>
 
