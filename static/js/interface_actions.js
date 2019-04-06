@@ -4,32 +4,21 @@ Different actions on the scene
 
 */
 
-
 function generic_action_panel(name_obj, class_obj){
 
       /*
       Typical actions
       */
 
-      $(name_obj).click(function(){
-            //$('.panel_keys').toggle() 										     // show hide the views panel
-            $(class_obj).toggle()
-        })
-      $(name_obj).hover(function(){
-            controls.enabled = false;    											         // deactivate the controls when mouse is hover..
-        })
+      $(name_obj).click(function(){ $(class_obj).toggle() })  // show hide the views panel
+      $(name_obj).hover(function(){ controls.enabled = false }) // deactivate the controls when mouse is hover..
       mouseleave_hide_panel(class_obj)
+      $(".panel").hover(function(){ controls.enabled = false })  // deactivate the controls wfor panel
 
 }
 
 function mouseleave_hide_panel(class_panel){
-
-    /*
-    Hide when leaving the panel
-    */
-
-    $(class_panel).mouseleave(function(){ $(class_panel).hide() })
-
+      $(class_panel).mouseleave(function(){ $(class_panel).hide() }) // Hide when leaving the panel
 }
 
 function block_obj(obj){
@@ -76,8 +65,6 @@ function one_element_dicths(name_panel){
     dicths[name_panel] = function(){ generic_action_panel("#" + name_panel, '.panel_' + name_panel) }}
 for (var i in list_panels){ one_element_dicths(list_panels[i]) } // make_dicths
 
-$(".panel").hover(function(){ controls.enabled = false })   											         // deactivate the controls when mouse is hover..
-
 //------------------------
 
 function hide_show_keys(){
@@ -99,19 +86,6 @@ $(document).ready(function(){
         })
   })// end ready
 
-// function hide_show_help(){
-//
-//     /*
-//     panel help actions
-//     */
-//
-//     $("#help").click(function(){
-//           //$('.panel_keys').toggle() 										    // show hide the key panel
-//           $('.panel_help').toggle()
-//       })
-//     mouseleave_hide_panel('.panel_help')
-//
-// }
 
 function block_pos_object(){
 
@@ -134,20 +108,21 @@ function block_pos_object(){
 function save_params_panel_object(){
 
     /*
-    Save the params
+    Save the params of the class .panel
     */
 
     $('#save_param').click(function(){
         $('.panel').css({'top':"10px","left":"-300px"})            // close panel about object infos when mouse leaves..
-        controls.enabled = true;
+
         for (i in objects){
             if (objects[i].name == $('#name_panel').text()){
-               objects[i].rotation.z = $('#angle_panel').val()            // change the angle
-               objects[i].material.opacity = $('#alpha_panel').val()      // change the opacity
+               objects[i].rotation.z = $('#angle_panel').val()            // angle
+               objects[i].material.opacity = $('#alpha_panel').val()      // opacity
                objects[i].material.needsUpdate = true;
             } // end if
         } // end for
-    })
+        controls.enabled = true;
+    }) // end click
 
 }
 
@@ -157,12 +132,12 @@ function init_interf_actions(){
       Define the actions in the interface..
       */
 
-      hide_show_keys()       //---------------------- Keys
-      dicths.objects()    //---------------------- Objects..
-      dicths.views()      //---------------------- Views..
-      dicths.scene()     //---------------------- scene
-      dicths.tools()     //---------------------- scene
-      dicths.help()       //---------------------- Help
+      hide_show_keys()        //---------------------- Keys
+      dicths.objects()        //---------------------- Objects..
+      dicths.views()          //---------------------- Views..
+      dicths.scene()          //---------------------- scene
+      dicths.tools()          //---------------------- scene
+      dicths.help()           //---------------------- Help
 
       // Actions
 
