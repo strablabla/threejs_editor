@@ -217,24 +217,14 @@ function picking_action(){
 
 }
 
-function make_oriented_track(){
+function width_length_with_orientation(beg,end){
 
       /*
-      Oriented track
+      width and length according to the orientation
       */
-
-      //alert('hopppp')
-
-
-      var [beg,end] = list_marks_track.slice(-2)
-      //alert("list_marks_track.length is " + list_marks_track.length)
-      var track_length = getDistance(beg,end)
-      //alert('track_length is ' + track_length)
-      var [mx,my,mz] = getMiddle(beg,end)
+      
       var orientation_track = find_orientation(beg,end)
-      //alert('mx,my,mz ' + mx + '_' + my + '_' +mz)
-      var track_width = 40
-      var p = {'x': mx, 'y':my, 'z':mz}
+      var track_length = getDistance(beg,end)
       if ( orientation_track == 'x' ){
           var width = track_width
           var thickness = track_length
@@ -243,11 +233,40 @@ function make_oriented_track(){
           var width = track_length
           var thickness = track_width
       }
-      var [newname, interptsub] = random_name_mousepos()
-      //alert('newname is ' + newname)
+
+      return [width,thickness]
+
+}
+
+function params_for_track(beg,end){
+
+      /*
+      Oriented track
+      */
+
+      var [beg,end] = list_marks_track.slice(-2)
+      //--------- dim
+      var [width,thickness] = width_length_with_orientation(beg,end)
       var dim = { width : width, height : 5, thickness : thickness}
+      //--------- r
       var r = {'x': 0, 'y':0, 'z':0}
+      //--------- p
+      var [mx,my,mz] = getMiddle(beg,end)
+      var p = {'x': mx, 'y':my, 'z':mz}
+
+      return [p,r,dim]
+
+}
+
+function make_oriented_track(){
+
+      /*
+      Oriented track
+      */
+
+      var [p,r,dim] = params_for_track()
       mat_track = new THREE.MeshBasicMaterial( { color : color_track_blue } )
+      var [newname, interptsub] = random_name_mousepos()
       var track = simple_parallelepiped(newname, p, r, mat_track, dim, "track")
 
 }
