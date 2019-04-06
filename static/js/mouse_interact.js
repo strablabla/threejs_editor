@@ -168,9 +168,9 @@ function mouse_move_case_intersections(intersects){
       */
 
       if ( INTERSECTED != intersects[ 0 ].object ) {
-          if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex); //
-          INTERSECTED = intersects[ 0 ].object;
-          INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
+            if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex ); //
+            INTERSECTED = intersects[ 0 ].object;
+            INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
       }
       container.style.cursor = 'pointer';
 }
@@ -194,7 +194,7 @@ function onDocumentMouseMove( event ) {
       */
 
       var raycaster = make_raycaster(event)
-      if (select_obj){ refresh_dotted_area() }
+      if (select_obj){ refresh_dotted_area() } // refresh the dotted line
       if ( SELECTED ) {
           action_on_selected_when_moving(raycaster)
           return;
@@ -214,6 +214,41 @@ function picking_action(){
 
       list_obj_inside.push(SELECTED)
       INTERSECTED.material.color.setHex( orange_medium ); //
+
+}
+
+function make_oriented_track(){
+
+      /*
+      Oriented track
+      */
+
+      //alert('hopppp')
+
+
+      var [beg,end] = list_marks_track.slice(-2)
+      //alert("list_marks_track.length is " + list_marks_track.length)
+      var track_length = getDistance(beg,end)
+      //alert('track_length is ' + track_length)
+      var [mx,my,mz] = getMiddle(beg,end)
+      var orientation_track = find_orientation(beg,end)
+      //alert('mx,my,mz ' + mx + '_' + my + '_' +mz)
+      var track_width = 40
+      var p = {'x': mx, 'y':my, 'z':mz}
+      if ( orientation_track == 'x' ){
+          var width = track_width
+          var thickness = track_length
+      }
+      else{
+          var width = track_length
+          var thickness = track_width
+      }
+      var [newname, interptsub] = random_name_mousepos()
+      //alert('newname is ' + newname)
+      var dim = { width : width, height : 5, thickness : thickness}
+      var r = {'x': 0, 'y':0, 'z':0}
+      mat_track = new THREE.MeshBasicMaterial( { color : color_track_blue } )
+      var track = simple_parallelepiped(newname, p, r, mat_track, dim, "track")
 
 }
 
@@ -244,6 +279,9 @@ function onDocumentMouseDown( event ) {
       if ( INTERSECTED ) INTERSECTED.material.color.setHex( color_intersected_green );   // changing color in green when selected
       if (select_picking){ picking_action() }                             // adding the object to the list of the picked elements..
       if (select_move_group){ keep_relative_positions() }                 // save the relative positions inside the group
+      if (select_make_track){
+          if (list_marks_track.length > 1){ make_oriented_track() }  // Draw the track
+      }
 
 }
 
@@ -427,6 +465,39 @@ function find_objects_in_area(){
 
 } // end objects in area..
 
+function find_orientation(mesh1, mesh2) {
+
+      /*
+      Main orientation
+      */
+
+      var dx = Math.abs(mesh1.position.x - mesh2.position.x);
+      var dy = Math.abs(mesh1.position.y - mesh2.position.y);
+      var dz = Math.abs(mesh1.position.z - mesh2.position.z);
+      dic_dist = { 'x' : dx, 'y' : dy, 'z' : dz }
+      var max_val = Math.max(dx, dy, dz)
+      var key = Object.keys(dic_dist).filter(function(key) {return dic_dist[key] === max_val})[0];
+      //alert('orientation is ' + key)
+
+      return key
+
+}
+
+
+function getMiddle(mesh1, mesh2) {
+
+      /*
+      Distance from mesh1 to mesh2
+      */
+
+      var mx = (mesh1.position.x + mesh2.position.x)/2;
+      var my = (mesh1.position.y + mesh2.position.y)/2;
+      var mz = (mesh1.position.z + mesh2.position.z)/2;
+
+      return [mx, my, mz]
+
+}
+
 function getDistance(mesh1, mesh2) {
 
       /*
@@ -511,8 +582,8 @@ function corner(col){
       Make a corner for area delimitation (selpos list)
       */
 
-      interptsub = mousepos()
-      var creobj = make_mark( random_name(), interptsub, {"x":0, "y":0, "z":0}, col )
+      var [newname, interptsub] = random_name_mousepos()
+      var creobj = make_mark( newname, interptsub, {"x":0, "y":0, "z":0}, col )
       selpos.push(creobj)
 
       return creobj
@@ -531,6 +602,36 @@ function color_corner(){
       return col
 
 }
+
+function save_plot_track(corner0,corner1){
+
+      /*
+      Save the plots used for the track..
+      */
+
+      if ( list_marks_track.length == 0 ){
+          list_marks_track.push(corner0)
+          list_marks_track.push(corner1)
+      }else{ list_marks_track.push(corner1) }
+
+}
+
+function make_marks_and_track(){
+
+      /*
+      Graphical limits moved with the mouse..
+      */
+
+      col = color_corner()
+      var corner0 = corner(col)
+      var corner1 = corner(col)
+      save_plot_track(corner0,corner1)
+      SELECTED = corner1
+      controls.enabled = false
+      last_mark_track = corner1
+
+}
+
 
 function make_limits_mouse(){
 
@@ -660,15 +761,14 @@ function mouse_create_object_or_action(){
        where the mouse is located in the plane.
       */
 
-'make_wall', 'make_simple_cube', 'make_pavement'
-
       link(new_wall_ok, dictp.make_wall, null)                     // N key
       link(new_simple_cube_ok, dictp.make_simple_cube, null)       // L key
       link(new_pavement_ok, dictp.make_pavement, null)             // P key
-      link(new_cube_texture_ok, make_new_cube_texture, null)     // M key
-      link(select_obj, limits_and_action, null)                  // S key.. make_dotted_area
-      link(make_plane, limits_and_action, make_horizontal_area)  // H key
-      link(select_poscam, limits_and_action, newview)            // K key
+      link(new_cube_texture_ok, make_new_cube_texture, null)       // M key
+      link(select_obj, limits_and_action, null)                    // S key.. make_dotted_area
+      link(select_make_track, make_marks_and_track, null)          // T key..
+      link(make_plane, limits_and_action, make_horizontal_area)    // H key
+      link(select_poscam, limits_and_action, newview)              // K key
 
 } // end mouse_create_object_or_action
 
@@ -683,19 +783,23 @@ function show_block_unblock(){
 
 }
 
+function link_panel_text(name){ $('#'+name+'_panel').text(INTERSECTED[name]); }
+function link_panel0(name){ $('#'+name+'_panel').val(INTERSECTED[name]); }
+function link_panel1(name, attr0, attr1){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1]); }
+function link_panel2(name, attr0, attr1, arg){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1](arg)); }
+
 function modify_values(INTERSECTED){
 
       /*
       Change the vaues in the panel for infos about the object selected..
       */
 
-      $('#name_panel').text(INTERSECTED.name);                              // name
-      $('#width_panel').val(INTERSECTED.width);                             // width
-      $('#height_panel').val(INTERSECTED.height);                           // height
-      $('#angle_panel').val(INTERSECTED.rotation.z);                        // angle
-      $('#color_panel').val(INTERSECTED.material.color.getHex());           // color
-      $('#alpha_panel').val(INTERSECTED.material.opacity);                  // opacity
-      //$('#texture_panel').val(INTERSECTED.tex);                           // texture
+      link_panel_text('name')
+      link_panel0('width')
+      link_panel0('height')
+      link_panel1('angle', 'rotation', 'z')
+      link_panel2('color', 'currentHex', 'toString',16)
+      link_panel1('alpha', 'material', 'opacity')
       $('.dz-message').css('top','2px')
       $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
       show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
