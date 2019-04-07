@@ -189,18 +189,7 @@ function action_on_selected_when_moving(raycaster){
 
 }
 
-function refresh_dotted_area(){
 
-      /*
-      Dotted area refreshed
-      */
-
-      var selpos_interm = [selpos[0],SELECTED]
-      make_dotted_area(selpos_interm)
-      delete_area()
-      make_dotted_area(selpos_interm)
-
-}
 
 function mouse_move_case_intersections(intersects){
 
@@ -247,16 +236,7 @@ function onDocumentMouseMove( event ) {
 
 } // end mouse move
 
-function picking_action(){
 
-      /*
-      Picking
-      */
-
-      list_obj_inside.push(SELECTED)
-      INTERSECTED.material.color.setHex( orange_medium ); //
-
-}
 
 function width_length_with_orientation(beg,end){
 
@@ -348,111 +328,7 @@ function onDocumentMouseDown( event ) {
 
 }
 
-function magnet_parallel_walls(rot_abs, signx, signy){
 
-      /*
-      Magnet for parallel walls
-      */
-
-      if (rot_abs != 0){ SELECTED.position.x += signx*SELECTED.width }
-      else{ SELECTED.position.y += signy*SELECTED.width }
-      $('#curr_func').css('background-color','yellow')
-
-}
-
-function magnet_face_to_face(signx,signy,face){
-
-      /*
-      Magnet for parallel walls
-      */
-
-      if (face == 'facex'){ SELECTED.position.x += signx*SELECTED.width }
-      else{ SELECTED.position.y += signy*SELECTED.width }
-      $('#curr_func').css('background-color','yellow')
-
-}
-
-function magnet_perpendicular_walls(signx, signy){
-
-      /*
-      Magnet for perpendicular walls
-      */
-
-      SELECTED.position.x += signx*SELECTED.width/2; //
-      SELECTED.position.y += signy*SELECTED.width/2;
-      $('#curr_func').css('background-color','grey')
-
-}
-
-function signxy_face(SELECTED, nearest_elem){
-
-      /*
-      signs: signx and signy according to the position
-      face : face to be glued..
-      */
-
-      var diffx = SELECTED.position.x - nearest_elem.position.x
-      var diffy = SELECTED.position.y - nearest_elem.position.y
-      var signx = Math.sign(diffx)
-      var signy = Math.sign(diffy)
-      if (Math.abs(diffx) < Math.abs(diffy)){ var face = "facey" }
-      else{var face = "facex"}
-
-      return [signx, signy, face]
-
-}
-
-function rotation_relative_absolute(SELECTED, nearest_elem){
-
-      /*
-      rot_relat : angle difference between SELECTED and nearest_elem..
-      rot_abs : absolute angle of SELECTED
-      */
-
-      var rot_relat = Math.round((SELECTED.rotation.z - nearest_elem.rotation.z) % Math.PI)
-      var rot_abs = Math.round(SELECTED.rotation.z % Math.PI)
-
-      return [rot_relat, rot_abs]
-}
-
-function magnet_wall_wall(){
-      /*
-      Case magnet wall to wall
-      */
-      return (SELECTED.type == 'wall' &  nearest_elem.type == 'wall')
-}
-
-function magnet_cube_cube(){
-      /*
-      Case magnet cube cube
-      */
-      return (SELECTED.type == 'simple_cube' &  nearest_elem.type == 'simple_cube')
-}
-
-function magnet_pavement_pavement(){
-      /*
-      Case magnet pavement pavement
-      */
-      return (SELECTED.type == 'pavement' &  nearest_elem.type == 'pavement')
-}
-
-function magnet_between_objects(nearest_elem){
-
-      /*
-      Magnetism between objects
-      */
-
-      [signx, signy, face] = signxy_face(SELECTED, nearest_elem)
-      copypos(SELECTED, nearest_elem)                 // position on same axe..
-      var [rot_relat, rot_abs] = rotation_relative_absolute(SELECTED, nearest_elem)
-      if (magnet_wall_wall()){
-            if ( (rot_relat == 0) ){ magnet_parallel_walls(rot_abs, signx, signy) }
-            else{ magnet_perpendicular_walls(signx, signy)}
-      }
-      else if (magnet_cube_cube()){ magnet_face_to_face(signx, signy,face) }
-      else if (magnet_pavement_pavement()){ magnet_face_to_face(signx, signy,face) }
-
-} // end magnet_between_objects
 
 function onDocumentMouseUp( event ) {
 
@@ -486,51 +362,6 @@ function mousepos(){
 
 }
 
-function minimaxi(selpos){
-
-      /*
-      Find the objects in the selected area..
-      */
-
-      minx = Math.min(selpos[0].position.x, selpos[1].position.x)
-      maxx = Math.max(selpos[0].position.x, selpos[1].position.x)
-      miny = Math.min(selpos[0].position.y, selpos[1].position.y)
-      maxy = Math.max(selpos[0].position.y, selpos[1].position.y)
-
-      return [minx, maxx, miny, maxy]
-
-}
-
-function is_inside(obj, list_mm){
-
-      /*
-      Check if it is inside, true = inside, false = outside
-      */
-
-      return  obj.position.x > list_mm[0] &
-              obj.position.x < list_mm[1] &
-              obj.position.y > list_mm[2] &
-              obj.position.y < list_mm[3]
-}
-
-function find_objects_in_area(){
-
-      /*
-      Find the objects in the selected area..
-      */
-
-      list_mm = minimaxi(selpos)
-      for (i in objects){     // if object is inside the area..
-          if ( is_inside(objects[i], list_mm) ){
-                  list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
-                  objects[i].material.color.setHex(color_object_inside_pink)  // light pink color
-              } // end if
-      } // end for
-
-} // end objects in area..
-
-
-
 
 function find_orientation_marks(mesh1, mesh2) {
 
@@ -544,8 +375,6 @@ function find_orientation_marks(mesh1, mesh2) {
       dic_dist = { 'x' : dx, 'y' : dy, 'z' : dz }
       var max_val = Math.max(dx, dy, dz)
       var key = Object.keys(dic_dist).filter(function(key) {return dic_dist[key] === max_val})[0];
-      //alert('orientation is ' + key)
-      //block_dir_track = key
 
       return key
 
@@ -875,60 +704,3 @@ function modify_values(INTERSECTED){
       show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
 
 }
-
-function show_infos_at_mouse_pos(x,i){
-
-      /*
-      Show the infos in the place of the object..
-      */
-
-      x[i].style.left = event.pageX + "px";  				// using mouse x
-      x[i].style.top = event.pageY + "px";   				// using mouse y
-
-}
-
-function show_infos_upper_left(x,i){
-
-      /*
-      Show the infos on the upper left corner
-      */
-
-      x[i].style.left = "0px";  				  //  pos x
-      x[i].style.top =  "50px";   				//  pos y
-
-}
-
-function show_infos(){
-
-      /*
-      Show or hide the informations about the object..
-      */
-
-      var x = document.getElementsByClassName("panel");
-      for (var i = 0; i < x.length; i++) {
-          x[i].style.visibility = "visible";    // make the panel visible
-          x[i].style.backgroundColor = "white";
-          if (infos_in_place){ show_infos_at_mouse_pos(x,i) }
-          else{ show_infos_upper_left(x,i) } // upper left, hidden..
-      } // end for
-
-} // end show_hide_infos
-
-//
-function give_infos(){
-
-      /*
-      Give infos about the selected object.
-      The information appears close to the object selected..
-      Infos are :
-          * the name
-          * the orientation..
-      play with .panel
-      */
-
-      if (select_obj_infos){                    //  select_obj_infos must be activated for accessing to the infos..
-          if ( INTERSECTED ){ show_infos() }
-          modify_values(INTERSECTED)            // give the current values
-        } // end if select_obj_infos
-
-} // end give infos
