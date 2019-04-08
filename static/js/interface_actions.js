@@ -23,37 +23,38 @@ function mouseleave_hide_panel(class_panel){
 
 function block_obj(obj){
 
-  /*
-  Block
-  */
+      /*
+      Block
+      */
 
-  $('#block_pos').text('block')
-  var objname = dic_sphere_blocked[obj.name]
-  scene.remove( objname )
-  delete(objname)
+      $('#block_pos').text('block')
+      var objname = dic_sphere_blocked[obj.name]
+      scene.remove( objname )
+      delete(objname)
 
 }
 
 function unblock_obj(obj){
 
-  /*
-  Unblock
-  */
+      /*
+      Unblock
+      */
 
-  $('#block_pos').text('unblock')
-  sphblk = sphere_blocked(obj.position)
-  dic_sphere_blocked[obj.name] = sphblk;
+      $('#block_pos').text('unblock')
+      sphblk = sphere_blocked(obj.position)
+      dic_sphere_blocked[obj.name] = sphblk;
 
 }
 
 function actions_with_block_unblock(obj){
 
-  /*
-  Block or unblock the objects
-  */
+      /*
+      Block or unblock the objects
+      */
 
-  if (LAST_SELECTED.blocked){ unblock_obj(obj) }
-  else{ block_obj(obj) }
+      if (LAST_SELECTED.blocked){ unblock_obj(obj) }
+      else{ block_obj(obj) }
+      
 }
 
 //------------------------   dicths, panels

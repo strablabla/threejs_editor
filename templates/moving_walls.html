@@ -42,10 +42,13 @@
 		<script src="/static/js/basic_objects.js"></script>
 		<script src="/static/js/make_objects.js"></script>
 
-		<!-- mouse_interact.js -->
+		<!-- dependencies for mouse_interact.js -->
+
 		<script src="/static/js/magnet_interact.js" ></script>
 		<script src="/static/js/select_interact.js" ></script>
 		<script src="/static/js/infos_interact.js" ></script>
+		<script src="/static/js/track_interact.js" ></script>
+		<script src="/static/js/group_interact.js" ></script>
 		<script src="/static/js/mouse_interact.js" ></script>
 
 		<!-- keys.js -->
@@ -71,6 +74,12 @@
 		<script src="/static/js/scene_params.js" ></script>
 
 		<script>
+
+		var container, stats;
+		var camera, controls, scene, projector, renderer;
+		var objects = [], plane;
+
+	  //arrow()
 
 		//------------------------
 

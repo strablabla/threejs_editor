@@ -49,60 +49,6 @@ function onWindowResize() {
 
 }
 
-function addpos(a,b,c){
-
-      /*
-      Sum positions
-      */
-
-      a.x = b.x + c.x
-      a.y = b.y + c.y
-      a.z = b.z + c.z
-
-      return a
-
-}
-
-function removepos(a,b,c){
-
-      /*
-      Sum positions
-      */
-
-      a.x = b.x - c.x
-      a.y = b.y - c.y
-      a.z = b.z - c.z
-
-      return a
-
-}
-
-function move_group(){
-
-      /*
-      Move the whole group
-      */
-
-      for (i in list_obj_inside){
-          var name_i = list_obj_inside[i].name
-          addpos(list_obj_inside[i].position, SELECTED.position, dict_pos_relat[name_i])
-      }
-}
-
-function keep_relative_positions(){
-
-      /*
-      Save the relative positions for moving
-       the whole group with the selected object..
-      */
-
-      for (i in list_obj_inside){
-          var name_i = list_obj_inside[i].name
-          dict_pos_relat[name_i] = {'x':0, 'y':0, 'z':0}
-          removepos(dict_pos_relat[name_i], list_obj_inside[i].position, SELECTED.position)
-      }
-}
-
 function color_pick(){
 
       /*
@@ -133,41 +79,6 @@ function make_raycaster(event){
 
 }
 
-function find_orientation_firstmark_mouse() {
-
-      /*
-      Main orientation
-      */
-
-      var beg = list_marks_track.slice(-2,-1)[0]
-      var mouse = mousepos()
-      //--------------
-      var dx = Math.abs(beg.position.x - mouse.x);
-      var dy = Math.abs(beg.position.y - mouse.y);
-      var dz = Math.abs(beg.position.z - mouse.z);
-      dic_dist = { 'x' : dx, 'y' : dy, 'z' : dz }
-      var max_val = Math.max(dx, dy, dz)
-
-      var key = Object.keys(dic_dist).filter(function(key) {return dic_dist[key] === max_val})[0];
-
-      return key
-
-}
-
-function dir_coord_blocked_track(){
-
-      /*
-      dir coord..
-      */
-
-      var end = list_marks_track.slice(-2,-1)[0]
-      dir_track_blocked = anti_dic[find_orientation_firstmark_mouse()]
-      coord_track_blocked = end.position[dir_track_blocked]  // blocked the position
-
-      return [dir_track_blocked, coord_track_blocked]
-
-}
-
 function action_on_selected_when_moving(raycaster){
 
       /*
@@ -180,16 +91,13 @@ function action_on_selected_when_moving(raycaster){
       if ( !SELECTED.blocked ){
               SELECTED.position.copy( interptsub )  // move SELECTED at mouse position..
               if (select_make_track & perpendicular_track){
-                  var [dir_track_blocked, coord_track_blocked] = dir_coord_blocked_track()
-                  SELECTED.position[dir_track_blocked] = coord_track_blocked; //coord_track_blocked
+                    track_in_mouse_moving()
               }
          }  // move the object selected if not blocked..
       nearest_elem = nearest_object(SELECTED)                           // change the color of the nearest objects in yellow..
       if (select_move_group){ move_group() }                            // move the whole group, obj in list_obj_inside
 
 }
-
-
 
 function mouse_move_case_intersections(intersects){
 
@@ -236,65 +144,6 @@ function onDocumentMouseMove( event ) {
 
 } // end mouse move
 
-
-
-function width_length_with_orientation(beg,end){
-
-      /*
-      width and length according to the orientation
-      */
-
-      var orientation_track = find_orientation_marks(beg,end)
-      // dir_track_blocked = orientation_track
-      // coord_track_blocked = end.position[dir_track_blocked]  // blocked the position
-
-      //----------- dimensions
-
-      var track_length = getDistance(beg,end)
-      if ( orientation_track == 'x' ){
-          var width = track_width
-          var thickness = track_length
-      }else{
-          var width = track_length
-          var thickness = track_width
-      }
-
-      return [width,thickness]
-}
-
-function params_for_track(){
-
-      /*
-      Oriented track
-      */
-
-      var [beg,end] = list_marks_track.slice(-2)
-      //--------- dim
-      var [width,thickness] = width_length_with_orientation(beg,end)
-      var dim = { width : width, height : 5, thickness : thickness}
-      //--------- r
-      var r = {'x': 0, 'y':0, 'z':0}
-      //--------- p
-      var [mx,my,mz] = getMiddle(beg,end)
-      var p = {'x': mx, 'y':my, 'z':mz}
-
-      return [p,r,dim]
-
-}
-
-function make_oriented_track(){
-
-      /*
-      Oriented track
-      */
-
-      var [p,r,dim] = params_for_track()
-      mat_track = new THREE.MeshBasicMaterial( { color : color_track_blue } )
-      var [newname, interptsub] = random_name_mousepos()
-      var track = simple_parallelepiped(newname, p, r, mat_track, dim, "track")
-
-}
-
 function mouse_down_case_intersections(intersects,raycaster){
 
       /*
@@ -309,6 +158,21 @@ function mouse_down_case_intersections(intersects,raycaster){
       return intersects
 }
 
+function MouseDown_actions(){
+
+      /*
+      Mouse down actions
+      */
+
+      if ( INTERSECTED ) INTERSECTED.material.color.setHex( color_intersected_green );   // changing color in green when selected
+      if (select_picking){ picking_action() }                             // adding the object to the list of the picked elements..
+      if (select_move_group){ keep_relative_positions() }                 // save the relative positions inside the group
+      if (select_make_track){
+          if (list_marks_track.length > 1){ make_oriented_track() }  // Draw the track
+      }
+
+}
+
 function onDocumentMouseDown( event ) {
 
       /*
@@ -319,16 +183,9 @@ function onDocumentMouseDown( event ) {
       var intersects = raycaster.intersectObjects( objects );
       if ( intersects.length > 0 ) { intersects = mouse_down_case_intersections(intersects,raycaster) }
       else{ $('.panel').css({'top':"10px","left":"-300px"}) }             // hide panel when mouse leaves..
-      if ( INTERSECTED ) INTERSECTED.material.color.setHex( color_intersected_green );   // changing color in green when selected
-      if (select_picking){ picking_action() }                             // adding the object to the list of the picked elements..
-      if (select_move_group){ keep_relative_positions() }                 // save the relative positions inside the group
-      if (select_make_track){
-          if (list_marks_track.length > 1){ make_oriented_track() }  // Draw the track
-      }
+      MouseDown_actions()
 
 }
-
-
 
 function onDocumentMouseUp( event ) {
 
@@ -359,24 +216,6 @@ function mousepos(){
       var interptsub = intersects[ 0 ].point.sub( offset )
 
       return interptsub
-
-}
-
-
-function find_orientation_marks(mesh1, mesh2) {
-
-      /*
-      Main orientation
-      */
-
-      var dx = Math.abs(mesh1.position.x - mesh2.position.x);
-      var dy = Math.abs(mesh1.position.y - mesh2.position.y);
-      var dz = Math.abs(mesh1.position.z - mesh2.position.z);
-      dic_dist = { 'x' : dx, 'y' : dy, 'z' : dz }
-      var max_val = Math.max(dx, dy, dz)
-      var key = Object.keys(dic_dist).filter(function(key) {return dic_dist[key] === max_val})[0];
-
-      return key
 
 }
 
@@ -458,21 +297,6 @@ function limits_and_action_reinit_var(){
 
 }
 
-function limits_and_action(act_directly){
-
-      /*
-      Select a region and make action
-      */
-
-      if ( selpos.length < 2 ){ make_limits_mouse() }   // find the corners and make the area..
-      else if (selpos.length == 2){
-              if (act_directly){ act_directly(selpos) } // execute the action with the information of the position of the corners
-              if (select_obj){ find_objects_in_area() }
-              limits_and_action_reinit_var()
-      } // end else if
-
-} //  end limits_and_action
-
 function corner(col){
 
       /*
@@ -500,38 +324,6 @@ function color_corner(){
 
 }
 
-function save_plot_track(corner0,corner1){
-
-      /*
-      Save the plots used for the track..
-      */
-
-      if ( list_marks_track.length == 0 ){
-          list_marks_track.push(corner0)
-          list_marks_track.push(corner1)
-      }else{ list_marks_track.push(corner1) }
-
-}
-
-function make_marks_and_track(){
-
-      /*
-      Graphical limits moved with the mouse..
-      */
-
-      col = color_corner()
-      var corner0 = corner(color_mark_quite_red)
-      if (list_marks_track.length > 1){scene.remove(corner0)}
-
-      var corner1 = corner(color_track_green)
-      save_plot_track(corner0,corner1)
-      SELECTED = corner1
-      controls.enabled = false
-      last_mark_track = corner1
-
-}
-
-
 function make_limits_mouse(){
 
       /*
@@ -543,46 +335,6 @@ function make_limits_mouse(){
       var corner1 = corner(col)
       SELECTED = corner1
       controls.enabled = false
-
-}
-
-function params_newview(selpos){
-
-      /*
-      newview parameters
-      */
-
-      var altit = 250;
-      var s0 = selpos[0].position
-      var s1 = selpos[1].position
-
-      return [altit, s0, s1]
-
-}
-
-function reinit_params_newview(){
-
-      /*
-      Reinitialize some params after newview
-      */
-
-      select_poscam = false;
-      selpos = []
-      $('#curr_func').css('background-color','blue')
-
-}
-
-function newview(selpos){
-
-      /*
-      put the camera at positon selpos[0] and look at selpos[1]
-      */
-
-      var [altit, s0, s1] = params_newview(selpos)
-      camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
-      camera.up = new THREE.Vector3(0,0,1);
-      controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
-      reinit_params_newview()
 
 }
 
@@ -681,6 +433,8 @@ function show_block_unblock(){
       else{ $('#block_pos').text('block') }
 
 }
+
+//----------------------------------- Panels interactions
 
 function link_panel_text(name){ $('#'+name+'_panel').text(INTERSECTED[name]); }
 function link_panel0(name){ $('#'+name+'_panel').val(INTERSECTED[name]); }
