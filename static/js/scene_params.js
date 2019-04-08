@@ -4,38 +4,61 @@ Scene parameters
 
 */
 
-var container, stats;
-var camera, controls, scene, projector, renderer;
-var objects = [], plane;
+//---------------- Basic objects
+
 new_wall_ok = false;  		    	// create a new wall with the mouse
 new_simple_cube_ok = false;  		// create a new simple_cube with the mouse
 new_cube_texture_ok = false
 new_pavement_ok = false;
-select_obj = false;             // select multiple objects.
 make_plane = false;             // make a plane
-selpos = [];
+
+//---------------------- Camera
+
 select_poscam = false; 			    // change camera position with mouse
-list_obj_inside = [];  					// list of the objects inside the area..
-select_picking = false;         // picking the object fr future action..
+
+//---------------------- Infos
+
 infos_in_place = false;
-select_obj_infos = false;
-select_move_group = false;
-select_make_track = false;
+select_obj_infos = false;       // infos about the selected object..
+
+//---------------------- Group
+
+select_move_group = false;      // move entire group..
+dict_pos_relat = {}
+
+//----------------------  Miscellaneous
+
 select_traj = false;   							// object trajectory..
 dic_sphere_blocked = {}							// dict of the sphere indicating the element is blocked..
-dict_pos_relat = {}
-list_dotted_area = []
-list_marks_track = []
-size_elem_dotted_line = 15					// size of each element of the dotted line delimiting the selection area
+
+//----------------------  Movement
+
 step_up_down = 10;   								// vertical step when moving an object up or down
+
+//----------------------  Interactions
+
 nearest_elem = null;
+
+//---------------------- Selection
+
+selpos = [];
+select_picking = false;         // picking the object fr future action..
+select_obj = false;             // select multiple objects.
+list_dotted_area = []
+size_elem_dotted_line = 15					// size of each element of the dotted line delimiting the selection area
+list_obj_inside = [];  					// list of the objects inside the area
+
+//---------------------- Track
+
+select_make_track = false;
+list_marks_track = []
 orientation_track = 'x'
 last_mark_track = null
 var track_width = 40
 coord_track_blocked = null
 dir_track_blocked = null
 perpendicular_track = true
-anti_dic = {'x':'y','y':'x'}
+anti_dic = {'x':'y','y':'x'}        // return perpendicular direction ..
 
 //------------------- Colors
 

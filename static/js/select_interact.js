@@ -1,4 +1,23 @@
+/*
 
+Selection
+
+*/
+
+function limits_and_action(act_directly){
+
+      /*
+      Select a region and make action
+      */
+
+      if ( selpos.length < 2 ){ make_limits_mouse() }   // find the corners and make the area..
+      else if (selpos.length == 2){
+              if (act_directly){ act_directly(selpos) } // execute the action with the information of the position of the corners
+              if (select_obj){ find_objects_in_area() }
+              limits_and_action_reinit_var()
+      } // end else if
+
+} //  end limits_and_action
 
 function picking_action(){
 
@@ -10,6 +29,109 @@ function picking_action(){
       INTERSECTED.material.color.setHex( orange_medium ); //
 
 }
+
+function delete_area(){
+
+        /*
+        Delete area
+        */
+
+        for (i in list_dotted_area){ scene.remove(list_dotted_area[i]) }
+        list_dotted_area = []
+        reinit_selection()
+
+} // end delete_area
+
+function dotted_area(nbelem,elem, limits_minmax, size_elem_dotted_line){
+
+        /*
+        Dotted area
+        */
+
+        var [minx, maxx, miny, maxy] = limits_minmax
+        var [nbelem1,nbelem2] = nbelem
+
+        dotted_line(nbelem2,elem,'x',minx,miny,size_elem_dotted_line)
+        dotted_line(nbelem1,elem,'y',minx,miny,size_elem_dotted_line)
+        dotted_line(nbelem2,elem,'x',maxx,miny,size_elem_dotted_line)
+        dotted_line(nbelem1,elem,'y',minx,maxy,size_elem_dotted_line)
+
+}
+
+function dotted_line(nbelem,elem,kind,posx,posy,size_elem_dotted_line){
+
+        /*
+        Dotted lines
+        */
+
+        for (var i=0; i < nbelem+1; i++){
+              var elem_clone = elem.clone()
+              if (kind == "x"){
+                  elem_clone.position.x = posx;
+                  elem_clone.position.y = posy+2*i*size_elem_dotted_line;
+              }
+              else if (kind == 'y'){
+                  elem_clone.position.x = posx+2*i*size_elem_dotted_line;
+                  elem_clone.position.y = posy
+              }
+              elem_clone.position.z = 25;
+              scene.add(elem_clone)
+              list_dotted_area.push(elem_clone)
+
+          } // end for
+}
+
+
+function limit_area(){
+
+        /*
+        limits selection area
+        */
+
+        var minx = Math.min(selpos[0].position.x,selpos[1].position.x)
+        var miny = Math.min(selpos[0].position.y,selpos[1].position.y)
+        var maxx = Math.max(selpos[0].position.x,selpos[1].position.x)
+        var maxy = Math.max(selpos[0].position.y,selpos[1].position.y)
+
+        return [minx, maxx, miny, maxy]
+
+}
+
+function area_side1_side2(){
+
+
+        /*
+        Calculate side1 and side2
+        */
+
+        var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x) // length side1
+        var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y) // length side2
+        //alert(side1 + '__' + side2)
+        $('#curr_func').css('background-color','grey')
+
+        return [side1, side2]
+
+}
+
+function make_dotted_area(selpos){
+
+        /*
+        Area for selecting the pieces
+        */
+
+        var [side1, side2] = area_side1_side2()
+        //-----------------
+        var geometry = new THREE.CubeGeometry( size_elem_dotted_line, size_elem_dotted_line, 3 );
+        var elem = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: color_dotted_line_black } ) );
+        //----------------- number of elements
+        nbelem1 = Math.round(side1/(2*size_elem_dotted_line))
+        nbelem2 = Math.round(side2/(2*size_elem_dotted_line))
+        //----------------- limits
+        var limits_minmax = limit_area()
+        var nbelem = [nbelem1,nbelem2]
+        dotted_area(nbelem, elem, limits_minmax, size_elem_dotted_line)
+
+} // end function make area
 
 function refresh_dotted_area(){
 
