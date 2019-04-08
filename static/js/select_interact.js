@@ -32,6 +32,20 @@ function limits_and_action_reinit_var(){
 
 }
 
+function make_limits_mouse(){
+
+      /*
+      Graphical limits moved with the mouse..
+      */
+
+      col = color_corner()
+      var corner0 = corner(col)
+      var corner1 = corner(col)
+      SELECTED = corner1
+      controls.enabled = false
+
+}
+
 function color_pick(){
 
       /*
