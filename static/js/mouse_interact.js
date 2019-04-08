@@ -49,19 +49,6 @@ function onWindowResize() {
 
 }
 
-function color_pick(){
-
-      /*
-      Color the picked objects..
-      */
-
-      if (select_picking){                   // adding the object to the list of the picked elements..
-            for (i in list_obj_inside){
-              list_obj_inside[i].material.color.setHex( orange_medium );
-            }
-      }
-}
-
 function make_raycaster(event){
 
       /*
@@ -76,52 +63,6 @@ function make_raycaster(event){
       var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 
       return raycaster
-
-}
-
-function action_on_selected_when_moving(raycaster){
-
-      /*
-      Action when selected and moving
-      */
-
-      var intersects = raycaster.intersectObject( plane );
-      var interptsub = intersects[ 0 ].point.sub( offset )
-      interptsub.z = SELECTED.position.z
-      if ( !SELECTED.blocked ){
-              SELECTED.position.copy( interptsub )  // move SELECTED at mouse position..
-              if (select_make_track & perpendicular_track){
-                    track_in_mouse_moving()
-              }
-         }  // move the object selected if not blocked..
-      nearest_elem = nearest_object(SELECTED)                           // change the color of the nearest objects in yellow..
-      if (select_move_group){ move_group() }                            // move the whole group, obj in list_obj_inside
-
-}
-
-function mouse_move_case_intersections(intersects){
-
-      /*
-      One intersection or more detected
-      */
-
-      if ( INTERSECTED != intersects[ 0 ].object ) {
-            if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex ); //
-            INTERSECTED = intersects[ 0 ].object;
-            INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
-      }
-      container.style.cursor = 'pointer';
-}
-
-function mouse_move_case_no_intersection(){
-
-      /*
-      No intersection detected
-      */
-
-      if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
-      INTERSECTED = null;
-      container.style.cursor = 'auto';
 
 }
 
@@ -219,11 +160,10 @@ function mousepos(){
 
 }
 
-
 function getMiddle(mesh1, mesh2) {
 
       /*
-      Distance from mesh1 to mesh2
+      Return the middle position between the 2 objects..
       */
 
       var mx = (mesh1.position.x + mesh2.position.x)/2;
@@ -284,19 +224,6 @@ function nearest_object(currobj){
 
 } // end nearest_object
 
-function limits_and_action_reinit_var(){
-
-      /*
-      Reinitialize singleton variables
-      */
-
-      selpos = []                     // positions of the corners
-      select_obj = false;
-      make_plane = false;
-      SELECTED = null;
-
-}
-
 function corner(col){
 
       /*
@@ -347,6 +274,8 @@ function random_name_mousepos(){
       return [random_name(), mousepos()]
 
 }
+
+//--------------------------  Parallelepipedic shapes
 
 var dict_parall = {}
 
@@ -422,17 +351,6 @@ function mouse_create_object_or_action(){
       link(select_poscam, limits_and_action, newview)              // K key
 
 } // end mouse_create_object_or_action
-
-function show_block_unblock(){
-
-      /*
-      Value button block, unblock
-      */
-
-      if (LAST_SELECTED.blocked){ $('#block_pos').text('unblock') }
-      else{ $('#block_pos').text('block') }
-
-}
 
 //----------------------------------- Panels interactions
 

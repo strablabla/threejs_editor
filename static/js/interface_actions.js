@@ -46,6 +46,17 @@ function unblock_obj(obj){
 
 }
 
+function show_block_unblock(){
+
+      /*
+      Value button block, unblock
+      */
+
+      if (LAST_SELECTED.blocked){ $('#block_pos').text('unblock') }
+      else{ $('#block_pos').text('block') }
+
+}
+
 function actions_with_block_unblock(obj){
 
       /*
@@ -54,7 +65,7 @@ function actions_with_block_unblock(obj){
 
       if (LAST_SELECTED.blocked){ unblock_obj(obj) }
       else{ block_obj(obj) }
-      
+
 }
 
 //------------------------   dicths, panels

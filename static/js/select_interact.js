@@ -19,6 +19,32 @@ function limits_and_action(act_directly){
 
 } //  end limits_and_action
 
+function limits_and_action_reinit_var(){
+
+      /*
+      Reinitialize singleton variables
+      */
+
+      selpos = []                     // positions of the corners
+      select_obj = false;
+      make_plane = false;
+      SELECTED = null;
+
+}
+
+function color_pick(){
+
+      /*
+      Color the picked objects..
+      */
+
+      if (select_picking){                   // adding the object to the list of the picked elements..
+            for (i in list_obj_inside){
+              list_obj_inside[i].material.color.setHex( orange_medium );
+            }
+      }
+}
+
 function picking_action(){
 
       /*
