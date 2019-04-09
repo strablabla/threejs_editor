@@ -4,6 +4,34 @@ Infos about the object
 
 */
 
+//----------------------------------- Panels interactions
+
+
+function link_panel_text(name){ $('#'+name+'_panel').text(INTERSECTED[name]); }
+function link_panel0(name){ $('#'+name+'_panel').val(INTERSECTED[name]); }
+function link_panel1(name, attr0, attr1){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1]); }
+function link_panel2(name, attr0, attr1, arg){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1](arg)); }
+
+function modify_values(INTERSECTED){
+
+      /*
+      Change the vaues in the panel for infos about the object selected..
+      */
+
+      link_panel_text('name')
+      link_panel0('width')
+      link_panel0('height')
+      link_panel1('angle', 'rotation', 'z')
+      link_panel2('color', 'currentHex', 'toString',16)
+      link_panel1('alpha', 'material', 'opacity')
+      $('.dz-message').css('top','2px')
+      $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
+      show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
+      $("#dropz").children().hide(); // hide the message under the box
+      $('#drop-message').click(function(){
+          $("#dropz").click()
+      })
+}
 
 function show_infos_at_mouse_pos(x,i){
 

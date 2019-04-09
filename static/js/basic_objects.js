@@ -261,6 +261,24 @@ function make_pavement(name,p,r,material){
 
 } // end function
 
+function make_square_pillar(name,p,r,material){
+
+        /*
+        Pillar
+        name : name of the object
+        p : position of the object
+        r : rotation of the object
+        material : color and texture of the object
+        */
+
+        var size_pillar = 50
+        var dim = { width : size_pillar, height : 150, thickness : size_pillar}
+        var pillar = simple_parallelepiped(name,p,r,material,dim,"square_pillar")
+
+        return pillar
+
+} // end function
+
 
 function make_cube_texture(name,p,r,meshFaceMaterial){
 

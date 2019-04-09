@@ -31,15 +31,16 @@
                 <input value="alpha" size=8 id="alpha_panel">
             </span>
         </div>
-        <div> <span> texture: </span><span >
+        <div> <span> texture: </span> <span id='drop-message' class="dz-message ">  </span>
+
                 <!-- <input value="texture" size=8 id="texture_panel"> -->
-                <form  id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" >
+                <div   id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" hidden >
                       <!-- <div class="dz-message "> hop </div> -->
-                </form>
-            </span>
+                </div>
+
         </div>
 
-        <br><br>
+        <br>
         <center> <button id="block_pos" type="button" class="btn btn-alert"> block </button> </center>
         <br>
         <center> <button id="save_param" type="button" class="btn btn-success"> save </button> </center>
