@@ -6,36 +6,17 @@
 
         <br><br>
 
-        <div> <span>name: </span><span id="name_panel" >
-              name
-            </span>
-        </div>
-        <br><br>
-        <div> <span> width: </span><span>
-                <input  value="width" size=8 id="width_panel">
-            </span>
-        </div>
-        <div> <span> height: </span><span>
-                <input value="height" size=8 id="height_panel">
-            </span>
-        </div>
-        <div> <span> angle: </span><span>
-                <input value="angle" size=8 id="angle_panel">
-            </span>
-        </div>
-        <div> <span> color: </span><span>
-                <input value="color" size=8 id="color_panel">
-            </span>
-        </div>
-        <div> <span> alpha: </span><span>
-                <input value="alpha" size=8 id="alpha_panel">
-            </span>
-        </div>
-        <div> <span> texture: </span> <span id='drop-message' class="dz-message ">  </span>
+        <div> <span> name: </span><span id="name_panel" ></span></div> <br><br>
+        {% set attrs = ['width', 'height','thickness', 'angle', 'color', 'alpha', 'type'] %}
+        {% for attr in attrs %}
+        <div> <span> {{attr}} :</span><span> <input  value={{attr}} size=8 id="{{attr}}_panel"> </span> </div>
+        {% endfor %}
 
-                <!-- <input value="texture" size=8 id="texture_panel"> -->
+        <div>
+
+                <span> texture: </span>
+                <span id='drop-message' class="dz-message ">  </span>
                 <div   id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" hidden >
-                      <!-- <div class="dz-message "> hop </div> -->
                 </div>
 
         </div>

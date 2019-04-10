@@ -4,6 +4,7 @@ Infos about the object
 
 */
 
+
 //----------------------------------- Panels interactions
 
 
@@ -21,16 +22,17 @@ function modify_values(INTERSECTED){
       link_panel_text('name')
       link_panel0('width')
       link_panel0('height')
+      link_panel0('thickness')
       link_panel1('angle', 'rotation', 'z')
       link_panel2('color', 'currentHex', 'toString',16)
       link_panel1('alpha', 'material', 'opacity')
+      link_panel0('type')
       $('.dz-message').css('top','2px')
       $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
       show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
       $("#dropz").children().hide(); // hide the message under the box
-      $('#drop-message').click(function(){
-          $("#dropz").click()
-      })
+      $('#drop-message').click(function(){ $("#dropz").click() })
+
 }
 
 function show_infos_at_mouse_pos(x,i){
