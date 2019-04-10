@@ -91,13 +91,46 @@ function hide_show_keys(){
 
 }
 
-$(document).ready(function(){
-      $('#front_view').click(function(){
-            alert('hello')
-            //camera_pos_orient({-300,0,100}, {0,0,0})
-        })
-  })// end ready
+function camera_pos_orient(s0,s1,altit){
 
+      /*
+      newview parameters
+      */
+
+      camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
+      camera.up = new THREE.Vector3(0,0,1);
+      controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
+
+}
+
+function set_new_view(x, y, altit){
+
+  /*
+  Setting the view
+  */
+
+  var target = {'x':0,'y':0,'z':0}
+  var pos = {'x':x,'y':y,'z':altit}
+  camera_pos_orient( pos, target , altit )
+
+}
+
+$(document).ready(function(){
+
+      /*
+      Change the views
+      */
+
+      altit_high = 2000
+      altit_low = 200
+
+      $('#above_view').click(function(){ set_new_view(0,0,altit_high)})
+      $('#front_view').click(function(){ set_new_view(0,-2000,altit_low)})
+      $('#back_view').click(function(){ set_new_view(0,2000,altit_low)})
+      $('#left_view').click(function(){ set_new_view(-2000,0,altit_low)})
+      $('#right_view').click(function(){ set_new_view(2000,0,altit_low)})
+
+  })// end ready
 
 function block_pos_object(){
 
@@ -130,7 +163,7 @@ function save_params_panel_object(){
             if (objects[i].name == $('#name_panel').text()){
                objects[i].rotation.z = $('#angle_panel').val()            // angle
                objects[i].material.opacity = $('#alpha_panel').val()      // opacity
-               objects[i].material.needsUpdate = true;
+               objects[i].material.needsUpdate = true;                    // refreshing
             } // end if
         } // end for
         controls.enabled = true;
@@ -161,6 +194,3 @@ function init_interf_actions(){
       manage_drop()  // manage the Dropzone
 
  }
-
-
- 
