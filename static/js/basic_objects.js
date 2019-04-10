@@ -201,6 +201,7 @@ function simple_parallelepiped(name,p,r,material,dim,type){
         object = obj_basics(object,p,r,name)
         object.width = dim.width;
         object.height = dim.height;
+        object.thickness = dim.thickness;
         object.type = type
         scene.add( object );
         objects.push( object )
