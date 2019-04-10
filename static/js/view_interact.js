@@ -1,3 +1,22 @@
+/*
+
+Change view
+
+*/
+
+
+function camera_pos_orient(s0,s1,altit){
+
+      /*
+      newview parameters
+      */
+
+      camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
+      camera.up = new THREE.Vector3(0,0,1);
+      controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
+
+}
+
 function params_newview(selpos){
 
       /*
@@ -31,9 +50,6 @@ function newview(selpos){
       */
 
       var [altit, s0, s1] = params_newview(selpos)
-      camera.position.set(s0.x, s0.y, s0.z + altit); // Set position like this
-      camera.up = new THREE.Vector3(0,0,1);
-      controls.target = new THREE.Vector3(s1.x, s1.y, s1.z + altit);
+      camera_pos_orient(s0,s1,altit)
       reinit_params_newview()
-
 }
