@@ -28,10 +28,10 @@ function modify_values(INTERSECTED){
       link_panel1('alpha', 'material', 'opacity')
       link_panel0('type')
       $('.dz-message').css('top','2px')
-      $('.dz-message').text(INTERSECTED.tex)    // text in Dropzone..
-      show_block_unblock()  // show if the object position is blocked or not with the message on the button ..
-      $("#dropz").children().hide(); // hide the message under the box
-      $('#drop-message').click(function(){ $("#dropz").click() })
+      $('.dz-message').text(INTERSECTED.tex)            // text in Dropzone..
+      show_block_unblock()              // show if the object position is blocked or not with the message on the button ..
+      $("#dropz").children().hide();         // hide the message under the box
+      $('#drop-message').one('click',function(){ $("#dropz").click() }) // execute one time dropz.. 
 
 }
 
