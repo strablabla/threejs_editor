@@ -1,5 +1,27 @@
 disp = 5
 
+function obj_basics(object, p, r, name){
+
+        /*
+        Generic function for rotation, shadow, name, cloning etc..
+        */
+
+        object.material.ambient = object.material.color;
+        //----------
+        object.position.set(p.x,p.y,p.z)
+        object.rotation.set(r.x,r.y,r.z)     // rot x
+        object.castShadow = true;
+        object.receiveShadow = true;
+        object.name = name;
+        object.clone_infos = {"cloned":false,"origclone":"", "numclone":0}
+        object.blocked = false
+        object.del = false    // if true = to be deleted
+        object.mass = 1    //
+        object.speed = new THREE.Vector3() // {'x':0,'y':0,'z':0}  //new THREE.Vector3()
+
+        return object;
+}
+
 function sphere_blocked(pos){
 
         var radius = 20;
@@ -8,6 +30,20 @@ function sphere_blocked(pos){
         var sphere = new THREE.Mesh( geometry, material );
         scene.add( sphere );
         sphere.position.set(pos.x, pos.y, 0)
+
+        return sphere
+
+}
+
+function basic_sphere(name,p,r,col){
+
+        var radius = 40;
+        var geometry = new THREE.SphereGeometry( radius, 32, 32 );
+        var material = new THREE.MeshBasicMaterial( {color: col} );
+        var object = new THREE.Mesh( geometry, material );
+        object = obj_basics(object,p,r,name)
+        object.type = 'sphere'
+        scene.add( sphere );
 
         return sphere
 
@@ -37,26 +73,6 @@ function make_meshFaceMaterial(tex_mult_addr){
 
 }
 
-function obj_basics(object, p, r, name){
-
-        /*
-        Generic function for rotation, shadow, name, cloning etc..
-        */
-
-        object.material.ambient = object.material.color;
-        //----------
-        object.position.set(p.x,p.y,p.z)
-        object.rotation.set(r.x,r.y,r.z)     // rot x
-        object.castShadow = true;
-        object.receiveShadow = true;
-        object.name = name;
-        object.clone_infos = {"cloned":false,"origclone":"", "numclone":0}
-        object.blocked = false
-        object.del = false    // if true = to be deleted
-
-        return object;
-}
-
 function arrow(){
 
         var dir = new THREE.Vector3( 1, 2, 0 );
@@ -83,12 +99,11 @@ function make_mark(name,p,r,col){
         col : color of the object
         */
 
-        var size_pawns = 50;
-        square_color = col;
+        var size_pawns = 30;
         p.z = size_pawns/2;
         //------------------
         var geometry = new THREE.CubeGeometry( size_pawns, size_pawns, size_pawns );
-        var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
+        var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: col } ) );
         //------------------
         object = obj_basics(object,p,r,name)
         object.type = "pawn"
@@ -98,8 +113,6 @@ function make_mark(name,p,r,col){
         return object
 
 } // end function
-
-
 
 function make_horizontal_area(selpos){
 
@@ -143,9 +156,7 @@ function make_uniform_ground(){
           var object = new THREE.Mesh( geometry, material );
           object.material.ambient = object.material.color;
           //--------- Position
-          object.position.x = 0
-          object.position.y = 0
-          object.position.z = 0
+          object.position.set(0,0,0)
           //--------- Shadow
           object.castShadow = true;
           object.receiveShadow = true;
@@ -158,31 +169,40 @@ function make_uniform_ground(){
           return object
   } // end function
 
+  function chess_repeat_shape(col1,col2,size_square,geom,mat){
+
+        /*
+        Repeat the squares
+        */
+
+        var square_color
+        for ( var i = 0; i < 64; i ++ ) {
+            if ((i+Math.floor(i/8))%2==0){square_color = col1}
+            else{square_color = col12}
+            var object = new THREE.Mesh( geom, mat );
+            object.material.ambient = object.material.color;
+            object.position.set((i%8-4) * size_square, (Math.floor(i/8)-4) * size_square, 0)
+            object.castShadow = true;
+            object.receiveShadow = true;
+            scene.add( object );
+        }
+
+  }
+
   function make_ground_chess(){
 
           /*
           Ground with cases of different color, chess game etc..
           */
+
           var col1 = 0x000000
           var col2 = 0xffffff
           var size_square = 150;
-          var geometry = new THREE.CubeGeometry( size_square, size_square, 5 );
+          var geom = new THREE.CubeGeometry( size_square, size_square, 5 );
           var texture =  new THREE.ImageUtils.loadTexture( "static/upload/48.jpg" )
-          var square_color
-          for ( var i = 0; i < 64; i ++ ) {
-              if ((i+Math.floor(i/8))%2==0){square_color = col1}
-              else{square_color = col12}
-              //var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { map : texture } ) );
-              var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
-              object.material.ambient = object.material.color;
-              object.position.x = (i%8-4) * size_square
-              object.position.y = (Math.floor(i/8)-4) * size_square
-              object.position.z = 0
-              object.castShadow = true;
-              object.receiveShadow = true;
-              scene.add( object );
-              // objects.push( object );
-          }
+          var mat = new THREE.MeshLambertMaterial( { color: square_color } )
+          chess_repeat_shape(col1,col2,size_square,geom,mat)
+
 } // end function
 
 function simple_parallelepiped(name,p,r,material,dim,type){
@@ -279,7 +299,6 @@ function make_square_pillar(name,p,r,material){
         return pillar
 
 } // end function
-
 
 function make_cube_texture(name,p,r,meshFaceMaterial){
 
