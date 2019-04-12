@@ -67,7 +67,7 @@
 				var time = performance.now();
 	 			var delta = ( time - prevTime ) / 100;
 				gravity(delta)
-				increment_pos(delta)
+				change_all_pos(delta)
 				prevTime = time;
 
 				requestAnimationFrame( animate );
