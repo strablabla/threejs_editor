@@ -91,7 +91,7 @@ function toggle_cases_ending(){
         Different endings
         */
 
-        ending_track()
+        ending_track() // T key
 
 }
 
@@ -108,7 +108,17 @@ function ending_track(){
         }
 }
 
+function apply_movement(){
 
+      if (list_moving_objects.indexOf(INTERSECTED) == -1){
+          list_moving_objects.push(INTERSECTED)
+      }
+      else{
+        alert(list_moving_objects.indexOf(INTERSECTED))
+        delete list_moving_objects[list_moving_objects.indexOf(INTERSECTED)];
+         //list_moving_objects.remove(list_moving_objects.indexOf(INTERSECTED))
+       }
+}
 
 function keyDownTextField1(event){
 
@@ -139,17 +149,7 @@ function keyDownTextField1(event){
 
       if (event.keyCode == 38 ){ apply_to_one_obj_or_group(move_obj_up, false)  }  // Up
       if (event.keyCode == 40 ){ apply_to_one_obj_or_group(move_obj_down, false) } // Down
-      if ( keyev('a', event) ){
-            if (list_moving_objects.indexOf(INTERSECTED) == -1){
-                list_moving_objects.push(INTERSECTED)
-            }
-            else{
-              alert(list_moving_objects.indexOf(INTERSECTED))
-              delete list_moving_objects[list_moving_objects.indexOf(INTERSECTED)];
-               //list_moving_objects.remove(list_moving_objects.indexOf(INTERSECTED))
-            }
-
-      }
+      if ( keyev('a', event) ){ apply_movement() }
       if ( keyev('c', event) ){ if (INTERSECTED){ clone_object() } }   						 // Clone the selected object
       if ( keyev('d', event) ){ delete_object() }   				  // Delete object selected
       if ( keyev('b', event) ){ delete_area() }               // Delete selection area
@@ -170,7 +170,6 @@ function keyDownTextField1(event){
 
   } // end keyDownTextField1
 
-
 function keyDownTextField2(event){
 
       /*
@@ -179,8 +178,6 @@ function keyDownTextField2(event){
 
 
     } // end keyDownTextField2
-
-
 
 //-------------------------
 
