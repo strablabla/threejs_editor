@@ -8,7 +8,7 @@
 
         <div> <span> name: </span><span id="name_panel" ></span></div> <br><br>
         {% set attrs = ['width', 'height','thickness', 'angle',
-                          'color', 'alpha', 'type', 'mass'] %}
+                          'color', 'alpha', 'type', 'mass', 'speed'] %}
         {% for attr in attrs %}
         <div> <span> {{attr}} :</span><span> <input  value={{attr}} size=8 id="{{attr}}_panel"> </span> </div>
         {% endfor %}

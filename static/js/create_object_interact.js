@@ -8,6 +8,20 @@ Create object
 
 var dict_parall = {}
 
+function gaussianRand() {
+  var rand = 0;
+
+  for (var i = 0; i < 6; i += 1) {
+    rand += Math.random();
+  }
+
+  return rand / 6;
+}
+
+function gaussianRandom(start, end) {
+  return start + gaussianRand() * (end - start + 1);
+}
+
 function make_new_parallelepiped(make_type){
 
       /*
@@ -51,6 +65,22 @@ function make_new_cube_texture(){
       // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
 }
 
+function make_new_sphere(){
+
+      /*
+      Sphere with random speed
+      */
+
+      var [newname, interptsub] = random_name_mousepos()
+      var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},0x000000)
+      sph.speed.x = Math.round(random_speed_module*gaussianRandom(-1,1),1)
+      sph.speed.y = Math.round(random_speed_module*gaussianRandom(-1,1),1)
+      sph.magnet = false
+      //alert(sph.speed.y + '__' + sph.speed.x)
+      //alert("made a new sphere !!! ")
+
+}
+
 function link(condition, action, arg){
 
       /*
@@ -72,6 +102,7 @@ function mouse_create_object_or_action(){
 
       link(new_wall_ok, dictp.make_wall, null)                     // N key
       link(new_simple_cube_ok, dictp.make_simple_cube, null)       // L key
+      link(new_sphere_ok, make_new_sphere, null)                   // O key
       link(new_pavement_ok, dictp.make_pavement, null)             // P key
       link(new_cube_texture_ok, make_new_cube_texture, null)       // M key
       link(select_obj, limits_and_action, null)                    // S key.. make_dotted_area

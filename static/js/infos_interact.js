@@ -7,11 +7,23 @@ Infos about the object
 
 //----------------------------------- Panels interactions
 
+function attr_dict(attr0){
+
+      var valx = INTERSECTED[attr0]['x']
+      var valy = INTERSECTED[attr0]['y']
+      var valz = INTERSECTED[attr0]['z']
+
+      return valx + '_' + valy + '_' + valz
+
+}
+
+// GO to see in panel_one_object.html
 
 function link_panel_text(name){ $('#'+name+'_panel').text(INTERSECTED[name]); }
 function link_panel0(name){ $('#'+name+'_panel').val(INTERSECTED[name]); }
 function link_panel1(name, attr0, attr1){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1]); }
 function link_panel2(name, attr0, attr1, arg){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1](arg)); }
+function link_panel3(name, attr0, attr1){ $('#'+name+'_panel').val(attr_dict(attr0)); }
 
 function modify_values(INTERSECTED){
 
@@ -28,6 +40,7 @@ function modify_values(INTERSECTED){
       link_panel1('alpha', 'material', 'opacity')
       link_panel0('type')
       link_panel0('mass')
+      link_panel3('speed', 'speed')
       $('.dz-message').css('top','2px')
       $('.dz-message').text(INTERSECTED.tex)            // text in Dropzone..
       show_block_unblock()              // show if the object position is blocked or not with the message on the button ..
