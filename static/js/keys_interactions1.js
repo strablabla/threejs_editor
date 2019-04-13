@@ -4,21 +4,6 @@ Interactions attached to keys..
 
 */
 
-// function horiz_mov_sphere(){
-//
-//         /*
-//         Sphere with random speed
-//         */
-//
-//         var [newname, interptsub] = random_name_mousepos()
-//         var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},0x000000)
-//         sph.speed.x = 5*Math.random()
-//         sph.speed.y = 5*Math.random()
-//         sph.magnet = false
-//         alert(sph.speed.y + '__' + sph.speed.x)
-//         //alert("made a new sphere !!! ")
-//
-// }
 
 function toggle_cases_ending(){
 

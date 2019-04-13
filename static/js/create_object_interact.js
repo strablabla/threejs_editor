@@ -76,10 +76,10 @@ function make_new_sphere(){
       sph.speed.x = Math.round(random_speed_module*gaussianRandom(-1,1),1)
       sph.speed.y = Math.round(random_speed_module*gaussianRandom(-1,1),1)
       sph.magnet = false
-      //alert(sph.speed.y + '__' + sph.speed.x)
-      //alert("made a new sphere !!! ")
 
 }
+
+
 
 function link(condition, action, arg){
 
@@ -109,5 +109,6 @@ function mouse_create_object_or_action(){
       link(select_make_track, make_marks_and_track, null)          // T key..
       link(make_plane, limits_and_action, make_horizontal_area)    // H key
       link(select_poscam, limits_and_action, newview)              // K key
+      link(new_box_ok, limits_and_action, make_new_box)            // B key
 
 } // end mouse_create_object_or_action

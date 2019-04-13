@@ -95,6 +95,33 @@ function make_square_pillar(name,p,r,material){
 
 } // end function
 
+
+function side1_side2(selpos){
+
+        /*
+
+        */
+
+        var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x)
+        var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y)
+
+        return [side1, side2]
+
+}
+
+function middle_side1_side2(selpos){
+
+        /*
+
+        */
+
+        var middle_side1 = (selpos[0].position.x + selpos[1].position.x)/2
+        var middle_side2 = (selpos[0].position.y + selpos[1].position.y)/2
+
+        return [middle_side1, middle_side2]
+
+}
+
 function make_horizontal_area(selpos){
 
         /*
@@ -102,15 +129,15 @@ function make_horizontal_area(selpos){
         triggered with H key..
         */
 
-        var side1 = Math.abs(selpos[0].position.x - selpos[1].position.x)
-        var side2 = Math.abs(selpos[0].position.y - selpos[1].position.y)
+        var [side1, side2] = side1_side2(selpos)
         var geometry = new THREE.CubeGeometry( side1, side2, 5 );
         var square_color = 0xffffff
         var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: square_color } ) );
         object.material.ambient = object.material.color;
         //----------
-        object.position.x = (selpos[0].position.x + selpos[1].position.x)/2
-        object.position.y = (selpos[0].position.y + selpos[1].position.y)/2
+        var [middle_side1, middle_side2] = middle_side1_side2(selpos)
+        object.position.x = middle_side1
+        object.position.y = middle_side2
         object.position.z = 160
         //--------- Shadow
         object.castShadow = true;
@@ -121,6 +148,55 @@ function make_horizontal_area(selpos){
         objects.push( object )
 
 } // end function make area
+
+
+function wall_for_box(pos, dim){
+
+      var newname = random_name()
+      basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
+      listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : color_basic_default_pale_grey})
+
+      var object = simple_parallelepiped(newname,pos,{"x":0, "y":0, "z":0},listmat[newname],dim,'wall_box')
+      listorig[newname] = object
+      scene.add(object)
+      objects.push(object)
+      //alert("wall box is ok")
+
+}
+
+function four_pos_for_box(side1, side2, middle_side1, middle_side2){
+
+      /*
+
+      */
+
+      var pos1 = new THREE.Vector3(middle_side1+side1/2, middle_side2, 0)
+      var pos2 = new THREE.Vector3(middle_side1-side1/2, middle_side2, 0)
+      var pos3 = new THREE.Vector3(middle_side1, middle_side2+side2/2, 0)
+      var pos4 = new THREE.Vector3(middle_side1, middle_side2-side2/2, 0)
+
+      return [ pos1, pos2, pos3, pos4 ]
+
+}
+
+function make_new_box(selpos){
+
+      /*
+
+      */
+
+      var [side1, side2] = side1_side2(selpos)
+      var [middle_side1, middle_side2] = middle_side1_side2(selpos)
+      var [pos1, pos2, pos3, pos4] = four_pos_for_box(side1, side2, middle_side1, middle_side2)
+
+      //var dim = {'width':2,'height':150,'thickness':200}
+
+      wall_for_box(pos1,{'width':side2,'height':150,'thickness':2})
+      wall_for_box(pos2,{'width':side2,'height':150,'thickness':2})
+      wall_for_box(pos3,{'width':2,'height':150,'thickness':side1})
+      wall_for_box(pos4,{'width':2,'height':150,'thickness':side1})
+
+}
 
 function make_small_seats(){
 
