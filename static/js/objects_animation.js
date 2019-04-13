@@ -145,8 +145,11 @@ function change_speed_after_interaction(i,j){
 
 function dv_in_center_of_mass(i,j){
 
-      var [mi,mj,vi,vj] = masses_and_speeds(i,j)
+      /*
+      Speed in center of mass after interaction
+      */
 
+      var [mi,mj,vi,vj] = masses_and_speeds(i,j)
       var dvi = new THREE.Vector3();
       var dvj = new THREE.Vector3();
       dvi.subVectors(vi,vj).multiplyScalar(-mj/(mi+mj))
@@ -158,10 +161,12 @@ function dv_in_center_of_mass(i,j){
 
 function speed_center_mass(i,j){
 
+      /*
+      Speed of the center of mass
+      */
+
       var [mi,mj,vi,vj] = masses_and_speeds(i,j)
-
       var vc = new THREE.Vector3();
-
       vc.add( vi.multiplyScalar(mi) ) ;
       vc.add( vj.multiplyScalar(mj) ) ;
       vc.multiplyScalar( 1/(mi+mj) ) ;
