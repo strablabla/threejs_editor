@@ -93,20 +93,34 @@ function magnet_pavement_pavement(){
       return (SELECTED.type == 'pavement' &  nearest_elem.type == 'pavement')
 }
 
-function magnet_between_objects(nearest_elem){
+function magnet_diff_cases(signx, signy, face, rot_relat, rot_abs){
 
       /*
-      Magnetism between objects
+      Take into account the different cases
       */
 
-      [signx, signy, face] = signxy_face(SELECTED, nearest_elem)
-      copypos(SELECTED, nearest_elem)                 // position on same axe..
-      var [rot_relat, rot_abs] = rotation_relative_absolute(SELECTED, nearest_elem)
       if (magnet_wall_wall()){
             if ( (rot_relat == 0) ){ magnet_parallel_walls(rot_abs, signx, signy) }
             else{ magnet_perpendicular_walls(signx, signy)}
       }
       else if (magnet_cube_cube()){ magnet_face_to_face(signx, signy,face) }
       else if (magnet_pavement_pavement()){ magnet_face_to_face(signx, signy,face) }
+
+}
+
+function magnet_between_objects(nearest_elem){
+
+      /*
+      Magnetism between objects
+      */
+
+      if (nearest_elem.magnet & SELECTED.magnet){
+
+            [signx, signy, face] = signxy_face(SELECTED, nearest_elem)
+            copypos(SELECTED, nearest_elem)                 // position on same axe..
+            var [rot_relat, rot_abs] = rotation_relative_absolute(SELECTED, nearest_elem)
+            magnet_diff_cases(signx, signy, face, rot_relat, rot_abs)
+      }
+
 
 } // end magnet_between_objects

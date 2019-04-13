@@ -92,7 +92,7 @@ function change_pos(i, vdtx, vdty, vdtz){
 
 }
 
-function change_all_pos(delta){
+function update_all_pos(delta){
 
       /*
       Increment position of all the objects
@@ -216,9 +216,19 @@ function interactions_between_objects(){
       for (var i=0; i< list_moving_objects.length; i++){
             for (var j=i+1; j <  list_moving_objects.length; j++){
                   interaction_color(i,j)
-
               } // end for j
         } // end for i
         no_interaction_color()
+
+}
+
+function animate_physics(){
+
+      var time = performance.now();
+      var delta = ( time - prevTime ) / 100;
+      gravity(delta)
+      update_all_pos(delta)
+      interactions_between_objects()
+      prevTime = time;
 
 }
