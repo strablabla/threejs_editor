@@ -17,7 +17,7 @@ function obj_basics(object, p, r, name){
         object.blocked = false
         object.del = false    // if true = to be deleted
         object.mass = 1    //
-        object.speed = new THREE.Vector3() // {'x':0,'y':0,'z':0}  //new THREE.Vector3()
+        object.speed = new THREE.Vector3() //
 
         return object;
 }

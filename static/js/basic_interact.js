@@ -79,6 +79,7 @@ function getDistance(mesh1, mesh2) {
       var dx = mesh1.position.x - mesh2.position.x;
       var dy = mesh1.position.y - mesh2.position.y;
       var dz = mesh1.position.z - mesh2.position.z;
+      
       return Math.sqrt(dx*dx+dy*dy+dz*dz);
 
 }
