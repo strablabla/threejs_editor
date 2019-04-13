@@ -35,6 +35,7 @@
 		var objects = [], plane ;
 		var prevTime = performance.now();
 		list_steps = []
+		list_interact = []
 
 	  //arrow()
 
@@ -68,6 +69,7 @@
 	 			var delta = ( time - prevTime ) / 100;
 				gravity(delta)
 				change_all_pos(delta)
+				interactions_between_objects()
 				prevTime = time;
 
 				requestAnimationFrame( animate );
