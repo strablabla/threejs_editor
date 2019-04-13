@@ -11,6 +11,7 @@ new_simple_cube_ok = false;  		// create a new simple_cube with the mouse
 new_cube_texture_ok = false
 new_pavement_ok = false;
 make_plane = false;             // make a plane
+new_sphere_ok = false;            // make a sphere
 
 //---------------------- Camera
 
@@ -35,6 +36,7 @@ dic_sphere_blocked = {}							// dict of the sphere indicating the element is bl
 
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
+random_speed_module = 20;
 
 //----------------------  Interactions
 
@@ -78,6 +80,7 @@ color_mark_quite_grey = 0xa6a6a6;
 color_group_medium_blue = 0x99ccff;
 color_track_green = 0x99ff99;
 color_track_blue = 0xcceeff;
+color_no_interaction_pink = 0xffcccc;
 
 //------------------------ Textures
 

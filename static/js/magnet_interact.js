@@ -122,5 +122,4 @@ function magnet_between_objects(nearest_elem){
             magnet_diff_cases(signx, signy, face, rot_relat, rot_abs)
       }
 
-
 } // end magnet_between_objects

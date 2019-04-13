@@ -200,7 +200,7 @@ function no_interaction_color(){
 
       for (var i in list_moving_objects){
             if (list_interact.indexOf(list_moving_objects[i]) == -1) {
-                  list_moving_objects[i].material.color.setHex(0xffffff)
+                  list_moving_objects[i].material.color.setHex(color_no_interaction_pink)
             }
       }
 

@@ -45,10 +45,10 @@ function basic_sphere(name,p,r,col){
         var object = new THREE.Mesh( geometry, material );
         object = obj_basics(object,p,r,name)
         object.type = 'sphere'
-        scene.add( sphere );
+        scene.add( object );
         objects.push( object )
 
-        return sphere
+        return object
 
 }
 
