@@ -105,13 +105,13 @@ function camera_pos_orient(s0,s1,altit){
 
 function set_new_view(x, y, altit){
 
-  /*
-  Setting the view
-  */
+      /*
+      Setting the view
+      */
 
-  var target = {'x':0,'y':0,'z':0}
-  var pos = {'x':x,'y':y,'z':altit}
-  camera_pos_orient( pos, target , altit )
+      var target = {'x':0,'y':0,'z':0}
+      var pos = {'x':x,'y':y,'z':altit}
+      camera_pos_orient( pos, target , altit )
 
 }
 
@@ -134,19 +134,19 @@ $(document).ready(function(){
 
 function block_pos_object(){
 
-    /*
-    block/unblock
-    */
+      /*
+      block/unblock
+      */
 
-    $('#block_pos').click(function(){     // block the movement of the object..
+      $('#block_pos').click(function(){     // block the movement of the object..
 
-          for (i in objects){
-              if (objects[i].name == $('#name_panel').text()){
-                 objects[i].blocked = ! objects[i].blocked;
-                 actions_with_block_unblock(objects[i])
-              } // end if
-          } // end for
-    }) // end block_pos.click
+            for (i in objects){
+                if (objects[i].name == $('#name_panel').text()){
+                   objects[i].blocked = ! objects[i].blocked;
+                   actions_with_block_unblock(objects[i])
+                } // end if
+            } // end for
+      }) // end block_pos.click
 
 }
 
