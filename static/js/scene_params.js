@@ -11,7 +11,8 @@ new_simple_cube_ok = false;  		// create a new simple_cube with the mouse
 new_cube_texture_ok = false
 new_pavement_ok = false;
 make_plane = false;             // make a plane
-new_sphere_ok = false;            // make a sphere
+new_sphere_ok = false;          // make a sphere
+new_box_ok = false              // box
 
 //---------------------- Camera
 

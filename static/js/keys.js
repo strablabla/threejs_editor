@@ -77,11 +77,12 @@ function keyDownTextField1(event){
       if ( keyev('a', event) ){ apply_to_one_obj_or_group(apply_movement, false) } // physical motor
       if ( keyev('c', event) ){ if (INTERSECTED){ clone_object() } }   						 // Clone the selected object
       if ( keyev('d', event) ){ delete_object() }   				  // Delete object selected
-      if ( keyev('b', event) ){ delete_area() }               // Delete selection area
+      //if ( keyev('b', event) ){ delete_area() }               // Delete selection area
       if ( keyev('r', event) ){ apply_to_one_obj_or_group(rotate_obj, true) } 						// Rotation
 
       //--------------------- Change variables
 
+      link_toggle(event, 'b', 'new_box_ok')                 // make a new box
       link_toggle(event, 'g', 'select_move_group')          // move group
       link_toggle(event, 'h', 'make_plane')                 // horizontal plane
       link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
