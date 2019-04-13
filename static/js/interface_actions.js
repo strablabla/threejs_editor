@@ -81,13 +81,13 @@ for (var i in list_panels){ one_element_dicths(list_panels[i]) } // make_dicths
 
 function hide_show_keys(){
 
-    /*
-    panel keys actions
-    */
+      /*
+      panel keys actions
+      */
 
-    $('.panel_keys').html(simple_md(keys))
-    $('#keys').click(function(){ $('.panel_keys').toggle() })			// show hide the key panel
-    mouseleave_hide_panel('.panel_keys')
+      $('.panel_keys').html(simple_md(keys))
+      $('#keys').click(function(){ $('.panel_keys').toggle() })			// show hide the key panel
+      mouseleave_hide_panel('.panel_keys')
 
 }
 
@@ -164,6 +164,7 @@ function save_params_panel_object(){
                objects[i].rotation.z = $('#angle_panel').val()            // angle
                objects[i].material.opacity = $('#alpha_panel').val()      // opacity
                objects[i].material.needsUpdate = true;                    // refreshing
+               objects[i].mass = $('#mass_panel').val()            // angle
             } // end if
         } // end for
         controls.enabled = true;

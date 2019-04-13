@@ -37,8 +37,6 @@ function link_toggle(event, namekey, nameparam){
 
 }
 
-
-
 function apply_to_one_obj_or_group(action, oneshot){
 
       if ( INTERSECTED ){ action(INTERSECTED)} // Pi/2 rotation
@@ -77,7 +75,7 @@ function keyDownTextField1(event){
 
       if (event.keyCode == 38 ){ apply_to_one_obj_or_group(move_obj_up, false)  }  // Up
       if (event.keyCode == 40 ){ apply_to_one_obj_or_group(move_obj_down, false) } // Down
-      if ( keyev('a', event) ){ apply_movement() }
+      if ( keyev('a', event) ){ apply_to_one_obj_or_group(apply_movement, false) } // physical motor
       if ( keyev('c', event) ){ if (INTERSECTED){ clone_object() } }   						 // Clone the selected object
       if ( keyev('d', event) ){ delete_object() }   				  // Delete object selected
       if ( keyev('b', event) ){ delete_area() }               // Delete selection area
@@ -137,9 +135,6 @@ var keyev = function(key, event){
         }else{ return false }
 
       } // end keyev
-
-
-
 
 document.addEventListener("keydown", keyDownTextField1, false);
 //document.addEventListener("keydown", keyDownTextField0, false);

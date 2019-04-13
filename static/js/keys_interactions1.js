@@ -27,19 +27,24 @@ function ending_track(){
         }
 }
 
-function apply_movement(){
+function apply_movement(obj){
 
         /*
         Put object in interaction list..
         */
 
-        if (list_moving_objects.indexOf(INTERSECTED) == -1){
-              list_moving_objects.push(INTERSECTED)
-        }
-        else{
-              alert(list_moving_objects.indexOf(INTERSECTED))
-              delete list_moving_objects[list_moving_objects.indexOf(INTERSECTED)];
+        // if (list_moving_objects.indexOf(INTERSECTED) == -1){
+        //       list_moving_objects.push(INTERSECTED)
+        // }
+        // else{
+        //       alert(list_moving_objects.indexOf(INTERSECTED))
+        //       delete list_moving_objects[list_moving_objects.indexOf(INTERSECTED)];
+        //  }
+
+         if (list_moving_objects.indexOf(obj) == -1){
+               list_moving_objects.push(obj)
          }
+
 }
 
 function indicate_picking(){
