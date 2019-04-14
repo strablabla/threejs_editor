@@ -19,7 +19,7 @@ function gravity(delta){
 function check_movement(i,delta){
 
       /*
-      Increment position of all the objects
+      Check values
       */
 
       var speedz = list_moving_objects[i].speed.z
@@ -83,7 +83,7 @@ function param_posz(i,vdtz){
 function change_pos(i, vdtx, vdty, vdtz){
 
       /*
-      Change position of object
+      Change position of object with intervall delta
       */
 
       var [abs_step, posz, hz] = param_posz(i,vdtz)
@@ -138,8 +138,8 @@ function change_speed_after_interaction(i,j){
       var new_vi = new THREE.Vector3();
       var new_vj = new THREE.Vector3();
 
-      list_moving_objects[i].speed = new_vi.add(vc).add(dvi)
-      list_moving_objects[j].speed = new_vj.add(vc).add(dvj)
+      list_moving_objects[i].speed = new_vi.add(vc).add(dvi)  // vc + dvi
+      list_moving_objects[j].speed = new_vj.add(vc).add(dvj)  // vc + dvj
 
 }
 
@@ -175,6 +175,45 @@ function speed_center_mass(i,j){
 
 }
 
+function wall_box_rebounce(obji, objj){
+
+      /*
+      Rebounce
+      */
+      var comment = false
+      if (comment){
+        alert("rebouncing")
+        alert(objj.type)
+        alert(objj.orientation.x)
+        alert(objj.orientation.y)
+        alert(objj.orientation.z)
+      }
+
+      var dotspeed = objj.orientation.dot(obji.speed)
+      if (comment){ alert( dotspeed ) }
+      var ojo = new THREE.Vector3( objj.orientation.x, objj.orientation.y, objj.orientation.z )
+      var rebounce = ojo.multiplyScalar(2*dotspeed).negate()
+      obji.speed.add(rebounce)
+}
+
+function find_obj_wall(objj,obji){
+
+      /*
+      Find obj from wall
+      */
+
+      if (objj.type  == 'wall_box'){
+          var wall = objj
+          var obj = obji
+      }
+      else{
+          var wall = obji
+          var obj = objj
+      }
+      return [obj,wall]
+
+}
+
 function interaction_color(i,j){
 
       /*
@@ -183,12 +222,29 @@ function interaction_color(i,j){
 
       var obji = list_moving_objects[i]
       var objj = list_moving_objects[j]
-      var dist = getDistance(obji, objj)
-      if (dist < 100){
-          check_change_color(obji,0xff0000)
-          check_change_color(objj,0xff0000)
-          change_speed_after_interaction(i,j)  // physical interaction
-     } // end if dist
+      var cnd1 = objj.type == 'wall_box' | obji.type == 'wall_box'
+      var cnd2 = objj.type != obji.type
+      var cnd3 = (objj.type != 'pawn') & (obji.type !='pawn')
+      if ( cnd1 & cnd2 &cnd3 ){
+          //alert(obji.type + '__' + objj.type + 'cnd2 ' + cnd2)
+          var [obj, wall] = find_obj_wall(objj,obji)
+          var [dist_to_plane, dist_in_plane] = getDistanceToPLane(obj, wall)
+
+          if (dist_to_plane < 10){
+              // obj.material.color.setHex(0x00ff00)
+              // obj.scale.set(5,5,5)
+              wall_box_rebounce(obj, wall)
+          }
+      }
+      else {
+          var dist = getDistance(obji, objj)
+          if (dist < 40){
+              check_change_color(obji,0xff0000)
+              check_change_color(objj,0xff0000)
+              change_speed_after_interaction(i,j)  // physical interaction
+            } // end if dist
+
+      } // end else
 
 }
 

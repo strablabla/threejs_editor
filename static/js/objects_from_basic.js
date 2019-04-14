@@ -150,13 +150,14 @@ function make_horizontal_area(selpos){
 } // end function make area
 
 
-function wall_for_box(pos, dim){
+function wall_for_box(pos, dim, orientation){
 
       var newname = random_name()
       basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr ) // Default white texture
       listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : color_basic_default_pale_grey})
 
       var object = simple_parallelepiped(newname,pos,{"x":0, "y":0, "z":0},listmat[newname],dim,'wall_box')
+      object.orientation = orientation
       listorig[newname] = object
       scene.add(object)
       objects.push(object)
@@ -191,10 +192,13 @@ function make_new_box(selpos){
 
       //var dim = {'width':2,'height':150,'thickness':200}
 
-      wall_for_box(pos1,{'width':side2,'height':150,'thickness':2})
-      wall_for_box(pos2,{'width':side2,'height':150,'thickness':2})
-      wall_for_box(pos3,{'width':2,'height':150,'thickness':side1})
-      wall_for_box(pos4,{'width':2,'height':150,'thickness':side1})
+      var side2_orient = new THREE.Vector3(1,0,0)
+      var side1_orient = new THREE.Vector3(0,1,0)
+
+      wall_for_box(pos1, {'width':side2,'height':150,'thickness':2}, side2_orient)
+      wall_for_box(pos2, {'width':side2,'height':150,'thickness':2}, side2_orient)
+      wall_for_box(pos3, {'width':2,'height':150,'thickness':side1}, side1_orient)
+      wall_for_box(pos4, {'width':2,'height':150,'thickness':side1}, side1_orient)
 
 }
 
