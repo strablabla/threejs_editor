@@ -48,7 +48,7 @@ function movez(i, abs_step, posz, vdtz, hz){
       Change position of object in z
       */
 
-      if ((abs_step < 100) & ( (posz + vdtz) > hz) ){
+      if ( (abs_step < 100) & ( (posz + vdtz) > hz) ){  //
           list_moving_objects[i].position.z += vdtz
         }
       else{ list_moving_objects[i].speed.z *= -1 } // rebouncing on the ground..
@@ -130,14 +130,18 @@ function masses_and_speeds(i,j){
 
 }
 
-function change_speed_after_interaction(i,j){
+function change_speed_after_center_center_collision(i,j){
+
+      /*
+      Change the speeds after collision..
+      */
 
       var vc = speed_center_mass(i,j)
       var [dvi,dvj] = dv_in_center_of_mass(i,j)
-
+      //--------------
       var new_vi = new THREE.Vector3();
       var new_vj = new THREE.Vector3();
-
+      //--------------
       list_moving_objects[i].speed = new_vi.add(vc).add(dvi)  // vc + dvi
       list_moving_objects[j].speed = new_vj.add(vc).add(dvj)  // vc + dvj
 
@@ -228,22 +232,20 @@ function interaction_color(i,j){
       if ( cnd1 & cnd2 &cnd3 ){
           //alert(obji.type + '__' + objj.type + 'cnd2 ' + cnd2)
           var [obj, wall] = find_obj_wall(objj,obji)
-          var [dist_to_plane, dist_in_plane] = getDistanceToPLane(obj, wall)
-
+          var [dist_to_plane, dist_in_plane] = getDistanceToPLane(obj, wall) // distance center-plane
           if (dist_to_plane < 10){
               // obj.material.color.setHex(0x00ff00)
               // obj.scale.set(5,5,5)
-              wall_box_rebounce(obj, wall)
+              wall_box_rebounce(obj, wall) // handle the rebounce on the walls of the box..
           }
       }
       else {
-          var dist = getDistance(obji, objj)
+          var dist = getDistance(obji, objj) // distance center-center
           if (dist < 40){
               check_change_color(obji,0xff0000)
               check_change_color(objj,0xff0000)
-              change_speed_after_interaction(i,j)  // physical interaction
+              change_speed_after_center_center_collision(i,j)  // physical interaction
             } // end if dist
-
       } // end else
 
 }
@@ -279,6 +281,10 @@ function interactions_between_objects(){
 }
 
 function animate_physics(){
+
+      /*
+      Gravity and other interactions..
+      */
 
       var time = performance.now();
       var delta = ( time - prevTime ) / 100;
