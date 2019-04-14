@@ -70,6 +70,23 @@ function getMiddle(mesh1, mesh2) {
 
 }
 
+function getDistanceToPLane(particule, plane) {
+
+      /*
+
+      */
+
+      var pap = particule.position
+      var plp = plane.position
+      var plo = plane.orientation
+      var dist_to_plane = Math.abs(pap.dot(plo)-plp.dot(plo))
+      var dist_to_center = getDistance(particule, plane)
+      var dist_in_plane = Math.sqrt(dist_to_center**2-dist_to_plane**2)
+
+      return [dist_to_plane, dist_in_plane]
+
+}
+
 function getDistance(mesh1, mesh2) {
 
       /*
@@ -79,7 +96,7 @@ function getDistance(mesh1, mesh2) {
       var dx = mesh1.position.x - mesh2.position.x;
       var dy = mesh1.position.y - mesh2.position.y;
       var dz = mesh1.position.z - mesh2.position.z;
-      
+
       return Math.sqrt(dx*dx+dy*dy+dz*dz);
 
 }
