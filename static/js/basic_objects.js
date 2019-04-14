@@ -39,12 +39,17 @@ function sphere_blocked(pos){
 
 function basic_sphere(name,p,r,col){
 
+        /*
+        Basic sphere
+        */
+
         var radius = 40;
         var geometry = new THREE.SphereGeometry( radius, 32, 32 );
         var material = new THREE.MeshBasicMaterial( {color: col} );
         var object = new THREE.Mesh( geometry, material );
         object = obj_basics(object,p,r,name)
         object.type = 'sphere'
+        object.height = radius // useful for gravity
         scene.add( object );
         objects.push( object )
 

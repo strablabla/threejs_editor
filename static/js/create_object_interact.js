@@ -79,8 +79,6 @@ function make_new_sphere(){
 
 }
 
-
-
 function link(condition, action, arg){
 
       /*
