@@ -108,5 +108,6 @@ function mouse_create_object_or_action(){
       link(make_plane, limits_and_action, make_horizontal_area)    // H key
       link(select_poscam, limits_and_action, newview)              // K key
       link(new_box_ok, limits_and_action, make_new_box)            // B key
+      link(paire_harmonic, select_two_obj_and_action, null) // U key
 
 } // end mouse_create_object_or_action
