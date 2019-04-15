@@ -167,10 +167,6 @@ function color_corner(){
 
 function random_name_mousepos(){
 
-      /*
-      Return a random name and the position of the mouse
-      */
-
-      return [random_name(), mousepos()]
+    return [random_name(), mousepos()]
 
 }

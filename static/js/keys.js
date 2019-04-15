@@ -94,6 +94,7 @@ function keyDownTextField1(event){
       link_toggle(event, 'p', 'new_pavement_ok')            // create new pavement
       link_toggle(event, 's', 'select_obj')                 // select object in area
       link_toggle(event, 't', 'select_make_track')          // create a track
+      link_toggle(event, 'u', 'paire_harmonic')             //
 
   } // end keyDownTextField1
 
@@ -122,7 +123,10 @@ function select_exclude(key){
 
 var current_key = ""
 var currfuncdic = {'k':'camera', 'c':'clone', 'r':'rotation',
-                    'n':'new piece', 's':'select area', 'd':'delete'}
+                    'n':'new piece', 's':'select area',
+                    'd':'delete', 'a':'apply movement',
+                    'u':'paire harmonic', 'o':'new sphere',
+                    't': 'select track'}
 
 var keyev = function(key, event){
 

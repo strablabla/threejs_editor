@@ -123,6 +123,7 @@ function masses_and_speeds(i,j){
 
       var mi = list_moving_objects[i].mass
       var mj = list_moving_objects[j].mass
+      //--------------
       var vi = list_moving_objects[i].speed
       var vj = list_moving_objects[j].speed
 
@@ -186,11 +187,11 @@ function wall_box_rebounce(obji, objj){
       */
       var comment = false
       if (comment){
-        alert("rebouncing")
-        alert(objj.type)
-        alert(objj.orientation.x)
-        alert(objj.orientation.y)
-        alert(objj.orientation.z)
+          alert("rebouncing")
+          alert(objj.type)
+          alert(objj.orientation.x)
+          alert(objj.orientation.y)
+          alert(objj.orientation.z)
       }
 
       var dotspeed = objj.orientation.dot(obji.speed)
@@ -218,35 +219,112 @@ function find_obj_wall(objj,obji){
 
 }
 
-function interaction_color(i,j){
+function objj_obji(i,j){
+
+  var obji = list_moving_objects[i]
+  var objj = list_moving_objects[j]
+
+  return [obji, objj]
+
+}
+
+function interaction_obj_plane(i,j){
+
+      /*
+      Interaction with plane
+      */
+
+      var [obji, objj] = objj_obji(i,j)
+      var [obj, wall] = find_obj_wall(objj,obji)
+      var [dist_to_plane, dist_in_plane] = getDistanceToPLane(obj, wall) // distance center-plane
+      if (dist_to_plane < 10){
+          // obj.material.color.setHex(0x00ff00)
+          // obj.scale.set(5,5,5)
+          wall_box_rebounce(obj, wall) // handle the rebounce on the walls of the box..
+      }
+
+}
+
+function conditions_interaction_obj_plane(i,j){
+
+      /*
+      Conditions for interaction obj plane
+      */
+
+      var [obji, objj] = objj_obji(i,j)
+      var cnd1 = objj.type == 'wall_box' | obji.type == 'wall_box'
+      var cnd2 = objj.type != obji.type
+      var cnd3 = (objj.type != 'pawn') & (obji.type !='pawn')
+
+      return [cnd1, cnd2, cnd3]
+
+}
+
+function interaction_center_center(i,j){
+
+      /*
+      Interaction center to center
+      */
+
+      var [obji, objj] = objj_obji(i,j)
+      var dist = getDistance(obji, objj) // distance center-center
+      if (dist < dist_min_center_center){
+          check_change_color(obji,0xff0000)
+          check_change_color(objj,0xff0000)
+          change_speed_after_center_center_collision(i,j)  // physical interaction
+        } // end if dist
+
+}
+
+function interaction_between_ij(i,j){
 
       /*
       Change color to red in case of interaction
       */
 
-      var obji = list_moving_objects[i]
-      var objj = list_moving_objects[j]
-      var cnd1 = objj.type == 'wall_box' | obji.type == 'wall_box'
-      var cnd2 = objj.type != obji.type
-      var cnd3 = (objj.type != 'pawn') & (obji.type !='pawn')
+      var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
       if ( cnd1 & cnd2 &cnd3 ){
-          //alert(obji.type + '__' + objj.type + 'cnd2 ' + cnd2)
-          var [obj, wall] = find_obj_wall(objj,obji)
-          var [dist_to_plane, dist_in_plane] = getDistanceToPLane(obj, wall) // distance center-plane
-          if (dist_to_plane < 10){
-              // obj.material.color.setHex(0x00ff00)
-              // obj.scale.set(5,5,5)
-              wall_box_rebounce(obj, wall) // handle the rebounce on the walls of the box..
-          }
-      }
-      else {
-          var dist = getDistance(obji, objj) // distance center-center
-          if (dist < 40){
-              check_change_color(obji,0xff0000)
-              check_change_color(objj,0xff0000)
-              change_speed_after_center_center_collision(i,j)  // physical interaction
-            } // end if dist
+          interaction_obj_plane(i,j)
+      }else {
+          interaction_center_center(i,j)
       } // end else
+
+}
+
+function comment_harmonic(vec_harm_interact, lphi0, lphi1,text){
+
+      alert(text)
+      alert("____lphi0.speed.x " + lphi0.speed.x)
+      alert("____lphi1.speed.x " + lphi1.speed.x)
+      alert("vec_harm_interact.x " + vec_harm_interact.x)
+
+}
+
+function interact_harmonic_vectors(i){
+
+      var vec_harm_interact = new THREE.Vector3()
+      var lphi0 = list_paired_harmonic[i][0]
+      var lphi1 = list_paired_harmonic[i][1]
+      vec_harm_interact.subVectors(lphi1.position, lphi0.position)
+      //comment_harmonic(vec_harm_interact, lphi0, lphi1,'here')
+
+      return [vec_harm_interact, lphi0, lphi1]
+}
+
+function interaction_harmonic_between_pairs(){
+
+      /*
+      Harmonic interaction
+      */
+
+      for (var i in list_paired_harmonic){
+          var [vec_harm_interact, lphi0, lphi1] = interact_harmonic_vectors(i)
+          //comment_harmonic(vec_harm_interact, lphi0, lphi1,'there')
+          //-------- Change the speeds
+          lphi0.speed.addScaledVector(vec_harm_interact,harmonic_const)
+          lphi1.speed.addScaledVector(vec_harm_interact,-harmonic_const)
+          //alert("lphi1.speed.x " + lphi1.speed.x)
+      }
 
 }
 
@@ -267,16 +345,21 @@ function no_interaction_color(){
 function interactions_between_objects(){
 
       /*
-      Interactions
+      Interactions :
+          * object-plane
+          * center-center
       */
 
       list_interact = []
-      for (var i=0; i< list_moving_objects.length; i++){
-            for (var j=i+1; j <  list_moving_objects.length; j++){
-                  interaction_color(i,j)
-              } // end for j
-        } // end for i
-        no_interaction_color()
+      if (list_moving_objects.length > 0){
+          for (var i=0; i< list_moving_objects.length; i++){
+                for (var j=i+1; j <  list_moving_objects.length; j++){
+                      interaction_between_ij(i,j)
+                  } // end for j
+            } // end for i
+          interaction_harmonic_between_pairs()
+      }
+      no_interaction_color()
 
 }
 

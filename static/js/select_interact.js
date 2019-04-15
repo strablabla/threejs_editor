@@ -4,6 +4,46 @@ Selection
 
 */
 
+function color_pairs_in_blue(){
+
+      /*
+      Color all the pairs in blue..
+      */
+
+      for (var i in list_paired_harmonic){
+          for (var j in list_paired_harmonic[i]){
+              list_paired_harmonic[i][j].material.color.setHex(color_harmonic_pairs_pale_blue)
+          }
+      }
+
+}
+
+function reinit_two_obj_action(){
+
+      /*
+      Reinitialize the intermediate list and values..
+      */
+
+      list_interm_pair = []
+      paire_harmonic = false
+
+}
+
+function select_two_obj_and_action(){
+
+      /*
+      Create pairs
+      */
+
+      if (list_interm_pair.length < 2){ list_interm_pair.push(SELECTED) }
+      if (list_interm_pair.length == 2){
+          list_paired_harmonic.push(list_interm_pair)
+          reinit_two_obj_action()
+          color_pairs_in_blue()
+       }
+
+}
+
 function limits_and_action(act_directly){
 
       /*

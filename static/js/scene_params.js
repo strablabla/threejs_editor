@@ -38,10 +38,15 @@ dic_sphere_blocked = {}							// dict of the sphere indicating the element is bl
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
 random_speed_module = 20;
+list_paired_harmonic = []
+list_interm_pair = []
+paire_harmonic = false
+harmonic_const = 0.01              //
 
 //----------------------  Interactions
 
 nearest_elem = null;
+dist_min_center_center = 40;
 
 //---------------------- Selection
 
@@ -82,6 +87,7 @@ color_group_medium_blue = 0x99ccff;
 color_track_green = 0x99ff99;
 color_track_blue = 0xcceeff;
 color_no_interaction_pink = 0xffcccc;
+color_harmonic_pairs_pale_blue = 0xcceeff;
 
 //------------------------ Textures
 
