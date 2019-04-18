@@ -47,6 +47,8 @@ harmonic_const = 0.01              //
 
 nearest_elem = null;
 dist_min_center_center = 40;
+radius_spring = 40;
+radius_elastic = 20;
 
 //---------------------- Selection
 
