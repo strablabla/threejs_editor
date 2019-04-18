@@ -101,7 +101,7 @@ function update_all_pos(delta){
       for (var i in list_moving_objects){
             var [vdtx, vdty, vdtz] = vdt(i,delta)     // translation during time delta..
             change_pos(i, vdtx, vdty, vdtz)           // change position of object i
-            check_movement(0,delta)                   // control what is going on..
+            //check_movement(0,delta)                   // control what is going on..
         } // end for
 
 }
@@ -221,10 +221,10 @@ function find_obj_wall(objj,obji){
 
 function objj_obji(i,j){
 
-  var obji = list_moving_objects[i]
-  var objj = list_moving_objects[j]
+      var obji = list_moving_objects[i]
+      var objj = list_moving_objects[j]
 
-  return [obji, objj]
+      return [obji, objj]
 
 }
 
@@ -285,9 +285,7 @@ function interaction_between_ij(i,j){
       var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
       if ( cnd1 & cnd2 &cnd3 ){
           interaction_obj_plane(i,j)
-      }else {
-          interaction_center_center(i,j)
-      } // end else
+      }else {  interaction_center_center(i,j) } // end else
 
 }
 
@@ -300,13 +298,58 @@ function comment_harmonic(vec_harm_interact, lphi0, lphi1,text){
 
 }
 
+function check_movement_spring(new_spring){
+
+      /*
+      Check spring's values
+      */
+
+      var speedx = new_spring.speed.x
+      var speedy = new_spring.speed.y
+      $('#curr_func').text( Math.round(speedx,1) + '___' + Math.round(speedy,1) )
+
+}
+
+function change_spring(obj){
+
+      var new_spring = obj[2]
+      new_spring.position.copy(obj[0].matrixWorld.getPosition()); // stick spring to object..
+      var new_spring_scale = getDistance(obj[0], obj[1])/420
+      new_spring.scale.set(1,1,new_spring_scale)
+      new_spring.lookAt(obj[1].position)
+      // new_spring.geometry.radius = radius_spring
+      // new_spring.geometry.verticesNeedUpdate = true;
+      //new_spring.setGeometry('TubeGeometry', { radius: radius_spring });
+
+      // scene.remove(myMesh);
+      // myMesh.geometry.dispose();
+      // myMesh.material.dispose();
+      // myMesh = undefined;
+
+}
+
+function change_elastic(obj){
+
+      var new_elastic = obj[2]
+      new_elastic.position.copy(obj[0].matrixWorld.getPosition()); // stick spring to object..
+      var new_elastic_scale = getDistance(obj[0], obj[1])/420
+      new_elastic.scale.set(1,1,new_elastic_scale)
+      new_elastic.lookAt(obj[1].position)
+
+}
+
 function interact_harmonic_vectors(i){
+
+      /*
+      Vectors for harmonic interaction
+      */
 
       var vec_harm_interact = new THREE.Vector3()
       var lphi0 = list_paired_harmonic[i][0]
       var lphi1 = list_paired_harmonic[i][1]
-      vec_harm_interact.subVectors(lphi1.position, lphi0.position)
-      //comment_harmonic(vec_harm_interact, lphi0, lphi1,'here')
+      vec_harm_interact.subVectors(lphi1.position, lphi0.position) // vector from O to 1 ..
+      //change_spring(list_paired_harmonic[i])
+      change_elastic(list_paired_harmonic[i])
 
       return [vec_harm_interact, lphi0, lphi1]
 }
@@ -319,11 +362,9 @@ function interaction_harmonic_between_pairs(){
 
       for (var i in list_paired_harmonic){
           var [vec_harm_interact, lphi0, lphi1] = interact_harmonic_vectors(i)
-          //comment_harmonic(vec_harm_interact, lphi0, lphi1,'there')
           //-------- Change the speeds
           lphi0.speed.addScaledVector(vec_harm_interact,harmonic_const)
           lphi1.speed.addScaledVector(vec_harm_interact,-harmonic_const)
-          //alert("lphi1.speed.x " + lphi1.speed.x)
       }
 
 }
@@ -339,6 +380,27 @@ function no_interaction_color(){
                   list_moving_objects[i].material.color.setHex(color_no_interaction_pink)
             }
       }
+
+}
+
+function permitted_interaction(index){
+
+      /*
+      Permitted index
+      */
+
+      obj = list_moving_objects[index]
+      var list_fobidden = ['spring']
+      for (var i in list_fobidden){
+          if (obj.type != list_fobidden[i]){ continue }
+          else{ return false }
+      } // end for
+      return true
+}
+
+function allow_ij(i,j){
+
+      return permitted_interaction(i) & permitted_interaction(j)
 
 }
 
@@ -358,10 +420,24 @@ function interactions_between_objects(){
                   } // end for j
             } // end for i
           interaction_harmonic_between_pairs()
-      }
+      } // end if in moving_objects
       no_interaction_color()
 
 }
+
+// function total_energy(){
+//
+//       /*
+//
+//       */
+//
+//       for (var i list_moving_objects){
+//             var obj = list_moving_objects[i]
+//             if (obj.type == 'spring'){
+//             }
+//       }
+//
+// }
 
 function animate_physics(){
 

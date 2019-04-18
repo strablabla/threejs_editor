@@ -29,6 +29,39 @@ function reinit_two_obj_action(){
 
 }
 
+function create_spring(pair){
+
+      /*
+      Make a spring
+      */
+
+      var pos_spring = pair[0].position
+      var new_name = random_name()
+      var new_spring = spring(new_name,pos_spring,{"x":0,"y":0,"z":0},0x000000)
+      var new_spring_scale = getDistance(pair[0], pair[1])/420
+      new_spring.scale.set(1,1,new_spring_scale)
+      new_spring.lookAt(pair[1].position)
+
+      return new_spring
+}
+
+function create_elastic(pair){
+
+      /*
+      Make an elastic
+      */
+
+      var pos_elastic = pair[0].position
+      var new_name = random_name()
+      var new_elastic = elastic(new_name,pos_elastic,{"x":0,"y":0,"z":0},0x000000)
+      //----------------
+      var new_elastic_scale = getDistance(pair[0], pair[1])/420
+      new_elastic.scale.set(1,1,new_elastic_scale)
+      new_elastic.lookAt(pair[1].position)
+
+      return new_elastic
+}
+
 function select_two_obj_and_action(){
 
       /*
@@ -37,7 +70,11 @@ function select_two_obj_and_action(){
 
       if (list_interm_pair.length < 2){ list_interm_pair.push(SELECTED) }
       if (list_interm_pair.length == 2){
-          list_paired_harmonic.push(list_interm_pair)
+          //var new_spring = create_spring(list_interm_pair)
+          var new_elastic = create_elastic(list_interm_pair)
+          //list_interm_pair.push(new_spring) // add spring to pair
+          list_interm_pair.push(new_elastic) // add spring to pair
+          list_paired_harmonic.push(list_interm_pair) // list of all triplets
           reinit_two_obj_action()
           color_pairs_in_blue()
        }
@@ -253,6 +290,7 @@ function is_inside(obj, list_mm){
               obj.position.y < list_mm[3]
 }
 
+
 function find_objects_in_area(){
 
       /*
@@ -264,7 +302,7 @@ function find_objects_in_area(){
           if ( is_inside(objects[i], list_mm) ){
                   list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
                   objects[i].material.color.setHex(color_object_inside_pink)  // light pink color
-              } // end if
+              } // end if is inside
       } // end for
 
 } // end objects in area..

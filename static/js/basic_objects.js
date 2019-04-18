@@ -43,7 +43,7 @@ function basic_sphere(name,p,r,col){
         Basic sphere
         */
 
-        var radius = 40;
+        var radius = radius_spring;
         var geometry = new THREE.SphereGeometry( radius, 32, 32 );
         var material = new THREE.MeshBasicMaterial( {color: col} );
         var object = new THREE.Mesh( geometry, material );
