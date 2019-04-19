@@ -95,21 +95,7 @@ function make_square_pillar(name,p,r,material){
 
 } // end function
 
-function CustomCylinder( scale ) {
-      THREE.Curve.call( this );
-      this.scale = ( scale === undefined ) ? 1 : scale;
-  }
 
-CustomCylinder.prototype = Object.create( THREE.Curve.prototype );
-CustomCylinder.prototype.constructor = CustomCylinder;
-CustomCylinder.prototype.getPoint = function ( t ) {
-
-        var tx = 0;
-        var ty = 0;
-        var tz = 60*t;
-
-        return new THREE.Vector3( tx, ty, tz ).multiplyScalar( this.scale );
-    };
 
 function CustomSpiral( scale ) {
       THREE.Curve.call( this );
@@ -148,6 +134,22 @@ function spring(name,p,r,col){
         return object
 
 }
+
+function CustomCylinder( scale ) {
+      THREE.Curve.call( this );
+      this.scale = ( scale === undefined ) ? 1 : scale;
+  }
+
+CustomCylinder.prototype = Object.create( THREE.Curve.prototype );
+CustomCylinder.prototype.constructor = CustomCylinder;
+CustomCylinder.prototype.getPoint = function ( t ) {
+
+        var tx = 0;
+        var ty = 0;
+        var tz = 60*t;
+
+        return new THREE.Vector3( tx, ty, tz ).multiplyScalar( this.scale );
+    };
 
 function elastic(name,p,r,col){
 

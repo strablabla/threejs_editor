@@ -33,7 +33,7 @@ dict_pos_relat = {}
 select_traj = false;   							// object trajectory..
 dic_sphere_blocked = {}							// dict of the sphere indicating the element is blocked..
 
-//----------------------  Movement
+//----------------------  Movement and interactions
 
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
@@ -41,14 +41,23 @@ random_speed_module = 20;
 list_paired_harmonic = []
 list_interm_pair = []
 paire_harmonic = false
-harmonic_const = 0.01              //
+harmonic_const = 0.01
 
-//----------------------  Interactions
+//-------------------- Energies
+elast_energy = 0
+kin_energy = 0
+grav_energy = 0
+tot_energy = 0
+//------------
+max_kin = 0
+max_elast = 0
+//--------------
 
 nearest_elem = null;
 dist_min_center_center = 40;
 radius_spring = 40;
 radius_elastic = 20;
+list_forbid_obj_for_interact = ['spring', 'elastic'] // list of non interacting types..
 
 //---------------------- Selection
 
