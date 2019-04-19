@@ -9,17 +9,26 @@ Create object
 var dict_parall = {}
 
 function gaussianRand() {
-  var rand = 0;
 
-  for (var i = 0; i < 6; i += 1) {
-    rand += Math.random();
-  }
+      /*
+      Gaussian random output
+      */
 
-  return rand / 6;
+      var rand = 0;
+      for (var i = 0; i < 6; i += 1) {
+        rand += Math.random();
+      }
+
+      return rand / 6;
 }
 
 function gaussianRandom(start, end) {
-  return start + gaussianRand() * (end - start + 1);
+
+      /*
+      Gaussian random output with limits
+      */
+
+      return start + gaussianRand() * (end - start + 1);
 }
 
 function make_new_parallelepiped(make_type){
@@ -38,10 +47,26 @@ function make_new_parallelepiped(make_type){
 //------------------------ dictp, parallelepipedic shapes..
 
 dictp = {}
-list_func_par = ['make_wall', 'make_simple_cube', 'make_pavement']
 function one_element_dictp(name_func){
-    dictp[name_func] = function(){ make_new_parallelepiped(window[name_func]) }}
-for (var i in list_func_par){ one_element_dictp(list_func_par[i]) } // make_dictp
+
+      /*
+      New parallelepiped in dictionary dictp
+      */
+
+      dictp[name_func] = function(){ make_new_parallelepiped(window[name_func]) }
+  }
+
+function make_dict_paralellepipeds(){
+
+      /*
+      Put all the parallelepiped shapes in the dict dictp
+      */
+
+      list_func_par = ['make_wall', 'make_simple_cube', 'make_pavement']
+      for (var i in list_func_par){ one_element_dictp(list_func_par[i]) } // make_dictp
+}
+
+make_dict_paralellepipeds()
 
 //------------------------ Multiple texture
 
@@ -65,6 +90,34 @@ function make_new_cube_texture(){
       // listorig[newname] = make_cube( newname, interptsub, {"x":0, "y":0, "z":0}, listmat[newname] )
 }
 
+function random_coord_speed(){
+
+      /*
+      Random speed coordinate
+      */
+
+      return Math.round(random_speed_module*gaussianRandom(-1,1),1)
+}
+
+function select_coord_random_speed(obj,coord){
+      obj.speed[coord] = random_coord_speed()
+}
+
+function random_speed_chose_xyz(obj, list_coord){
+
+      /*
+      Adding random speed in x and y
+      */
+      var all_coord = ['x','y','z']
+      for (i in all_coord){
+            var coord = all_coord[i]
+            if (list_coord.indexOf(coord) != -1){
+                  select_coord_random_speed(obj,coord)
+              }
+      }
+      //alert(obj.speed.x + '__' + obj.speed.y)
+}
+
 function make_new_sphere(){
 
       /*
@@ -73,9 +126,8 @@ function make_new_sphere(){
 
       var [newname, interptsub] = random_name_mousepos()
       var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},0x000000)
-      sph.speed.x = Math.round(random_speed_module*gaussianRandom(-1,1),1)
-      sph.speed.y = Math.round(random_speed_module*gaussianRandom(-1,1),1)
-      sph.magnet = false
+      random_speed_chose_xyz(sph, ['x','y'])         // add random speed
+      sph.magnet = false        // remove magnet
 
 }
 
@@ -108,6 +160,6 @@ function mouse_create_object_or_action(){
       link(make_plane, limits_and_action, make_horizontal_area)    // H key
       link(select_poscam, limits_and_action, newview)              // K key
       link(new_box_ok, limits_and_action, make_new_box)            // B key
-      link(paire_harmonic, select_two_obj_and_action, null) // U key
+      link(paire_harmonic, select_two_obj_and_action, null)        // U key
 
 } // end mouse_create_object_or_action
