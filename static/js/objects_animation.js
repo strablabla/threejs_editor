@@ -193,7 +193,6 @@ function wall_box_rebounce(obji, objj){
           alert(objj.orientation.y)
           alert(objj.orientation.z)
       }
-
       var dotspeed = objj.orientation.dot(obji.speed)
       if (comment){ alert( dotspeed ) }
       var ojo = new THREE.Vector3( objj.orientation.x, objj.orientation.y, objj.orientation.z )
@@ -269,9 +268,9 @@ function interaction_center_center(i,j){
       var [obji, objj] = objj_obji(i,j)
       var dist = getDistance(obji, objj) // distance center-center
       if (dist < dist_min_center_center){
-          check_change_color(obji,0xff0000)
-          check_change_color(objj,0xff0000)
-          change_speed_after_center_center_collision(i,j)  // physical interaction
+            check_change_color(obji,0xff0000)
+            check_change_color(objj,0xff0000)
+            change_speed_after_center_center_collision(i,j)  // physical interaction
         } // end if dist
 
 }
@@ -284,8 +283,8 @@ function interaction_between_ij(i,j){
 
       var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
       if ( cnd1 & cnd2 &cnd3 ){
-          interaction_obj_plane(i,j)
-      }else {  interaction_center_center(i,j) } // end else
+          interaction_obj_plane(i,j)    // interaction between object and plane..
+      }else {  interaction_center_center(i,j) } // // interaction center to center
 
 }
 
@@ -330,6 +329,10 @@ function change_spring(obj){
 
 function change_elastic(obj){
 
+      /*
+      Change the orientation, position and length of the elastic
+      */
+
       var new_elastic = obj[2]
       new_elastic.position.copy(obj[0].matrixWorld.getPosition()); // stick spring to object..
       var new_elastic_scale = getDistance(obj[0], obj[1])/420
@@ -361,10 +364,10 @@ function interaction_harmonic_between_pairs(){
       */
 
       for (var i in list_paired_harmonic){
-          var [vec_harm_interact, lphi0, lphi1] = interact_harmonic_vectors(i)
-          //-------- Change the speeds
-          lphi0.speed.addScaledVector(vec_harm_interact,harmonic_const)
-          lphi1.speed.addScaledVector(vec_harm_interact,-harmonic_const)
+            var [vec_harm_interact, lphi0, lphi1] = interact_harmonic_vectors(i)
+            //-------- Change the speeds
+            lphi0.speed.addScaledVector(vec_harm_interact,harmonic_const)
+            lphi1.speed.addScaledVector(vec_harm_interact,-harmonic_const)
       }
 
 }
@@ -390,15 +393,18 @@ function permitted_interaction(index){
       */
 
       obj = list_moving_objects[index]
-      var list_fobidden = ['spring']
-      for (var i in list_fobidden){
-          if (obj.type != list_fobidden[i]){ continue }
+      for (var i in list_forbid_obj_for_interact){
+          if (obj.type != list_forbid_obj_for_interact[i]){ continue }
           else{ return false }
       } // end for
       return true
 }
 
-function allow_ij(i,j){
+function allow_interaction_ij(i,j){
+
+      /*
+      Allow the interaction betwwen objects i and j
+      */
 
       return permitted_interaction(i) & permitted_interaction(j)
 
@@ -410,13 +416,14 @@ function interactions_between_objects(){
       Interactions :
           * object-plane
           * center-center
+          * harmonic
       */
 
       list_interact = []
       if (list_moving_objects.length > 0){
           for (var i=0; i< list_moving_objects.length; i++){
                 for (var j=i+1; j <  list_moving_objects.length; j++){
-                      interaction_between_ij(i,j)
+                      if(allow_interaction_ij(i,j)){ interaction_between_ij(i,j) } // i j interaction
                   } // end for j
             } // end for i
           interaction_harmonic_between_pairs()
@@ -425,19 +432,83 @@ function interactions_between_objects(){
 
 }
 
-// function total_energy(){
-//
-//       /*
-//
-//       */
-//
-//       for (var i list_moving_objects){
-//             var obj = list_moving_objects[i]
-//             if (obj.type == 'spring'){
-//             }
-//       }
-//
-// }
+function initialize_energies(){
+
+
+      /*
+      Energies initialization
+      */
+
+      tot_energy = 0
+      elast_energy = 0
+      kin_energy = 0
+      grav_energy = 0
+
+}
+
+function energy_calculation(){
+
+      /*
+      Energies calculations
+      */
+
+      initialize_energies()
+      for (var i in list_moving_objects){
+            var obj = list_moving_objects[i]
+            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){      // case it is a spring or an elastic..
+                  elast_energy += 5*0.5*harmonic_const*(obj.scale.z*420)**2
+            }else{
+              kin_energy += 0.5*obj.mass*obj.speed.dot(obj.speed)
+              grav_energy += obj.mass*9.81*obj.position.z*0.1
+             }  // case object with mass
+      }
+      tot_energy = elast_energy + kin_energy + grav_energy
+
+      return [elast_energy, kin_energy, grav_energy, tot_energy]
+}
+
+function max_energies_and_text(){
+
+      /*
+      Max  values for energy
+      */
+
+      if (max_kin < kin_energy){max_kin = kin_energy}
+      if (max_elast < elast_energy){max_elast = elast_energy}
+      var txt_max_kin = ' __ max kinet = ' +  Math.round(max_kin,2)
+      var txt_max_elast = ' __ max elast = ' +  Math.round(max_elast,2)
+
+      return [txt_max_kin, txt_max_elast]
+}
+
+function energies_and_text(){
+
+      /*
+
+      */
+
+      var txt_elast = ' _ elast = ' +  Math.round(elast_energy,2)
+      var txt_grav = ' _ grav = ' +  Math.round(grav_energy,2)
+      var txt_kin = ' _ kinet = ' +  Math.round(kin_energy,2)
+      var txt_tot = ' _ tot = ' +  Math.round(tot_energy,2)
+
+      return [txt_elast, txt_grav, txt_kin, txt_tot]
+
+}
+
+function total_energy(){
+
+      /*
+      Total energy of the system
+      */
+
+      var [elast_energy, kin_energy, grav_energy, tot_energy] = energy_calculation()
+      var [txt_elast, txt_grav, txt_kin, txt_tot] = energies_and_text()
+      var [txt_max_kin,txt_max_elast] = max_energies_and_text()
+      //$('#curr_func').text( txt_elast + txt_kin + txt_grav + txt_tot )
+      $('#curr_func').text( txt_max_elast + txt_max_kin + txt_grav + txt_tot )
+
+}
 
 function animate_physics(){
 
@@ -450,6 +521,7 @@ function animate_physics(){
       gravity(delta)
       update_all_pos(delta)
       interactions_between_objects()
+      total_energy()
       prevTime = time;
 
 }
