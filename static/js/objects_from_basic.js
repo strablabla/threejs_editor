@@ -175,7 +175,6 @@ function elastic(name,p,r,col){
 
 }
 
-
 function side1_side2(selpos){
 
         /*
@@ -346,25 +345,6 @@ function make_seat(){
         } // end for
 } // end function
 
-function chess_repeat_shape(col1,col2,size_square,geom,mat){
-
-      /*
-      Repeat the squares
-      */
-
-      var square_color
-      for ( var i = 0; i < 64; i ++ ) {
-          if ((i+Math.floor(i/8))%2==0){square_color = col1}
-          else{square_color = col12}
-          var object = new THREE.Mesh( geom, mat );
-          object.material.ambient = object.material.color;
-          object.position.set((i%8-4) * size_square, (Math.floor(i/8)-4) * size_square, 0)
-          object.castShadow = true;
-          object.receiveShadow = true;
-          scene.add( object );
-      }
-
-}
 
 function make_uniform_ground(){
 
@@ -393,6 +373,26 @@ function make_uniform_ground(){
 
         return object
   } // end function
+
+function chess_repeat_shape(col1,col2,size_square,geom,mat){
+
+      /*
+      Repeat the squares
+      */
+
+      var square_color
+      for ( var i = 0; i < 64; i ++ ) {
+          if ((i+Math.floor(i/8))%2==0){square_color = col1}
+          else{square_color = col12}
+          var object = new THREE.Mesh( geom, mat );
+          object.material.ambient = object.material.color;
+          object.position.set((i%8-4) * size_square, (Math.floor(i/8)-4) * size_square, 0)
+          object.castShadow = true;
+          object.receiveShadow = true;
+          scene.add( object );
+      }
+
+}
 
 function make_ground_chess(){
 

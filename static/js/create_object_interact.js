@@ -16,7 +16,7 @@ function gaussianRand() {
 
       var rand = 0;
       for (var i = 0; i < 6; i += 1) {
-        rand += Math.random();
+            rand += Math.random();
       }
 
       return rand / 6;
@@ -100,6 +100,11 @@ function random_coord_speed(){
 }
 
 function select_coord_random_speed(obj,coord){
+
+      /*
+      Adding random speed to coordinate coord
+      */
+
       obj.speed[coord] = random_coord_speed()
 }
 
@@ -108,6 +113,7 @@ function random_speed_chose_xyz(obj, list_coord){
       /*
       Adding random speed in x and y
       */
+
       var all_coord = ['x','y','z']
       for (i in all_coord){
             var coord = all_coord[i]
@@ -115,7 +121,7 @@ function random_speed_chose_xyz(obj, list_coord){
                   select_coord_random_speed(obj,coord)
               }
       }
-      //alert(obj.speed.x + '__' + obj.speed.y)
+
 }
 
 function make_new_sphere(){
@@ -134,7 +140,7 @@ function make_new_sphere(){
 function link(condition, action, arg){
 
       /*
-      Linking a conditon with an action (function) with optionnal argument..
+      Linking a conditon with an action (function) with optional argument..
       */
 
       if (condition){
