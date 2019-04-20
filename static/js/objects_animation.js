@@ -510,18 +510,26 @@ function total_energy(){
 
 }
 
-function animate_physics(){
+function interactions_and_movement(delta){
 
       /*
       Gravity and other interactions..
       */
 
-      var time = performance.now();
-      var delta = ( time - prevTime ) / 100;
       gravity(delta)
-      update_all_pos(delta)
       interactions_between_objects()
+      update_all_pos(delta)
       total_energy()
-      prevTime = time;
 
+}
+
+function animate_physics(){
+
+      if (scene_animation_ok){
+            var time = performance.now();
+            var delta = ( time - prevTime ) / 100;
+            interactions_and_movement(delta)
+            prevTime = time;
+        }
+        else{ prevTime = performance.now() }
 }

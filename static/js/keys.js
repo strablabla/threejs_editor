@@ -95,6 +95,7 @@ function keyDownTextField1(event){
       link_toggle(event, 's', 'select_obj')                 // select object in area
       link_toggle(event, 't', 'select_make_track')          // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
+      link_toggle(event, 'x', 'scene_animation_ok')         //
 
   } // end keyDownTextField1
 

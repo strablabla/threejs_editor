@@ -35,6 +35,7 @@ dic_sphere_blocked = {}							// dict of the sphere indicating the element is bl
 
 //----------------------  Movement and interactions
 
+scene_animation_ok = true
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
 random_speed_module = 20;
