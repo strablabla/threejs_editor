@@ -20,6 +20,7 @@ function obj_basics(object, p, r, name){
         object.speed = new THREE.Vector3() //
         object.radius_interact = 0 //
         object.magnet = true
+        object.friction = 0
 
         return object;
 }
