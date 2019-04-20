@@ -90,7 +90,7 @@ function keyDownTextField1(event){
       link_toggle(event, 'l', 'new_simple_cube_ok')         // create new simple cube
       link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
       link_toggle(event, 'n', 'new_wall_ok')                // create new wall
-      link_toggle(event, 'o', 'new_sphere_ok') 					      // Sphere with random speed
+      link_toggle(event, 'o', 'new_sphere_ok') 					    // Sphere with random speed
       link_toggle(event, 'p', 'new_pavement_ok')            // create new pavement
       link_toggle(event, 's', 'select_obj')                 // select object in area
       link_toggle(event, 't', 'select_make_track')          // create a track

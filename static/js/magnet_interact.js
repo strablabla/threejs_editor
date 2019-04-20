@@ -115,7 +115,6 @@ function magnet_between_objects(nearest_elem){
       */
 
       if (nearest_elem.magnet & SELECTED.magnet){
-
             [signx, signy, face] = signxy_face(SELECTED, nearest_elem)
             copypos(SELECTED, nearest_elem)                 // position on same axe..
             var [rot_relat, rot_abs] = rotation_relative_absolute(SELECTED, nearest_elem)

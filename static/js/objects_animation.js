@@ -311,6 +311,10 @@ function check_movement_spring(new_spring){
 
 function change_spring(obj){
 
+      /*
+      Change the orientation, position and length of the spring
+      */
+
       var new_spring = obj[2]
       new_spring.position.copy(obj[0].matrixWorld.getPosition()); // stick spring to object..
       var new_spring_scale = getDistance(obj[0], obj[1])/420
@@ -496,7 +500,7 @@ function energies_and_text(){
 
 }
 
-function total_energy(){
+function calculate_total_energy(){
 
       /*
       Total energy of the system
@@ -519,7 +523,7 @@ function interactions_and_movement(delta){
       gravity(delta)
       interactions_between_objects()
       update_all_pos(delta)
-      total_energy()
+      calculate_total_energy()
 
 }
 

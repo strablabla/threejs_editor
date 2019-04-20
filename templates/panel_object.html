@@ -6,8 +6,41 @@
 
       <br><br><br>
 
-      <div  class="help" id="type_obj" > type </div><br>
-      <div  class="help" id="color_obj" > color </div><br>
-      <div  class="help" id="angle_obj" > angle </div>
+        <center>
+              <div class="form-group" style="width:30%;">
+                   <select class="form-control" style="font-size:17px;" id="sel1">
+                         <option>wall</option>
+                         <option>cube</option>
+                         <option>plane</option>
+                         <option>pavement</option>
+                         <option>track</option>
+                         <option>box</option>
+                         <option>sphere</option>
+                   </select>
+              </div>
+          </center>
+          <br>
+          <br>
+
+          {% set attrs = ['width', 'height','thickness', 'angle',
+                            'color', 'alpha',  'mass', 'speed', 'friction'] %}
+          {% for attr in attrs %}
+          <div class="help" > <span> {{attr}} :</span><span> <input  value={{attr}} size=8 id="{{attr}}_panel"> </span> </div>
+          {% endfor %}
+
+          <div class="help">
+
+                  <span> texture: </span>
+                  <span id='drop-message' class="dz-message ">  </span>
+                  <div   id ="dropz" action="/upload_file" class="dropzone" method="POST" enctype="multipart/form-data" hidden >
+                  </div>
+
+          </div>
+          <br>
+          <br>
+          <br>
+
+          <center> <button id="save_param" type="button" class="btn btn-success"> save </button> </center>
+          <br>
 
 </div>
