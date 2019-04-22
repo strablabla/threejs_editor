@@ -21,7 +21,7 @@ function attr_dict(attr0){
 
 function link_panel_text(name){ $('#'+name+'_panel').text(INTERSECTED[name]); }
 function link_panel0(name){ $('#'+name+'_panel').val(INTERSECTED[name]); }
-function link_panel1(name, attr0, attr1){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1]); }
+function link_panel1(name, attr0, attr1){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1].toFixed(2)); }
 function link_panel2(name, attr0, attr1, arg){ $('#'+name+'_panel').val(INTERSECTED[attr0][attr1](arg)); }
 function link_panel3(name, attr0, attr1){ $('#'+name+'_panel').val(attr_dict(attr0)); }
 
@@ -46,6 +46,7 @@ function modify_values(INTERSECTED){
       show_block_unblock()              // show if the object position is blocked or not with the message on the button ..
       $("#dropz").children().hide();         // hide the message under the box
       $('#drop-message').one('click',function(){ $("#dropz").click() }) // execute one time dropz..
+
 
 }
 

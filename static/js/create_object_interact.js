@@ -157,7 +157,7 @@ function mouse_create_object_or_action(){
       */
 
       link(new_wall_ok, dictp.make_wall, null)                     // N key
-      link(new_simple_cube_ok, dictp.make_simple_cube, null)       // L key
+      link(new_cube_ok, dictp.make_simple_cube, null)       // L key
       link(new_sphere_ok, make_new_sphere, null)                   // O key
       link(new_pavement_ok, dictp.make_pavement, null)             // P key
       link(new_cube_texture_ok, make_new_cube_texture, null)       // M key

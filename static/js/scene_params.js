@@ -7,12 +7,25 @@ Scene parameters
 //---------------- Basic objects
 
 new_wall_ok = false;  		    	// create a new wall with the mouse
-new_simple_cube_ok = false;  		// create a new simple_cube with the mouse
+new_cube_ok = false;  		// create a new simple_cube with the mouse
 new_cube_texture_ok = false
 new_pavement_ok = false;
 make_plane = false;             // make a plane
 new_sphere_ok = false;          // make a sphere
 new_box_ok = false              // box
+//dict_obj_param = {}
+
+function reinit_params_ok(){
+
+      new_wall_ok = false;  		    	// create a new wall with the mouse
+      new_cube_ok = false;  		// create a new simple_cube with the mouse
+      new_cube_texture_ok = false
+      new_pavement_ok = false;
+      make_plane = false;             // make a plane
+      new_sphere_ok = false;          // make a sphere
+      new_box_ok = false              // box
+
+}
 
 //---------------------- Camera
 
@@ -38,7 +51,7 @@ dic_sphere_blocked = {}							// dict of the sphere indicating the element is bl
 scene_animation_ok = true
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
-random_speed_module = 20;
+random_speed_module = 100;
 list_paired_harmonic = []
 list_interm_pair = []
 paire_harmonic = false

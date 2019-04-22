@@ -43,6 +43,18 @@ function apply_to_one_obj_or_group(action, oneshot){
 
 }
 
+// function dict_obj_param_false(){
+//
+//       /*
+//       Put all the params to false
+//       */
+//
+//       var dop = dict_obj_param
+//       alert(dict_obj_param[0])
+//       for (var i in dop){ dop[dop[i]] = false }
+//
+// }
+
 function keyDownTextField1(event){
 
       /*
@@ -52,9 +64,7 @@ function keyDownTextField1(event){
       d : delete
       k : select camera position with mouse..
       h : make an horizontal plane
-      l : simple cube
       m : cube with multiple texture
-      n : new piece with mouse
       r : rotate
       s : selected area (dotted area)
       arrow up : move up
@@ -65,7 +75,8 @@ function keyDownTextField1(event){
 
       $('#curr_func').css('background-color','red')
 
-      if (event.keyCode == 16){    	         // SHIFT key, Picking objects to apply the same action after..
+      //if (event.keyCode == 16){    	         // SHIFT key, Picking objects to apply the same action after..
+      if ( keyev('p', event) ){    	         
             select_picking = !select_picking
             indicate_picking()
         } // end if key code
@@ -82,20 +93,16 @@ function keyDownTextField1(event){
 
       //--------------------- Change variables
 
-      link_toggle(event, 'b', 'new_box_ok')                 // make a new box
       link_toggle(event, 'g', 'select_move_group')          // move group
       link_toggle(event, 'h', 'make_plane')                 // horizontal plane
       link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
       link_toggle(event, 'k', 'select_poscam')              // create new wall
-      link_toggle(event, 'l', 'new_simple_cube_ok')         // create new simple cube
       link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
-      link_toggle(event, 'n', 'new_wall_ok')                // create new wall
-      link_toggle(event, 'o', 'new_sphere_ok') 					    // Sphere with random speed
-      link_toggle(event, 'p', 'new_pavement_ok')            // create new pavement
       link_toggle(event, 's', 'select_obj')                 // select object in area
       link_toggle(event, 't', 'select_make_track')          // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
       link_toggle(event, 'x', 'scene_animation_ok')         //
+      if (keyev('b', event)){ reinit_params_ok() } // dict_obj_param_false()
 
   } // end keyDownTextField1
 

@@ -185,6 +185,7 @@ function wall_box_rebounce(obji, objj){
       /*
       Rebounce
       */
+
       var comment = false
       if (comment){
           alert("rebouncing")
@@ -193,7 +194,7 @@ function wall_box_rebounce(obji, objj){
           alert(objj.orientation.y)
           alert(objj.orientation.z)
       }
-      var dotspeed = objj.orientation.dot(obji.speed)
+      var dotspeed = objj.orientation.dot(obji.speed)  // scalar product between wall and object
       if (comment){ alert( dotspeed ) }
       var ojo = new THREE.Vector3( objj.orientation.x, objj.orientation.y, objj.orientation.z )
       var rebounce = ojo.multiplyScalar(2*dotspeed).negate()
@@ -528,6 +529,10 @@ function interactions_and_movement(delta){
 }
 
 function animate_physics(){
+
+      /*
+      Animation of the scene or empty loop ..
+      */
 
       if (scene_animation_ok){
             var time = performance.now();
