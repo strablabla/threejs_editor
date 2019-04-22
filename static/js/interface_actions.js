@@ -164,7 +164,12 @@ function save_params_panel_object(){
                objects[i].rotation.z = $('#angle_panel').val()            // angle
                objects[i].material.opacity = $('#alpha_panel').val()      // opacity
                objects[i].material.needsUpdate = true;                    // refreshing
-               objects[i].mass = $('#mass_panel').val()            // angle
+               objects[i].mass = $('#mass_panel').val()            // mass
+               // change the orientation
+               objects[i].orientation.x = Math.cos(objects[i].rotation.z)
+               objects[i].orientation.y = Math.sin(objects[i].rotation.z)
+               alert(objects[i].name + ' has orientation x ' + objects[i].orientation.x)
+
             } // end if
         } // end for
         controls.enabled = true;
