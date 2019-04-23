@@ -150,6 +150,13 @@ function block_pos_object(){
 
 }
 
+function change_orientation(i){
+
+    objects[i].orientation.x = Math.cos(objects[i].rotation.z)
+    objects[i].orientation.y = Math.sin(objects[i].rotation.z)
+
+}
+
 function save_params_panel_object(){
 
     /*
@@ -161,15 +168,15 @@ function save_params_panel_object(){
 
         for (i in objects){
             if (objects[i].name == $('#name_panel').text()){
-               objects[i].rotation.z = $('#angle_panel').val()            // angle
-               objects[i].material.opacity = $('#alpha_panel').val()      // opacity
+               objects[i].rotation.z = parseFloat($('#angle_panel').val())            // angle
+               objects[i].material.opacity = parseFloat($('#alpha_panel').val())      // opacity
                objects[i].material.needsUpdate = true;                    // refreshing
-               objects[i].mass = $('#mass_panel').val()            // mass
+               objects[i].mass = parseFloat($('#mass_panel').val())            // mass
                // change the orientation
-               objects[i].orientation.x = Math.cos(objects[i].rotation.z)
-               objects[i].orientation.y = Math.sin(objects[i].rotation.z)
-               alert(objects[i].name + ' has orientation x ' + objects[i].orientation.x)
-
+               if (objects[i].type == 'wall_box'){
+                  change_orientation(i)
+               }
+               //alert(objects[i].name + ' has orientation x ' + objects[i].orientation.x)
             } // end if
         } // end for
         controls.enabled = true;
