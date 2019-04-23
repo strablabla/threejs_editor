@@ -162,8 +162,8 @@ function mouse_create_object_or_action(){
       link(new_pavement_ok, dictp.make_pavement, null)             // P key
       link(new_cube_texture_ok, make_new_cube_texture, null)       // M key
       link(select_obj, limits_and_action, null)                    // S key.. make_dotted_area
-      link(select_make_track, make_marks_and_track, null)          // T key..
-      link(make_plane, limits_and_action, make_horizontal_area)    // H key
+      link(new_track_ok, make_marks_and_track, null)          // T key..
+      link(new_plane_ok, limits_and_action, make_horizontal_area)    // H key
       link(select_poscam, limits_and_action, newview)              // K key
       link(new_box_ok, limits_and_action, make_new_box)            // B key
       link(paire_harmonic, select_two_obj_and_action, null)        // U key

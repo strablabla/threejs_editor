@@ -104,7 +104,7 @@ function limits_and_action_reinit_var(){
 
       selpos = []                     // positions of the corners
       select_obj = false;
-      make_plane = false;
+      new_plane_ok = false;
       SELECTED = null;
 
 }

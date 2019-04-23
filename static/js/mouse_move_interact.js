@@ -16,7 +16,7 @@ function action_on_selected_when_moving(raycaster){
       interptsub.z = SELECTED.position.z
       if ( !SELECTED.blocked ){
               SELECTED.position.copy( interptsub )  // move SELECTED at mouse position..
-              if (select_make_track & perpendicular_track){
+              if (new_track_ok & perpendicular_track){
                     track_in_mouse_moving()
               }
          }  // move the object selected if not blocked..

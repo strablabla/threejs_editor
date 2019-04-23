@@ -10,7 +10,7 @@ new_wall_ok = false;  		    	// create a new wall with the mouse
 new_cube_ok = false;  		// create a new simple_cube with the mouse
 new_cube_texture_ok = false
 new_pavement_ok = false;
-make_plane = false;             // make a plane
+new_plane_ok = false;             // make a plane
 new_sphere_ok = false;          // make a sphere
 new_box_ok = false              // box
 //dict_obj_param = {}
@@ -21,7 +21,7 @@ function reinit_params_ok(){
       new_cube_ok = false;  		// create a new simple_cube with the mouse
       new_cube_texture_ok = false
       new_pavement_ok = false;
-      make_plane = false;             // make a plane
+      new_plane_ok = false;             // make a plane
       new_sphere_ok = false;          // make a sphere
       new_box_ok = false              // box
 
@@ -84,7 +84,7 @@ list_obj_inside = [];  					// list of the objects inside the area
 
 //---------------------- Track
 
-select_make_track = false;
+new_track_ok = false;
 list_marks_track = []
 orientation_track = 'x'
 last_mark_track = null

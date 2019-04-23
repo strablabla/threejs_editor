@@ -53,8 +53,14 @@ def receive(message):
     with open('static/pos.json', 'r') as f:
         with open('static/old/pos_{}.json'.format(date), 'w') as g:
             g.write(f.read())
+
     with open('static/pos.json', 'w') as f:
         f.write(str(message))
+    with open('static/pos.json', 'r') as f:
+        g = json.load(f)
+        if g['scene_name'] != 'None':
+            with open('static/scenes/{}.json'.format(g['scene_name']), 'w') as h:
+                h.write(str(message))
 
 @socketio.on('begin', namespace='/pos')
 def receive(begin):

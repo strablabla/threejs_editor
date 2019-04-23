@@ -21,7 +21,7 @@ function ending_track(){
         When ending the track retrieve the control of the mouse and the ground.
         */
 
-        if (select_make_track){
+        if (new_track_ok){
             SELECTED = null;
             controls.enabled = true;
             scene.remove(last_mark_track)

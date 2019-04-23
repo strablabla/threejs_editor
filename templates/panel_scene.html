@@ -17,8 +17,21 @@
           <center> <button id="save_scene" type="button" class="btn btn-success">
                     save
                    </button>
+          </center> <br>
+
+          <center> <button id="clear_scene" type="button" class="btn btn-alert">
+                    Clear
+                   </button>
           </center>
 
           <br>
 
     </div>
+
+    <script>
+
+    $('#save_scene').click(function(){
+         scene.name = $('#scene_name').val()
+    })
+
+    </script>
