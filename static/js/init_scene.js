@@ -68,12 +68,17 @@ function load_params(name, msg, curr_tex_addr){
     Load the parameters of each object..
     */
 
-    listorig[name]['clone_infos'] = msg[name]['clone_infos']                       // add the infos about cloning
     listorig[name]['tex_addr'] =  curr_tex_addr               									 // texture address
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
-    listorig[name]['blocked'] =  msg[name]['blocked']             		            // blocked
-    listorig[name]['del'] =  msg[name]['del']             		                    // delete autorization
-    listorig[name].material['opacity'] =  msg[name]['opacity']             		                    // delete autorization
+    listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
+    var list_attr_obj = ['clone_infos', 'blocked', 'del',
+                          'speed', 'mass', 'radius_interact',
+                          'magnet', 'friction']
+
+    for (var i in list_attr_obj){
+          var attr = list_attr_obj[i]
+          listorig[name][attr] = msg[name][attr]
+    }
 
 }
 
@@ -193,6 +198,8 @@ function emit_infos_scene(){          									// emits the positions toward the
     */
 
     var listpos = {}         // dictionary of all the informations about the scene to be saved in a json file..
+    var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
+                        'mass', 'speed', 'radius_interact', 'magnet', 'friction']
 
     for (i in objects){
           if (condition_emit(i)){
@@ -202,14 +209,15 @@ function emit_infos_scene(){          									// emits the positions toward the
               var infos_obj = {
                                "pos": objects[i].position,
                                "rot": {x,y,z},
-                               "clone_infos": objects[i].clone_infos,
-                               "type": objects[i].type,
-                               'tex_addr' : objects[i].tex_addr,
-                               'blocked' : objects[i].blocked,
                                'opacity' : objects[i].material.opacity
                               };
+              for (var j in list_attr_emit){
+                    var key = list_attr_emit[j]
+                    infos_obj[key] = objects[i][key]
+              }
               listpos[objects[i].name] = infos_obj;   			// add informations about the objects in the scene to listpos
               listpos['datetime'] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
+              listpos['scene_name'] = scene.name
             }    // end if
           }    // end for
     socket.emit( 'message', JSON.stringify(listpos));  // send the informations to the server
@@ -270,7 +278,7 @@ function init() {
 
   socket.emit( 'begin',  "hello from client"); // send mess to server for ping pong..
   socket.on('server_pos', function(msg) {
-        load_scene(msg)  // When receiving the scene from the server (pos.json), load it in the client..
+        load_scene(msg)             // When receiving the scene from the server (pos.json), load it in the client..
       });// end socket.on
 
   // var gjson ;

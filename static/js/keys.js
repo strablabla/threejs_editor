@@ -65,18 +65,18 @@ function keyDownTextField1(event){
       k : select camera position with mouse..
       h : make an horizontal plane
       m : cube with multiple texture
+      p : pick diff objects..
       r : rotate
       s : selected area (dotted area)
       arrow up : move up
       arrow down : move down
-      SHIFT : pick diff objects..
-
+      
       */
 
       $('#curr_func').css('background-color','red')
 
       //if (event.keyCode == 16){    	         // SHIFT key, Picking objects to apply the same action after..
-      if ( keyev('p', event) ){    	         
+      if ( keyev('p', event) ){
             select_picking = !select_picking
             indicate_picking()
         } // end if key code
@@ -94,12 +94,11 @@ function keyDownTextField1(event){
       //--------------------- Change variables
 
       link_toggle(event, 'g', 'select_move_group')          // move group
-      link_toggle(event, 'h', 'make_plane')                 // horizontal plane
       link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
       link_toggle(event, 'k', 'select_poscam')              // create new wall
-      link_toggle(event, 'm', 'new_cube_texture_ok')        // create nw cube with texture
+      link_toggle(event, 'm', 'new_cube_texture_ok')        // create new cube with texture
       link_toggle(event, 's', 'select_obj')                 // select object in area
-      link_toggle(event, 't', 'select_make_track')          // create a track
+      link_toggle(event, 't', 'new_track_ok')               // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
       link_toggle(event, 'x', 'scene_animation_ok')         //
       if (keyev('b', event)){ reinit_params_ok() } // dict_obj_param_false()
@@ -116,18 +115,6 @@ function keyDownTextField2(event){
     } // end keyDownTextField2
 
 //-------------------------
-
-var selectdic = { 'k' : select_poscam, 'n' : new_wall_ok }
-
-function select_exclude(key){
-        // new_wall_ok = false;
-        // select_poscam = false;
-        selectdic[key] = !selectdic[key];
-        for (k in Object.keys(selectdic)){
-            if ( k != key ){ selectdic[k] = false; }
-        }
-
-  }
 
 var current_key = ""
 var currfuncdic = {'k':'camera', 'c':'clone', 'r':'rotation',
