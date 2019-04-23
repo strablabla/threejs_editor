@@ -58,9 +58,12 @@ def receive(message):
         f.write(str(message))
     with open('static/pos.json', 'r') as f:
         g = json.load(f)
-        if g['scene_name'] != 'None':
-            with open('static/scenes/{}.json'.format(g['scene_name']), 'w') as h:
-                h.write(str(message))
+        try:
+            if g['scene_name'] != 'None':
+                with open('static/scenes/{}.json'.format(g['scene_name']), 'w') as h:
+                    h.write(str(message))
+        except:
+            print("probably no scene_name")
 
 @socketio.on('begin', namespace='/pos')
 def receive(begin):

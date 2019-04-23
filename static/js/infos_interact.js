@@ -47,7 +47,6 @@ function modify_values(INTERSECTED){
       $("#dropz").children().hide();         // hide the message under the box
       $('#drop-message').one('click',function(){ $("#dropz").click() }) // execute one time dropz..
 
-
 }
 
 function show_infos_at_mouse_pos(x,i){

@@ -62,6 +62,16 @@ var keys = function(){/*
 */}.toString().slice(14,-3)
 
 
+function load_speed(msg,name){
+
+    var speed = msg[name]['speed']
+    listorig[name]['speed'] = new THREE.Vector3()
+    listorig[name]['speed']['x'] = speed.x
+    listorig[name]['speed']['y'] = speed.y
+    listorig[name]['speed']['z'] = speed.z
+
+}
+
 function load_params(name, msg, curr_tex_addr){
 
     /*
@@ -72,13 +82,13 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
     listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
-                          'speed', 'mass', 'radius_interact',
+                          'mass', 'radius_interact',
                           'magnet', 'friction']
-
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           listorig[name][attr] = msg[name][attr]
     }
+    load_speed(msg,name)
 
 }
 
@@ -190,6 +200,31 @@ function condition_emit(i){
 
 }
 
+function make_infos_obj(i){
+
+      /*
+      Infos about object i
+      */
+
+      var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
+                          'mass', 'speed', 'radius_interact', 'magnet', 'friction']
+      var x = objects[i].rotation.x
+      var y = objects[i].rotation.y
+      var z = objects[i].rotation.z
+      var infos_obj = {
+                       "pos": objects[i].position,
+                       "rot": {x,y,z},
+                       'opacity' : objects[i].material.opacity
+                      };
+      for (var j in list_attr_emit){
+            var key = list_attr_emit[j]
+            infos_obj[key] = objects[i][key]
+      }
+
+      return infos_obj
+
+}
+
 function emit_infos_scene(){          									// emits the positions toward the server to save them
 
     /*
@@ -198,23 +233,9 @@ function emit_infos_scene(){          									// emits the positions toward the
     */
 
     var listpos = {}         // dictionary of all the informations about the scene to be saved in a json file..
-    var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
-                        'mass', 'speed', 'radius_interact', 'magnet', 'friction']
-
     for (i in objects){
           if (condition_emit(i)){
-              var x = objects[i].rotation.x
-              var y = objects[i].rotation.y
-              var z = objects[i].rotation.z
-              var infos_obj = {
-                               "pos": objects[i].position,
-                               "rot": {x,y,z},
-                               'opacity' : objects[i].material.opacity
-                              };
-              for (var j in list_attr_emit){
-                    var key = list_attr_emit[j]
-                    infos_obj[key] = objects[i][key]
-              }
+              infos_obj = make_infos_obj(i)
               listpos[objects[i].name] = infos_obj;   			// add informations about the objects in the scene to listpos
               listpos['datetime'] = { 'date': moment().format('MMMM Do YYYY, h:mm:ss a'), 'type':'date' }; // save the date
               listpos['scene_name'] = scene.name
