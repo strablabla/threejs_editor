@@ -4,6 +4,39 @@ Initialization of the scene..
 
 */
 
+// Create a global accesible instance of artyom
+const artyom = new Artyom();
+
+artyom.initialize({
+  lang:'fr',
+  continuous:true,
+  debug:false,
+  listen:true
+})
+
+var dvt = {'cube':'cube', 'sphere':'boule', 'box':'boîte'} // dict voice tool
+var dftools = {}
+var dctools = {}
+
+Object.entries(dvt).forEach(([key, value]) => {
+
+  dftools[key] = function(){
+        reinit_params_ok();
+        $('#curr_tool').text(key)
+        window['new_' + key + '_ok'] = true;
+  }
+  dctools[key] = {
+
+    indexes:[value], // These spoken words will trigger the execution of the command
+    action: dftools[key]
+
+  }
+
+  artyom.addCommands(dctools[key]); // Add the command with addCommands method. Now
+
+});
+
+
 //===================================================================== Simple markdown
 
     /*
@@ -46,7 +79,7 @@ var keys = function(){/*
 * action
     * c : clone
     * d : delete
-		* move a whole group
+		* g : move a whole group
     * h : make an horizontal plane..
     * i : infos about the selected object
     * k : select camera position and view direction with the mouse..
@@ -55,8 +88,7 @@ var keys = function(){/*
     * n : wall
     * r : rotation
     * s : select an area
-    * p : pavement
-    * SHIFT : select many objects separately
+    * p: select many objects separately
     * arrow up : move up
     * arrow down : move down
 */}.toString().slice(14,-3)
