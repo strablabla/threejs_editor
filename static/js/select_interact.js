@@ -306,3 +306,26 @@ function find_objects_in_area(){
       } // end for
 
 } // end objects in area..
+
+function calculate_kin_energy(obj){
+
+    var kin_en = 0.5 *obj.mass*obj.speed.dot(obj.speed);
+
+    return kin_en
+
+}
+
+function show_selection_stats(){
+
+    /*
+    Stats about selected area
+    */
+
+    var tot_kin_energy = 0
+    for (i in list_obj_inside){
+        tot_kin_energy += calculate_kin_energy(list_obj_inside[i])
+    }
+    $('#tot_kin').text(tot_kin_energy.toFixed(2))
+    //alert("energy!!")
+
+}
