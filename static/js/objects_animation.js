@@ -199,6 +199,7 @@ function wall_box_rebounce(obji, objj){
       var ojo = new THREE.Vector3( objj.orientation.x, objj.orientation.y, objj.orientation.z )
       var rebounce = ojo.multiplyScalar(2*dotspeed).negate()
       obji.speed.add(rebounce)
+      //obji.material.color.setHex(0x0000ff)
 }
 
 function find_obj_wall(objj,obji){
@@ -233,14 +234,18 @@ function interaction_obj_plane(i,j){
       /*
       Interaction with plane
       */
-
+      //var scale_rebounce = 3
       var [obji, objj] = objj_obji(i,j)
-      var [obj, wall] = find_obj_wall(objj,obji)
-      var [dist_to_plane, dist_in_plane] = getDistanceToPLane(obj, wall) // distance center-plane
-      if (dist_to_plane < 10){
+      var [obj, wall] = find_obj_wall(objj,obji) // find which is obj, which is wall..
+      var [dist_to_plane, dist_lat_in_plane] = getDistanceToPLane(obj, wall) // distance center-plane
+      var cnd1 = dist_to_plane < dist_inter_wall_obj
+      var cnd2 = dist_lat_in_plane < wall.width/2
+      if (cnd1 & cnd2){
           // obj.material.color.setHex(0x00ff00)
-          // obj.scale.set(5,5,5)
+          //obj.scale.set(scale_rebounce,scale_rebounce,scale_rebounce)
+          //obj.material.color.setHex(0xff0000)
           wall_box_rebounce(obj, wall) // handle the rebounce on the walls of the box..
+          //obj.scale.set(1,1,1)
       }
 
 }
@@ -283,9 +288,8 @@ function interaction_between_ij(i,j){
       */
 
       var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
-      if ( cnd1 & cnd2 &cnd3 ){
-          interaction_obj_plane(i,j)    // interaction between object and plane..
-      }else {  interaction_center_center(i,j) } // // interaction center to center
+      if ( cnd1 & cnd2 &cnd3 ){ interaction_obj_plane(i,j) } // interaction between object and plane.  .
+      else { interaction_center_center(i,j) } // // interaction center to center
 
 }
 

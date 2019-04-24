@@ -76,14 +76,19 @@ function getDistanceToPLane(particule, plane) {
 
       */
 
+      var vec_up = new THREE.Vector3(0,0,1)
+      var vec_lat = new THREE.Vector3()
+
       var pap = particule.position
       var plp = plane.position
       var plo = plane.orientation
+      vec_lat.crossVectors(vec_up, plo).normalize()
       var dist_to_plane = Math.abs(pap.dot(plo)-plp.dot(plo))
-      var dist_to_center = getDistance(particule, plane)
-      var dist_in_plane = Math.sqrt(dist_to_center**2-dist_to_plane**2)
+      var dist_lat_in_plane = Math.abs(pap.dot(vec_lat)-plp.dot(vec_lat))
+      // var dist_to_center = getDistance(particule, plane)
+      // var dist_in_plane = Math.sqrt(dist_to_center**2-dist_to_plane**2)
 
-      return [dist_to_plane, dist_in_plane]
+      return [dist_to_plane, dist_lat_in_plane]
 
 }
 

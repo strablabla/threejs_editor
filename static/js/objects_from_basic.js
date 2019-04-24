@@ -241,6 +241,7 @@ function wall_for_box(pos, dim, orientation){
       scene.add(object)
       objects.push(object)
       //alert("wall box is ok")
+      return object
 
 }
 
@@ -259,25 +260,38 @@ function four_pos_for_box(side1, side2, middle_side1, middle_side2){
 
 }
 
+function make_the_four_edges(pos, side){
+
+  /*
+
+  */
+
+  var [pos1, pos2, pos3, pos4] = pos
+  var [side1, side2] = side
+
+  var side2_orient = new THREE.Vector3(1,0,0)
+  var side1_orient = new THREE.Vector3(0,1,0)
+
+  var w1 = wall_for_box(pos1, {'width':side2,'height':150,'thickness':2}, side2_orient)
+  var w2 = wall_for_box(pos2, {'width':side2,'height':150,'thickness':2}, side2_orient)
+  var w3 = wall_for_box(pos3, {'width':side1,'height':150,'thickness':2}, side1_orient)
+  var w4 = wall_for_box(pos4, {'width':side1,'height':150,'thickness':2}, side1_orient)
+  w3.rotation.z = Math.PI/2
+  w4.rotation.z = Math.PI/2
+
+
+}
+
 function make_new_box(selpos){
 
       /*
 
       */
 
-      var [side1, side2] = side1_side2(selpos)
+      var side = side1_side2(selpos)
       var [middle_side1, middle_side2] = middle_side1_side2(selpos)
-      var [pos1, pos2, pos3, pos4] = four_pos_for_box(side1, side2, middle_side1, middle_side2)
-
-      //var dim = {'width':2,'height':150,'thickness':200}
-
-      var side2_orient = new THREE.Vector3(1,0,0)
-      var side1_orient = new THREE.Vector3(0,1,0)
-
-      wall_for_box(pos1, {'width':side2,'height':150,'thickness':2}, side2_orient)
-      wall_for_box(pos2, {'width':side2,'height':150,'thickness':2}, side2_orient)
-      wall_for_box(pos3, {'width':2,'height':150,'thickness':side1}, side1_orient)
-      wall_for_box(pos4, {'width':2,'height':150,'thickness':side1}, side1_orient)
+      var pos = four_pos_for_box(side[0], side[1], middle_side1, middle_side2)
+      make_the_four_edges(pos, side)
 
 }
 
