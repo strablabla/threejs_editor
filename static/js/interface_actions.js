@@ -149,11 +149,16 @@ function block_pos_object(){
       }) // end block_pos.click
 
 }
+//
 
 function change_orientation(i){
 
-    objects[i].orientation.x = Math.cos(objects[i].rotation.z)
-    objects[i].orientation.y = Math.sin(objects[i].rotation.z)
+      /*
+      Modify orientation for rebounce
+      */
+
+      objects[i].orientation.x = Math.cos(objects[i].rotation.z)
+      objects[i].orientation.y = Math.sin(objects[i].rotation.z)
 
 }
 

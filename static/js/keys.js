@@ -43,18 +43,6 @@ function apply_to_one_obj_or_group(action, oneshot){
 
 }
 
-// function dict_obj_param_false(){
-//
-//       /*
-//       Put all the params to false
-//       */
-//
-//       var dop = dict_obj_param
-//       alert(dict_obj_param[0])
-//       for (var i in dop){ dop[dop[i]] = false }
-//
-// }
-
 function keyDownTextField1(event){
 
       /*
@@ -70,7 +58,7 @@ function keyDownTextField1(event){
       s : selected area (dotted area)
       arrow up : move up
       arrow down : move down
-      
+
       */
 
       $('#curr_func').css('background-color','red')

@@ -6,5 +6,21 @@
 
       <div  class="help" id="distance" > distance </div><br>
       <div  class="help" id="properties" > group properties </div><br>
+      <div  class="help" id="stats_area" > stats about selected area </div><br>
 
 </div>
+
+{% include 'panel_tools_stats.html' %}
+
+<script>
+
+$('#stats_area').click(function(){
+  $('.panel_tools_stats').toggle()
+  show_selection_stats()
+  //alert('oooo')
+})
+$('.panel_tools_stats').click(function(){
+    $(this).toggle()
+})
+
+</script>
