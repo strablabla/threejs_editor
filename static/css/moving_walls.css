@@ -354,6 +354,24 @@ Panel scene
 
 }
 
+.current_tool {
+
+	font-family: 'Playfair Display';
+	font-size: 1.2em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	text-align: center;
+	padding-top: 5px;
+	height : 40px;
+	width : 100px;
+	right: 7px;
+	top: 100px;
+	z-index: 9000;
+	opacity: 0.9;
+	background-color:white;
+
+}
+
 #save_param {
 	margin-left: -40px
 }
@@ -376,4 +394,5 @@ Panel scene
 
 .input_interface * {
 	border:none;
+	/* no border for the inputs */
 }
