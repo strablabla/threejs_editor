@@ -14,6 +14,7 @@ new_plane_ok = false;             // make a plane
 new_sphere_ok = false;          // make a sphere
 new_box_ok = false              // box
 new_no_tool_ok = false           // no tool, option to deactivate tools
+new_track_ok = false
 new_string_ok = false           // string
 //dict_obj_param = {}
 
@@ -75,8 +76,8 @@ max_elast = 0     // maximum of elastic energy
 //--------------
 
 nearest_elem = null;
-radius_spring = 40;
-radius_elastic = 20;
+radius_spring = 40;     // spring radius
+radius_elastic = 20;    // elastic radius
 list_forbid_obj_for_interact = ['spring', 'elastic', 'pawn'] // list of non interacting types..
 
 //---------------------- Selection
@@ -90,15 +91,18 @@ list_obj_inside = [];  					// list of the objects inside the area
 
 //---------------------- Track
 
-new_track_ok = false;
 list_marks_track = []
-orientation_track = 'x'
+orientation_track = 'x'  // orientation by default
 last_mark_track = null
 var track_width = 40
 coord_track_blocked = null
 dir_track_blocked = null
 perpendicular_track = true
 anti_dic = {'x':'y','y':'x'}        // return perpendicular direction ..
+
+//----------------------- String
+
+list_string = []
 
 //------------------- Colors
 

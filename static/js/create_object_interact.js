@@ -137,6 +137,27 @@ function make_new_sphere(){
 
 }
 
+function make_new_string(){
+
+      /*
+      String with random speed
+      */
+
+      var [newname, interptsub] = random_name_mousepos()
+      var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},0x000000)
+      random_speed_chose_xyz(sph, ['x','y'])         // add random speed
+      sph.magnet = false        // remove magnet
+      list_string.push(sph)
+      if ( list_string.length > 1 ){
+          var list_interm_pair = list_string.slice(-2) //[list_string.slice(-1),list_string.slice(-2,-1)]
+          var new_elastic = create_elastic(list_interm_pair)
+          list_interm_pair.push(new_elastic) // add spring to pair
+          list_paired_harmonic.push(list_interm_pair) // list of all triplets
+          color_pairs_in_blue()
+      }
+
+}
+
 function link(condition, action, arg){
 
       /*
@@ -156,16 +177,17 @@ function mouse_create_object_or_action(){
        where the mouse is located in the plane.
       */
 
-      link(new_wall_ok, dictp.make_wall, null)                     // N key
-      link(new_cube_ok, dictp.make_simple_cube, null)       // L key
-      link(new_sphere_ok, make_new_sphere, null)                   // O key
-      link(new_pavement_ok, dictp.make_pavement, null)             // P key
-      link(new_cube_texture_ok, make_new_cube_texture, null)       // M key
-      link(select_obj, limits_and_action, null)                    // S key.. make_dotted_area
-      link(new_track_ok, make_marks_and_track, null)          // T key..
-      link(new_plane_ok, limits_and_action, make_horizontal_area)    // H key
-      link(select_poscam, limits_and_action, newview)              // K key
-      link(new_box_ok, limits_and_action, make_new_box)            // B key
-      link(paire_harmonic, select_two_obj_and_action, null)        // U key
+      link(new_wall_ok, dictp.make_wall, null)
+      link(new_cube_ok, dictp.make_simple_cube, null)
+      link(new_sphere_ok, make_new_sphere, null)
+      link(new_string_ok, make_new_string, null)
+      link(new_pavement_ok, dictp.make_pavement, null)
+      link(new_cube_texture_ok, make_new_cube_texture, null)
+      link(select_obj, limits_and_action, null)
+      link(new_track_ok, make_marks_and_track, null)
+      link(new_plane_ok, limits_and_action, make_horizontal_area)
+      link(select_poscam, limits_and_action, newview)
+      link(new_box_ok, limits_and_action, make_new_box)
+      link(paire_harmonic, select_two_obj_and_action, null)
 
 } // end mouse_create_object_or_action
