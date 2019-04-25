@@ -16,6 +16,8 @@
                          <option>track</option>
                          <option>box</option>
                          <option>sphere</option>
+                         <option>string</option>
+                         <option>no tool</option>
                    </select>
               </div>
           </center>
@@ -51,35 +53,26 @@
 
 <script>
 
-{% set objs = ['wall', 'cube', 'plane', 'pavement', 'track', 'box', 'sphere'] %}
+{% set objs = ['wall', 'cube', 'plane', 'pavement', 'track',
+                'box', 'sphere', 'string', 'no_tool'] %}
 dict_obj_param = {}
 {% for obj in objs %}
 dict_obj_param['{{obj}}'] = 'new_' + '{{obj}}' + '_ok'
 {% endfor %}
 
-// function dict_obj_param_false(){
+reinit_params_ok()
+
+// function reinit_params_ok(){
 //
-//       /*
-//       Put all the params to false
-//       */
-//
-//       var dop = dict_obj_param
-//       for (var i in dop){ dop[dop[i]] = false }
-//       alert('dop[dop[0] ' + dop[dop[0])
+//       new_wall_ok = false;  		    	// create a new wall with the mouse
+//       new_cube_ok = false;  		// create a new simple_cube with the mouse
+//       new_cube_texture_ok = false
+//       new_pavement_ok = false;
+//       new_plane_ok = false;             // make a plane
+//       new_sphere_ok = false;          // make a sphere
+//       new_box_ok = false              // box
 //
 // }
-
-function reinit_params_ok(){
-
-      new_wall_ok = false;  		    	// create a new wall with the mouse
-      new_cube_ok = false;  		// create a new simple_cube with the mouse
-      new_cube_texture_ok = false
-      new_pavement_ok = false;
-      new_plane_ok = false;             // make a plane
-      new_sphere_ok = false;          // make a sphere
-      new_box_ok = false              // box
-
-}
 
 $('#select_shape').change(function(){
 

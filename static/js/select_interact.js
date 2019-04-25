@@ -58,6 +58,7 @@ function create_elastic(pair){
       var new_elastic_scale = getDistance(pair[0], pair[1])/420
       new_elastic.scale.set(1,1,new_elastic_scale)
       new_elastic.lookAt(pair[1].position)
+      //alert('elastic created !! ')
 
       return new_elastic
 }
