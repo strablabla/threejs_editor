@@ -13,17 +13,19 @@ new_pavement_ok = false;
 new_plane_ok = false;             // make a plane
 new_sphere_ok = false;          // make a sphere
 new_box_ok = false              // box
+new_no_tool_ok = false           // no tool, option to deactivate tools
+new_string_ok = false           // string
 //dict_obj_param = {}
 
 function reinit_params_ok(){
+      /*
+      Reinitialize the variables for the object creation.
+      */
 
-      new_wall_ok = false;  		    	// create a new wall with the mouse
-      new_cube_ok = false;  		// create a new simple_cube with the mouse
-      new_cube_texture_ok = false
-      new_pavement_ok = false;
-      new_plane_ok = false;             // make a plane
-      new_sphere_ok = false;          // make a sphere
-      new_box_ok = false              // box
+      for(key in window) { if (key.match('^(new_)\\w*_ok')){
+        window[key] = false
+      }
+    } // end for
 
 }
 
@@ -60,19 +62,22 @@ dist_inter_wall_obj = 50
 dist_min_center_center = 40;
 
 //-------------------- Energies
-elast_energy = 0
-kin_energy = 0
-grav_energy = 0
-tot_energy = 0
+
+elast_energy = 0  // elastic
+kin_energy = 0    // kinetic
+grav_energy = 0   // gravity
+tot_energy = 0    // total
 //------------
-max_kin = 0
-max_elast = 0
+
+max_kin = 0       // maximum of kinetic energy
+max_elast = 0     // maximum of elastic energy
+
 //--------------
 
 nearest_elem = null;
 radius_spring = 40;
 radius_elastic = 20;
-list_forbid_obj_for_interact = ['spring', 'elastic'] // list of non interacting types..
+list_forbid_obj_for_interact = ['spring', 'elastic', 'pawn'] // list of non interacting types..
 
 //---------------------- Selection
 

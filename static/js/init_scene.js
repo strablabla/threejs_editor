@@ -61,8 +61,11 @@ var keys = function(){/*
     * arrow down : move down
 */}.toString().slice(14,-3)
 
-
 function load_speed(msg,name){
+
+    /*
+    Load the speed from the json, used in load_params
+    */
 
     var speed = msg[name]['speed']
     listorig[name]['speed'] = new THREE.Vector3()
@@ -288,7 +291,7 @@ function init() {
   //make_small_seats()     		// make the seats
   //make_seat()            		// make the seat
 
-  listorig = {}
+  listorig = {}                                 // list of objects
   listmat = {} 																	// list of materials
 
   //-----------------------------------------

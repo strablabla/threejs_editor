@@ -25,7 +25,7 @@ function ending_track(){
             SELECTED = null;
             controls.enabled = true;
             scene.remove(last_mark_track)
-            limits_and_action_reinit_var() // select must be ok.. 
+            limits_and_action_reinit_var() // select must be ok..
         }
 }
 
@@ -181,9 +181,7 @@ function delete_object(){
                     INTERSECTED.del = true
                 } // end if
             } // end for
-
       } // end else if
-
       objects.forEach(function(elem){
           if (elem.del){ scene.remove(elem) } // remove all the element with the del attribute at true..
       })
