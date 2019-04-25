@@ -62,16 +62,15 @@ function width_length_with_orientation(beg,end){
 
       //----------- dimensions
 
-      var track_length = getDistance(beg,end)
+      //var track_length = getDistance(beg,end)
+      var width = getDistance(beg,end)
       if ( orientation_track == 'x' ){
-          var width = track_width
-          var thickness = track_length
+          var rot = Math.PI/2
       }else{
-          var width = track_length
-          var thickness = track_width
+          var rot = 0
       }
 
-      return [width,thickness]
+      return [width,rot]
 }
 
 function params_for_track(){
@@ -82,10 +81,10 @@ function params_for_track(){
 
       var [beg,end] = list_marks_track.slice(-2)
       //--------- dim
-      var [width,thickness] = width_length_with_orientation(beg,end)
-      var dim = { width : width, height : 5, thickness : thickness}
+      var [width,rot] = width_length_with_orientation(beg,end)
+      var dim = { width : width, height : 5, thickness : track_width}
       //--------- r
-      var r = {'x': 0, 'y':0, 'z':0}
+      var r = {'x': 0, 'y':0, 'z':rot}
       //--------- p
       var [mx,my,mz] = getMiddle(beg,end)
       var p = {'x': mx, 'y':my, 'z':mz}
@@ -103,10 +102,12 @@ function make_oriented_track(){
       var [p,r,dim] = params_for_track()
       mat_track = new THREE.MeshBasicMaterial( { color : color_track_blue } )
       var [newname, interptsub] = random_name_mousepos()
-      var track = simple_parallelepiped(newname, p, r, mat_track, dim, "track")
+      var track = simple_parallelepiped(newname, p, r, mat_track, dim, "wall_box")
+      track.orientation = new THREE.Vector3(1,0,0)
+      var axis = new THREE.Vector3( 0, 0, 1 );
+      track.orientation.applyAxisAngle( axis, r.z );
 
 }
-
 
 function find_orientation_marks(mesh1, mesh2) {
 
@@ -148,7 +149,6 @@ function make_marks_and_track(){
       col = color_corner()
       var corner0 = corner(color_mark_quite_red)
       if (list_marks_track.length > 1){scene.remove(corner0)}
-
       var corner1 = corner(color_track_green)
       save_plot_track(corner0,corner1)
       SELECTED = corner1

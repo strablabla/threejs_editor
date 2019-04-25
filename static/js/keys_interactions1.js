@@ -25,6 +25,7 @@ function ending_track(){
             SELECTED = null;
             controls.enabled = true;
             scene.remove(last_mark_track)
+            limits_and_action_reinit_var() // select must be ok.. 
         }
 }
 
