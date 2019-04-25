@@ -35,7 +35,8 @@ function make_raycaster(event){
       mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
       mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
       var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
-      projector.unprojectVector( vector, camera );
+      //projector.unprojectVector( vector, camera );
+      vector.unproject(camera); // https://stackoverflow.com/questions/29366109/three-js-three-projector-has-been-moved-to
       var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 
       return raycaster

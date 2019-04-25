@@ -8,31 +8,59 @@ Initialization of the scene..
 const artyom = new Artyom();
 
 artyom.initialize({
-  lang:'fr',
+  lang:'fr-FR',
   continuous:true,
   debug:false,
   listen:true
 })
 
-var dvt = {'cube':'cube', 'sphere':'boule',
+function add_commands(dict, func){
+
+      var dftools = {}
+      var dctools = {}
+
+      Object.entries(dict).forEach(([key, value]) => {
+
+          dftools[key] = function(){ func(key) }
+          dctools[key] = {
+              indexes:[value], // These spoken words will trigger the execution of the command
+              action: dftools[key]
+            }
+          artyom.addCommands(dctools[key]); // Add the command with addCommands method. Now
+
+      }); // end for each
+}
+
+//--------------------------- Tools
+
+var dic_tools = {'cube':'cube', 'sphere':'boule',
             'box':'boîte', 'wall':'mur',
             'track':'piste', 'plane':'plan',
-            'pavement':'pavé'} // dict voice tool
-var dftools = {}
-var dctools = {}
+            'pavement':'pavé', 'no_tool':"pas d'outil"} // dict voice tool
 
-Object.entries(dvt).forEach(([key, value]) => {
+function tool_key(key){
 
-  dftools[key] = function(){
-        reinit_params_ok();
-        $('#curr_tool').text(key)
-        window['new_' + key + '_ok'] = true;
-  }
-  dctools[key] = {
+      /*
+      function associated to each sound..
+      */
 
-    indexes:[value], // These spoken words will trigger the execution of the command
-    action: dftools[key]
+      reinit_params_ok();
+      $('#curr_tool').text(key)
+      window['new_' + key + '_ok'] = true;
 
-  }
-  artyom.addCommands(dctools[key]); // Add the command with addCommands method. Now
-});
+}
+
+//------------------ Levels
+
+dic_levels = {'0':'niveau zéro','1':'premier niveau',
+              '2':'deuxième niveau', 'sup':'niveau supérieur',
+              'inf':'niveau inférieur'}
+
+function level_key(key){
+
+      alert('niveau ' + key);
+}
+
+
+add_commands(dic_tools, tool_key)
+add_commands(dic_levels, level_key)
