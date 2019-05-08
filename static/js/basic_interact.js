@@ -164,7 +164,7 @@ function color_corner(){
       Color of the marks
       */
 
-      if (select_obj){ col = color_mark_quite_grey }
+      if (new_select_ok){ col = color_mark_quite_grey }
       else{ col = color_mark_pale_rose }
 
       return col

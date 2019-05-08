@@ -38,8 +38,8 @@ function link_toggle(event, namekey, nameparam){
 
 function apply_to_one_obj_or_group(action, oneshot){
 
-      if ( INTERSECTED ){ action(INTERSECTED)} // Pi/2 rotation
-      else if(list_obj_inside.length > 0){ apply_to_all(action, oneshot) }
+      if ( INTERSECTED ){ action(INTERSECTED)}        // Apply to one object, the intersected one.. 
+      else if(list_obj_inside.length > 0){ apply_to_all(action, oneshot) } // Apply to the list of selected objects..
 
 }
 
@@ -82,10 +82,10 @@ function keyDownTextField1(event){
       //--------------------- Change variables
 
       link_toggle(event, 'g', 'select_move_group')          // move group
-      link_toggle(event, 'i', 'select_obj_infos')           // infos about the object selected
+      link_toggle(event, 'i', 'show_obj_infos_ok')           // infos about the object selected
       link_toggle(event, 'k', 'select_poscam')              // create new wall
       link_toggle(event, 'm', 'new_cube_texture_ok')        // create new cube with texture
-      link_toggle(event, 's', 'select_obj')                 // select object in area
+      link_toggle(event, 's', 'new_select_ok')                 // select object in area
       link_toggle(event, 't', 'new_track_ok')               // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
       link_toggle(event, 'x', 'scene_animation_ok')         //

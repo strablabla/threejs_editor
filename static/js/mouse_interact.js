@@ -36,7 +36,7 @@ function onDocumentMouseMove( event ) {
       */
 
       var raycaster = make_raycaster(event)
-      if (select_obj){ refresh_dotted_area() } // refresh the dotted line
+      if (new_select_ok){ refresh_dotted_area() } // refresh the dotted line
       if ( SELECTED ) {
           action_on_selected_when_moving(raycaster)
           return;

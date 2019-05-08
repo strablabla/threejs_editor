@@ -16,15 +16,13 @@ artyom.initialize({
 
 function add_commands(dict, func){
 
-      var dftools = {}
       var dctools = {}
 
       Object.entries(dict).forEach(([key, value]) => {
 
-          dftools[key] = function(){ func(key) }
           dctools[key] = {
               indexes:[value], // These spoken words will trigger the execution of the command
-              action: dftools[key]
+              action: function(){ func(key) } // dftools[key]
             }
           artyom.addCommands(dctools[key]); // Add the command with addCommands method. Now
 
@@ -33,10 +31,14 @@ function add_commands(dict, func){
 
 //--------------------------- Tools
 
-var dic_tools = {'cube':'cube', 'sphere':'boule',
-            'box':'boîte', 'wall':'mur',
-            'track':'piste', 'plane':'plan',
-            'pavement':'pavé', 'no_tool':"pas d'outil"} // dict voice tool
+var dic_tools = {
+                  'cube':'cube', 'select':'sélection', 'sphere':'boule',
+                  'box':'boîte', 'wall':'mur',
+                  'track':'piste', 'plane':'plan',
+                  'string':'chaîne', 'pavement':'pavé',
+                  'no_tool':"pas d'outil"
+
+                   } // dict voice tool
 
 function tool_key(key){
 
@@ -56,11 +58,22 @@ dic_levels = {'0':'niveau zéro','1':'premier niveau',
               '2':'deuxième niveau', 'sup':'niveau supérieur',
               'inf':'niveau inférieur'}
 
-function level_key(key){
+function level_key(key){   alert('niveau ' + key); }
 
-      alert('niveau ' + key);
-}
+// ------------------ Animation..
 
+dic_anim = {
+    indexes:['animation'], // spoken word..
+    action: function(){
+          //alert('you said anime !!! ')
+          $('#curr_tool').text('animation')
+          apply_to_one_obj_or_group(apply_movement, false)
+
+     } //
+  }
+artyom.addCommands(dic_anim); // Add the command with addCommands method. Now
+
+//--------------------
 
 add_commands(dic_tools, tool_key)
 add_commands(dic_levels, level_key)

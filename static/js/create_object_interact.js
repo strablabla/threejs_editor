@@ -183,7 +183,7 @@ function mouse_create_object_or_action(){
       link(new_string_ok, make_new_string, null)
       link(new_pavement_ok, dictp.make_pavement, null)
       link(new_cube_texture_ok, make_new_cube_texture, null)
-      link(select_obj, limits_and_action, null)
+      link(new_select_ok, limits_and_action, null)
       link(new_track_ok, make_marks_and_track, null)
       link(new_plane_ok, limits_and_action, make_horizontal_area)
       link(select_poscam, limits_and_action, newview)
