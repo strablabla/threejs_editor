@@ -38,7 +38,7 @@ function link_toggle(event, namekey, nameparam){
 
 function apply_to_one_obj_or_group(action, oneshot){
 
-      if ( INTERSECTED ){ action(INTERSECTED)}        // Apply to one object, the intersected one.. 
+      if ( INTERSECTED ){ action(INTERSECTED)}        // Apply to one object, the intersected one..
       else if(list_obj_inside.length > 0){ apply_to_all(action, oneshot) } // Apply to the list of selected objects..
 
 }
