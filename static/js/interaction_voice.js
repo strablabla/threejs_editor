@@ -37,6 +37,8 @@ var dic_tools = {
                   'track':'piste', 'plane':'plan',
                   'string':'chaîne', 'pavement':'pavé',
                   'no_tool':"pas d'outil"
+                  // , 'no_animation':"stop l'animation",
+                  // 'animation':"reprends l'animation"
 
                    } // dict voice tool
 
@@ -65,13 +67,30 @@ function level_key(key){   alert('niveau ' + key); }
 dic_anim = {
     indexes:['animation'], // spoken word..
     action: function(){
-          //alert('you said anime !!! ')
-          $('#curr_tool').text('animation')
+          $('#curr_tool').text('animation ok')
           apply_to_one_obj_or_group(apply_movement, false)
-
      } //
   }
+
+dic_anim_again = {
+    indexes:["reprends l'animation"], // spoken word..
+    action: function(){
+          scene_animation_ok = true
+          $('#curr_tool').text('animated again')
+     } //
+  }
+
+dic_anim_stop = {
+    indexes:["stoppe l'animation"], // spoken word..
+    action: function(){
+          scene_animation_ok = false
+          $('#curr_tool').text('not animated')
+     } //
+  }
+
 artyom.addCommands(dic_anim); // Add the command with addCommands method. Now
+artyom.addCommands(dic_anim_again);
+artyom.addCommands(dic_anim_stop);
 
 //--------------------
 
