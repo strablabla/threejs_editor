@@ -37,7 +37,7 @@ select_poscam = false; 			    // change camera position with mouse
 //---------------------- Infos
 
 infos_in_place = false;
-select_obj_infos = false;       // infos about the selected object..
+show_obj_infos_ok = false;       // infos about the selected object..
 
 //---------------------- Group
 
@@ -84,7 +84,7 @@ list_forbid_obj_for_interact = ['spring', 'elastic', 'pawn'] // list of non inte
 
 selpos = [];
 select_picking = false;         // picking the object fr future action..
-select_obj = false;             // select multiple objects.
+new_select_ok = false;             // select multiple objects.
 list_dotted_area = []
 size_elem_dotted_line = 15					// size of each element of the dotted line delimiting the selection area
 list_obj_inside = [];  					// list of the objects inside the area

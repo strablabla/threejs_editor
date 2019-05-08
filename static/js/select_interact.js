@@ -91,7 +91,7 @@ function limits_and_action(act_directly){
       if ( selpos.length < 2 ){ make_limits_mouse() }   // find the corners and make the area..
       else if (selpos.length == 2){
               if (act_directly){ act_directly(selpos) } // execute the action with the information of the position of the corners
-              if (select_obj){ find_objects_in_area() }
+              if (new_select_ok){ find_objects_in_area() }
               limits_and_action_reinit_var()
       } // end else if
 
@@ -104,7 +104,7 @@ function limits_and_action_reinit_var(){
       */
 
       selpos = []                     // positions of the corners
-      select_obj = false;
+      new_select_ok = false;
       new_plane_ok = false;
       SELECTED = null;
 

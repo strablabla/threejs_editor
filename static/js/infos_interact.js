@@ -99,9 +99,9 @@ function give_infos(){
       play with .panel
       */
 
-      if (select_obj_infos){                    //  select_obj_infos must be activated for accessing to the infos..
+      if (show_obj_infos_ok){                    //  show_obj_infos_ok must be activated for accessing to the infos..
           if ( INTERSECTED ){ show_infos() }
           modify_values(INTERSECTED)            // give the current values
-        } // end if select_obj_infos
+        } // end if show_obj_infos_ok
 
 } // end give infos
