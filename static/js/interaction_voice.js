@@ -88,9 +88,23 @@ dic_anim_stop = {
      } //
   }
 
+dic_speed_null = {
+    indexes:["toutes les vitesses à zéro"], // spoken word..
+    action: function(){
+        
+          for ( i in list_obj_inside ){
+              list_obj_inside[i].speed = new THREE.Vector3(0,0,0)
+              // alert(i)
+              // alert(list_moving_objects[i].speed.x)
+          }
+          $('#curr_tool').text('speed null')
+     } //
+  }
+
 artyom.addCommands(dic_anim); // Add the command with addCommands method. Now
 artyom.addCommands(dic_anim_again);
 artyom.addCommands(dic_anim_stop);
+artyom.addCommands(dic_speed_null);
 
 //--------------------
 

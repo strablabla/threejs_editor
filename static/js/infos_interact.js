@@ -9,11 +9,14 @@ Infos about the object
 
 function attr_dict(attr0){
 
-      var valx = INTERSECTED[attr0]['x']
-      var valy = INTERSECTED[attr0]['y']
-      var valz = INTERSECTED[attr0]['z']
+      var valc = {}
+      var listc = ['x','y','z']
+      for (var i in listc){
+          var coord = listc[i]
+          valc[coord] = Math.round(INTERSECTED[attr0][coord], 3)
+      }
 
-      return valx + '_' + valy + '_' + valz
+      return valc['x'] + '_' + valc['y'] + '_' + valc['z']
 
 }
 
