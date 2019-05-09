@@ -62,27 +62,13 @@ dict_obj_param['{{obj}}'] = 'new_' + '{{obj}}' + '_ok'
 
 reinit_params_ok()
 
-// function reinit_params_ok(){
-//
-//       new_wall_ok = false;  		    	// create a new wall with the mouse
-//       new_cube_ok = false;  		// create a new simple_cube with the mouse
-//       new_cube_texture_ok = false
-//       new_pavement_ok = false;
-//       new_plane_ok = false;             // make a plane
-//       new_sphere_ok = false;          // make a sphere
-//       new_box_ok = false              // box
-//
-// }
-
 $('#select_shape').change(function(){
 
       /*
       Select current option..
       */
 
-      //var dop = dict_obj_param
       reinit_params_ok()
-      //for (var i in dict_obj_param){ dict_obj_param[dict_obj_param[i]] = false }
       var param = dict_obj_param[$(this).val()]
       window[param] = true //! window[param]
 })

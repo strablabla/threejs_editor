@@ -61,6 +61,7 @@ paire_harmonic = false
 harmonic_const = 0.01
 dist_inter_wall_obj = 50
 dist_min_center_center = 40;
+lenght_spring = 1000;
 
 //-------------------- Energies
 
