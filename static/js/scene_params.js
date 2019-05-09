@@ -19,6 +19,7 @@ new_string_ok = false           // string
 //dict_obj_param = {}
 
 function reinit_params_ok(){
+  
       /*
       Reinitialize the variables for the object creation.
       */
@@ -58,10 +59,10 @@ random_speed_module = 60;
 list_paired_harmonic = []
 list_interm_pair = []
 paire_harmonic = false
-harmonic_const = 0.01
+harmonic_const = 0.01     // elastic force..
 dist_inter_wall_obj = 50
-dist_min_center_center = 40;
-lenght_spring = 1000;
+dist_min_center_center = 40;   // distance under which a shock is produced..
+lenght_spring = 0;
 
 //-------------------- Energies
 

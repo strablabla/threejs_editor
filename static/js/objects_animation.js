@@ -361,9 +361,9 @@ function interact_harmonic_vectors(i){
       var lphi1 = list_paired_harmonic[i][1]
       vec_harm_interact.subVectors(lphi1.position, lphi0.position) // vector from O to 1 ..
       ///////change_spring(list_paired_harmonic[i])
-      var diff_length = vec_harm_interact.length() - lenght_spring // compare lengths
+      // var diff_length = vec_harm_interact.length() - lenght_spring // compare lengths
+      // vec_harm_interact = vec_harm_interact.normalize().multiplyScalar( diff_length )
       //alert("diff_length is " + diff_length)
-      vec_harm_interact = vec_harm_interact.normalize().multiplyScalar( diff_length )
       // alert('vec_harm_interact.x ' + vec_harm_interact.x)
       // alert('vec_harm_interact.y ' + vec_harm_interact.y)
       change_elastic(list_paired_harmonic[i])
