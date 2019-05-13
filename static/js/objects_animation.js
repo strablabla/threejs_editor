@@ -265,6 +265,35 @@ function conditions_interaction_obj_plane(i,j){
 
 }
 
+
+function attraction(i,j,dist){
+
+      if (one_over_r2){
+
+        var [obji, objj] = objj_obji(i,j)
+        var vec_attract_interact = new THREE.Vector3()
+        vec_attract_interact.subVectors(obji.position, objj.position) // vector from O to 1 ..
+        objj.speed.addScaledVector(vec_attract_interact, attract_strength_one_over_r2/dist**2)
+        obji.speed.addScaledVector(vec_attract_interact, -attract_strength_one_over_r2/dist**2)
+
+      }
+}
+
+function collision(i,j,dist){
+
+      /*
+      Collision interaction
+      */
+
+      var [obji, objj] = objj_obji(i,j)
+      if (dist < dist_min_center_center){
+            check_change_color(obji,0xff0000)
+            check_change_color(objj,0xff0000)
+            change_speed_after_center_center_collision(i,j)  // physical interaction
+        } // end if dist
+
+}
+
 function interaction_center_center(i,j){
 
       /*
@@ -273,11 +302,13 @@ function interaction_center_center(i,j){
 
       var [obji, objj] = objj_obji(i,j)
       var dist = getDistance(obji, objj) // distance center-center
-      if (dist < dist_min_center_center){
-            check_change_color(obji,0xff0000)
-            check_change_color(objj,0xff0000)
-            change_speed_after_center_center_collision(i,j)  // physical interaction
-        } // end if dist
+      // if (dist < dist_min_center_center){
+      //       check_change_color(obji,0xff0000)
+      //       check_change_color(objj,0xff0000)
+      //       change_speed_after_center_center_collision(i,j)  // physical interaction
+      //   } // end if dist
+      collision(i,j,dist)  // collision interaction
+      attraction(i,j,dist)
 
 }
 
@@ -288,7 +319,7 @@ function interaction_between_ij(i,j){
       */
 
       var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
-      if ( cnd1 & cnd2 &cnd3 ){ interaction_obj_plane(i,j) } // interaction between object and plane.  .
+      if ( cnd1 & cnd2 &cnd3 ){ interaction_obj_plane(i,j) }   // interaction between object and plane.  .
       else { interaction_center_center(i,j) } // // interaction center to center
 
 }
@@ -354,6 +385,7 @@ function interact_harmonic_vectors(i){
 
       /*
       Vectors for harmonic interaction
+      Taking in account if length of equilibrium.. (lenght_spring)
       */
 
       var vec_harm_interact = new THREE.Vector3()
@@ -361,8 +393,8 @@ function interact_harmonic_vectors(i){
       var lphi1 = list_paired_harmonic[i][1]
       vec_harm_interact.subVectors(lphi1.position, lphi0.position) // vector from O to 1 ..
       ///////change_spring(list_paired_harmonic[i])
-      // var diff_length = vec_harm_interact.length() - lenght_spring // compare lengths
-      // vec_harm_interact = vec_harm_interact.normalize().multiplyScalar( diff_length )
+      var diff_length = vec_harm_interact.length() - lenght_spring // compare lengths
+      vec_harm_interact = vec_harm_interact.normalize().multiplyScalar( diff_length )
       //alert("diff_length is " + diff_length)
       // alert('vec_harm_interact.x ' + vec_harm_interact.x)
       // alert('vec_harm_interact.y ' + vec_harm_interact.y)
@@ -380,8 +412,8 @@ function interaction_harmonic_between_pairs(){
       for (var i in list_paired_harmonic){
             var [vec_harm_interact, lphi0, lphi1] = interact_harmonic_vectors(i)
             //-------- Change the speeds
-            lphi0.speed.addScaledVector(vec_harm_interact,harmonic_const)
-            lphi1.speed.addScaledVector(vec_harm_interact,-harmonic_const)
+            lphi0.speed.addScaledVector(vec_harm_interact,harmonic_const)  // change speed of first pair element..
+            lphi1.speed.addScaledVector(vec_harm_interact,-harmonic_const)  // change speed of second pair element..
       }
 
 }
@@ -437,12 +469,12 @@ function interactions_between_objects(){
       if (list_moving_objects.length > 0){
           for (var i=0; i< list_moving_objects.length; i++){
                 for (var j=i+1; j <  list_moving_objects.length; j++){
-                      if(allow_interaction_ij(i,j)){ interaction_between_ij(i,j) } // i j interaction
+                      if ( allow_interaction_ij(i,j) ) { interaction_between_ij(i,j) } // i j interaction
                   } // end for j
             } // end for i
           interaction_harmonic_between_pairs()
       } // end if in moving_objects
-      no_interaction_color()
+      no_interaction_color()  // restitute color if no interaction
 
 }
 
