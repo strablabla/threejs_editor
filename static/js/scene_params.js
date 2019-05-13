@@ -19,7 +19,7 @@ new_string_ok = false           // string
 //dict_obj_param = {}
 
 function reinit_params_ok(){
-  
+
       /*
       Reinitialize the variables for the object creation.
       */
@@ -55,7 +55,7 @@ dic_sphere_blocked = {}							// dict of the sphere indicating the element is bl
 scene_animation_ok = true
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
-random_speed_module = 60;
+random_speed_module = 50;
 list_paired_harmonic = []
 list_interm_pair = []
 paire_harmonic = false
@@ -63,6 +63,8 @@ harmonic_const = 0.01     // elastic force..
 dist_inter_wall_obj = 50
 dist_min_center_center = 40;   // distance under which a shock is produced..
 lenght_spring = 0;
+one_over_r2 = true
+attract_strength_one_over_r2 = 500;
 
 //-------------------- Energies
 
@@ -70,6 +72,7 @@ elast_energy = 0  // elastic
 kin_energy = 0    // kinetic
 grav_energy = 0   // gravity
 tot_energy = 0    // total
+
 //------------
 
 max_kin = 0       // maximum of kinetic energy

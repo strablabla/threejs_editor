@@ -89,9 +89,9 @@ dic_anim_stop = {
   }
 
 dic_speed_null = {
-    indexes:["toutes les vitesses à zéro"], // spoken word..
+    indexes:["vitesse zéro", "vitesse nulle"], // spoken word..
     action: function(){
-        
+
           for ( i in list_obj_inside ){
               list_obj_inside[i].speed = new THREE.Vector3(0,0,0)
               // alert(i)
