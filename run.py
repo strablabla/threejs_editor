@@ -14,7 +14,7 @@ ATTENTION !!!! pour faire connection avec pyserial faire "sudo $HOME/anaconda/bi
 import eventlet
 eventlet.monkey_patch()
 #################
-import os, sys, time, json
+import os, sys, time, json, glob
 opd, opb = os.path.dirname, os.path.basename
 import shutil as sh
 sys.path.append('/usr/lib/python2.7/dist-packages')
@@ -58,12 +58,10 @@ def receive(message):
         f.write(str(message))
     with open('static/pos.json', 'r') as f:
         g = json.load(f)
-        try:
-            if g['scene_name'] != 'None':
-                with open('static/scenes/{}.json'.format(g['scene_name']), 'w') as h:
-                    h.write(str(message))
-        except:
-            print("probably no scene_name")
+    sn = (g.get('scene_name') or '').strip()                # nom de scène nettoye
+    if sn and sn != 'None':                                  # n'archive que les scenes reellement nommees
+        with open('static/scenes/{}.json'.format(sn), 'w') as h:
+            h.write(str(message))
 
 @socketio.on('begin', namespace='/pos')
 def receive(begin):
@@ -117,6 +115,44 @@ def upload_file(debug=1):
 
     #print("####### On the point to scan UPLOADED_PATH !!!")
     return render_template('moving_walls.html')
+
+@app.route('/scenes')
+def list_scenes():
+    '''
+    Return the list of saved named scenes (files in static/scenes/).
+    '''
+    names = []
+    for path in glob.glob('static/scenes/*.json'):
+        name = opb(path)[:-5]              # strip the .json extension
+        if name.strip():                   # skip the empty-named archive
+            names.append(name)
+    return flask.jsonify(sorted(names))
+
+@app.route('/scene/<path:name>')
+def load_named_scene(name):
+    '''
+    Load a named scene : copy it into static/pos.json (so a refresh keeps it)
+    and return its JSON content to the client.
+    '''
+    path = os.path.join('static', 'scenes', name + '.json')
+    if not os.path.exists(path):
+        return flask.jsonify({'error': 'scene not found'}), 404
+    with open(path, 'r') as f:
+        content = f.read()
+    with open('static/pos.json', 'w') as f:   # makes it the current scene
+        f.write(content)
+    return flask.Response(content, mimetype='application/json')
+
+@app.route('/scene_delete/<path:name>', methods=['GET', 'POST'])
+def delete_named_scene(name):
+    '''
+    Delete a named scene file from static/scenes/.
+    '''
+    path = os.path.join('static', 'scenes', name + '.json')
+    if os.path.exists(path):
+        os.remove(path)
+        return flask.jsonify({'ok': True})
+    return flask.jsonify({'error': 'scene not found'}), 404
 
 def background_thread():
     """Example of how to send server generated events to clients."""

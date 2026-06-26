@@ -52,19 +52,21 @@ dic_sphere_blocked = {}							// dict of the sphere indicating the element is bl
 
 //----------------------  Movement and interactions
 
-scene_animation_ok = true
+scene_animation_ok = false   // l'animation ne démarre qu'à l'appui sur 'a' (ou voix « animation »)
+gravity_ok = true            // gravité verticale (z) activable depuis le panneau Interaction
+springs_ok = true            // forces de ressort (chaînes/élastiques)
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
 random_speed_module = 50;
 list_paired_harmonic = []
 list_interm_pair = []
 paire_harmonic = false
-harmonic_const = 0.01     // elastic force..
+harmonic_const = 0.06     // raideur du ressort (k/m) — intégrée en Verlet (force = k·déplacement)
 dist_inter_wall_obj = 50
 dist_min_center_center = 40;   // distance under which a shock is produced..
-lenght_spring = 0;
+lenght_spring = 150;   // longueur au repos des ressorts (> diamètre des boules) : évite le repliement de la chaîne
 one_over_r2 = true
-attract_strength_one_over_r2 = 500;
+attract_strength_one_over_r2 = 3000;   // intensité de l'attraction (intégrée en Verlet)
 
 //-------------------- Energies
 

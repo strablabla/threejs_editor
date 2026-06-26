@@ -1,0 +1,63 @@
+<!-- Interaction : pilotage de la physique en direct -->
+
+    <div class="panel_interaction input_interface" hidden >
+
+      <div class="titlepanel" > Interaction </div>
+
+          <br><br><br>
+
+          <div class="help">
+            <label><input type="checkbox" id="chk_gravity"> Gravité (z)</label>
+          </div><br>
+
+          <div class="help">
+            <label><input type="checkbox" id="chk_springs"> Ressorts (chaînes)</label>
+          </div><br>
+
+          <div class="help">
+            <label><input type="checkbox" id="chk_attract"> Interaction entre objets (1/r²)</label>
+          </div><br>
+
+          <div class="help">
+            <label><input type="radio" name="attract_sign" id="rad_attract"> Attraction</label>
+            &nbsp;
+            <label><input type="radio" name="attract_sign" id="rad_repulse"> Répulsion</label>
+          </div><br>
+
+          <div class="help"> <span> Intensité : </span>
+            <input value="3000" size=8 id="attract_strength_input">
+          </div><br>
+
+    </div>
+
+    <script>
+
+    // --- Initialise les contrôles à partir des variables globales (scene_params.js) ---
+    $('#chk_gravity').prop('checked', gravity_ok)
+    $('#chk_springs').prop('checked', springs_ok)
+    $('#chk_attract').prop('checked', one_over_r2)
+    $('#rad_attract').prop('checked', attract_strength_one_over_r2 >= 0)
+    $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
+    $('#attract_strength_input').val(Math.abs(attract_strength_one_over_r2))
+
+    // --- Câblage : chaque contrôle écrit dans le drapeau physique correspondant ---
+    $('#chk_gravity').change(function(){ gravity_ok = this.checked })
+    $('#chk_springs').change(function(){ springs_ok = this.checked })
+    $('#chk_attract').change(function(){ one_over_r2 = this.checked })
+
+    function update_attract_strength(){
+        var mag  = Math.abs(parseFloat($('#attract_strength_input').val()) || 0)
+        var sign = $('#rad_repulse').is(':checked') ? -1 : 1   // répulsion = signe négatif
+        attract_strength_one_over_r2 = sign * mag
+    }
+    $('#rad_attract').change(update_attract_strength)
+    $('#rad_repulse').change(update_attract_strength)
+    $('#attract_strength_input').on('input change', update_attract_strength)
+
+    // Ne pas faire pivoter la caméra quand on manipule le panneau
+    $('.panel_interaction').hover(
+        function(){ controls.enabled = false },
+        function(){ controls.enabled = true }
+    )
+
+    </script>

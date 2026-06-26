@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# Environnements virtuels
+venv/
+env/
+.venv/
+.env
+
+# Sauvegardes de scènes générées au runtime
+/static/old/*
+!/static/old/.gitkeep
+
+# Fichiers uploadés (textures déposées via Dropzone)
+/static/upload/*
+!/static/upload/Blank.jpg
+!/static/upload/face_color/
+
+# Divers OS / éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

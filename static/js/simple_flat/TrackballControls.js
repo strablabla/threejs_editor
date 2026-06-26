@@ -535,3 +535,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 	this.handleResize();
 
 };
+
+// Compatibilité three.js r75 : EventDispatcher expose ses méthodes (dispatchEvent,
+// addEventListener...) via le prototype, et non plus via EventDispatcher.call(this).
+THREE.TrackballControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+THREE.TrackballControls.prototype.constructor = THREE.TrackballControls;

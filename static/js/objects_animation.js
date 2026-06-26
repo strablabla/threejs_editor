@@ -302,13 +302,8 @@ function interaction_center_center(i,j){
 
       var [obji, objj] = objj_obji(i,j)
       var dist = getDistance(obji, objj) // distance center-center
-      // if (dist < dist_min_center_center){
-      //       check_change_color(obji,0xff0000)
-      //       check_change_color(objj,0xff0000)
-      //       change_speed_after_center_center_collision(i,j)  // physical interaction
-      //   } // end if dist
-      collision(i,j,dist)  // collision interaction
-      attraction(i,j,dist)
+      collision(i,j,dist)  // collision interaction (impulsive)
+      // attraction : déplacée dans compute_accelerations (force lisse intégrée en Verlet)
 
 }
 
@@ -374,10 +369,24 @@ function change_elastic(obj){
       */
 
       var new_elastic = obj[2]
-      new_elastic.position.copy(obj[0].matrixWorld.getPosition()); // stick spring to object..
+      new_elastic.position.copy(obj[0].position); // stick spring to object (position locale = monde, objets non imbriqués)
       var new_elastic_scale = getDistance(obj[0], obj[1])/420
       new_elastic.scale.set(1,1,new_elastic_scale)
       new_elastic.lookAt(obj[1].position)
+
+}
+
+function update_all_elastics(){
+
+      /*
+      Recale tous les ressorts/élastiques sur la position courante des boules.
+      Appelé à chaque frame (y compris pendant un drag, animation à l'arrêt)
+      pour que la chaîne suive visuellement les boules déplacées.
+      */
+
+      for (var i in list_paired_harmonic){
+            change_elastic(list_paired_harmonic[i])
+      }
 
 }
 
@@ -459,10 +468,10 @@ function allow_interaction_ij(i,j){
 function interactions_between_objects(){
 
       /*
-      Interactions :
-          * object-plane
-          * center-center
-          * harmonic
+      Interactions impulsives (non issues d'un potentiel lisse) :
+          * rebond objet-mur
+          * collision élastique centre-centre
+      (les ressorts et l'attraction sont traités en accélérations -> compute_accelerations)
       */
 
       list_interact = []
@@ -472,7 +481,6 @@ function interactions_between_objects(){
                       if ( allow_interaction_ij(i,j) ) { interaction_between_ij(i,j) } // i j interaction
                   } // end for j
             } // end for i
-          interaction_harmonic_between_pairs()
       } // end if in moving_objects
       no_interaction_color()  // restitute color if no interaction
 
@@ -556,15 +564,153 @@ function calculate_total_energy(){
 
 }
 
+//===================================================================== Velocity Verlet
+
+/*
+Intégrateur symplectique Velocity Verlet pour les forces lisses (conservatives) :
+gravité, ressorts harmoniques, attraction. Schéma (par objet, masse m) :
+
+      x_{n+1} = x_n + v_n·dt + ½·a_n·dt²
+      v_{n+1} = v_n + ½·(a_n + a_{n+1})·dt
+
+avec a = F/m calculé à partir des positions (forces indépendantes de la vitesse).
+Les collisions/rebonds (mur, sol, choc centre-centre) sont des impulsions appliquées
+après le pas Verlet : elles ne dérivent pas d'un potentiel lisse.
+*/
+
+function accel_attraction(i,j){
+
+      /*
+      Attraction entre deux objets (terme « one_over_r2 »), ajoutée à l'accélération.
+      */
+
+      if (!one_over_r2){ return }
+      var [obji, objj] = objj_obji(i,j)
+      var dist = getDistance(obji, objj)
+      if (dist < 1){ return }                                  // évite la division par ~0
+      var vec = new THREE.Vector3().subVectors(obji.position, objj.position) // de j vers i
+      var f = attract_strength_one_over_r2/(dist*dist)
+      objj.acc.addScaledVector(vec,  f/objj.mass)              // j attiré vers i
+      obji.acc.addScaledVector(vec, -f/obji.mass)              // i attiré vers j
+
+}
+
+function accel_spring(k){
+
+      /*
+      Force de rappel harmonique (ressort) d'une paire, ajoutée à l'accélération.
+      F = -harmonic_const·(longueur - longueur_au_repos) le long du ressort.
+      */
+
+      var p0 = list_paired_harmonic[k][0]
+      var p1 = list_paired_harmonic[k][1]
+      var vec = new THREE.Vector3().subVectors(p1.position, p0.position)
+      var diff_length = vec.length() - lenght_spring
+      vec.normalize().multiplyScalar(diff_length)
+      p0.acc.addScaledVector(vec,  harmonic_const/p0.mass)
+      p1.acc.addScaledVector(vec, -harmonic_const/p1.mass)
+
+}
+
+function compute_accelerations(){
+
+      /*
+      Accélération a(x) de chaque objet mobile à partir des forces lisses :
+      gravité (constante en z) + attraction (centre-centre) + ressorts.
+      */
+
+      for (var i in list_moving_objects){                      // reset + gravité
+            var o = list_moving_objects[i]
+            if (!o.acc){ o.acc = new THREE.Vector3() }
+            if (o.blocked || !gravity_ok){ o.acc.set(0, 0, 0) }  // statique/ancre ou gravité coupée
+            else { o.acc.set(0, 0, -9.81*0.1) }
+      }
+      for (var i=0; i< list_moving_objects.length; i++){       // attraction de paires (hors murs)
+            for (var j=i+1; j< list_moving_objects.length; j++){
+                  if ( allow_interaction_ij(i,j) ){
+                        var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
+                        if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // pas une paire mur-objet
+                  }
+            }
+      }
+      if (springs_ok){ for (var k in list_paired_harmonic){ accel_spring(k) } }   // ressorts
+      if (!gravity_ok){                                        // mode planaire : aucune accélération en z
+            for (var i in list_moving_objects){ list_moving_objects[i].acc.z = 0 }
+      }
+
+}
+
+function verlet_positions(delta){
+
+      /*
+      x_{n+1} = x_n + v_n·dt + ½·a_n·dt²  puis premier demi-coup de vitesse (½·a_n·dt).
+      obj.acc contient a_n (calculé à la frame précédente).
+      */
+
+      var hdt2 = 0.5*delta*delta
+      var hdt  = 0.5*delta
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (!o.acc){ o.acc = new THREE.Vector3() }
+            if (!gravity_ok){ o.speed.z = 0; o.acc.z = 0 }     // mode planaire : pas de vitesse verticale résiduelle
+            if (o.blocked){ continue }                         // objet statique/ancre : ne bouge pas
+            o.position.x += o.speed.x*delta + o.acc.x*hdt2
+            o.position.y += o.speed.y*delta + o.acc.y*hdt2
+            o.position.z += o.speed.z*delta + o.acc.z*hdt2
+            o.speed.x += o.acc.x*hdt
+            o.speed.y += o.acc.y*hdt
+            o.speed.z += o.acc.z*hdt
+      }
+
+}
+
+function verlet_velocities(delta){
+
+      /*
+      Second demi-coup de vitesse avec a_{n+1} : v_{n+1} = v_half + ½·a_{n+1}·dt.
+      */
+
+      var hdt = 0.5*delta
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o.blocked){ continue }                         // objet statique/ancre : vitesse figée
+            o.speed.x += o.acc.x*hdt
+            o.speed.y += o.acc.y*hdt
+            o.speed.z += o.acc.z*hdt
+      }
+
+}
+
+function ground_bounce(){
+
+      /*
+      Contrainte du sol : rebond élastique quand le centre passe sous height/2.
+      */
+
+      if (!gravity_ok){ return }                               // mode planaire : pas de sol (gravité coupée)
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o.blocked){ continue }                         // objet statique : pas de rebond sol
+            var hz = o.height/2
+            if (o.position.z < hz){
+                  o.position.z = hz
+                  o.speed.z = -o.speed.z
+            }
+      }
+
+}
+
 function interactions_and_movement(delta){
 
       /*
-      Gravity and other interactions..
+      Un pas de Velocity Verlet + interactions impulsives.
       */
 
-      gravity(delta)
-      interactions_between_objects()
-      update_all_pos(delta)
+      verlet_positions(delta)            // x_{n+1} (+ ½ coup de vitesse, avec a_n)
+      compute_accelerations()            // a_{n+1} aux nouvelles positions
+      verlet_velocities(delta)           // ½ coup de vitesse restant (avec a_{n+1})
+      interactions_between_objects()     // collisions + rebonds murs (impulsions) + couleurs
+      ground_bounce()                    // rebond sur le sol
       calculate_total_energy()
 
 }

@@ -237,9 +237,11 @@ function wall_for_box(pos, dim, orientation){
 
       var object = simple_parallelepiped(newname,pos,{"x":0, "y":0, "z":0},listmat[newname],dim,'wall_box')
       object.orientation = orientation
+      object.blocked = true                 // mur statique : la gravité/Verlet ne le déplace pas
       listorig[newname] = object
       scene.add(object)
       objects.push(object)
+      list_moving_objects.push(object)      // entre dans la boucle d'interactions -> les boules rebondissent (sans 'a')
       //alert("wall box is ok")
       return object
 

@@ -36,6 +36,25 @@ function link_toggle(event, namekey, nameparam){
 
 }
 
+function toggle_tool(key){
+
+      /*
+      Active/désactive un outil de création (boule, chaîne...).
+      Un appui active l'outil (et désactive les autres) ; un second appui le coupe.
+      */
+
+      var flag = 'new_' + key + '_ok'
+      if (window[flag]){                     // déjà actif -> on le coupe
+            reinit_params_ok()
+            if (key == 'string'){ list_string = [] }  // repartir sur une nouvelle chaîne au prochain usage
+            $('#curr_tool').text('aucun outil')
+      } else {
+            if (key == 'string'){ list_string = [] }  // chaque activation démarre une chaîne indépendante
+            tool_key(key)                    // active cet outil (et réinitialise les autres)
+      }
+
+}
+
 function apply_to_one_obj_or_group(action, oneshot){
 
       if ( INTERSECTED ){ action(INTERSECTED)}        // Apply to one object, the intersected one..
@@ -73,7 +92,7 @@ function keyDownTextField1(event){
 
       if (event.keyCode == 38 ){ apply_to_one_obj_or_group(move_obj_up, false)  }  // Up
       if (event.keyCode == 40 ){ apply_to_one_obj_or_group(move_obj_down, false) } // Down
-      if ( keyev('a', event) ){ apply_to_one_obj_or_group(apply_movement, false) } // physical motor
+      if ( keyev('a', event) ){ scene_animation_ok = true; apply_to_one_obj_or_group(apply_movement, false) } // démarre l'animation (+ enregistre l'objet survolé)
       if ( keyev('c', event) ){ if (INTERSECTED){ clone_object() } }   						 // Clone the selected object
       if ( keyev('d', event) ){ delete_object() }   				  // Delete object selected
       //if ( keyev('b', event) ){ delete_area() }               // Delete selection area
@@ -89,6 +108,10 @@ function keyDownTextField1(event){
       link_toggle(event, 't', 'new_track_ok')               // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
       link_toggle(event, 'x', 'scene_animation_ok')         //
+      if ( keyev('o', event) ){ toggle_tool('sphere') }     // outil boule : appui = on, second appui = off
+      if ( keyev('e', event) ){ toggle_tool('string') }     // outil chaîne : appui = on, second appui = off
+      if ( keyev('n', event) ){ toggle_tool('wall') }       // outil mur : appui = on, second appui = off
+      if ( keyev('w', event) ){ toggle_tool('box') }        // outil boîte (enceinte de murs réfléchissants)
       if (keyev('b', event)){ reinit_params_ok() } // dict_obj_param_false()
 
   } // end keyDownTextField1
@@ -106,10 +129,10 @@ function keyDownTextField2(event){
 
 var current_key = ""
 var currfuncdic = {'k':'camera', 'c':'clone', 'r':'rotation',
-                    'n':'new piece', 's':'select area',
+                    'n':'mur', 'w':'boîte', 's':'select area',
                     'd':'delete', 'a':'apply movement',
                     'u':'paire harmonic', 'o':'new sphere',
-                    't': 'select track'}
+                    'e':'chaîne', 't': 'select track'}
 
 var keyev = function(key, event){
 

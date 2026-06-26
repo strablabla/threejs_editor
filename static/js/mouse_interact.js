@@ -71,9 +71,9 @@ function onDocumentMouseUp( event ) {
       event.preventDefault();
       controls.enabled = true;
       if (nearest_elem){ magnet_between_objects(nearest_elem) }  // attraction between walls.. by the sides..
-      if ( INTERSECTED ) {
-          LAST_SELECTED = SELECTED;
-          SELECTED = null;
+      if ( SELECTED && selpos.length === 0 ) { // relâcher l'objet attrapé, SAUF pendant la définition d'une zone
+          LAST_SELECTED = SELECTED;            // (les coins de zone doivent suivre la souris jusqu'au 2e clic).
+          SELECTED = null;                     // selpos vide => drag d'objet réel : on lâche (corrige le « collé à la souris »).
       }
       container.style.cursor = 'auto';
       color_pick()                          // Color the picked objects..

@@ -60,6 +60,7 @@
 
 		function render() {
 				controls.update();
+				update_all_elastics();   // les ressorts suivent les boules (drag inclus, même animation à l'arrêt)
 				renderer.render( scene, camera );
 		}
 

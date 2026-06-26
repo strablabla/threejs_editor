@@ -71,7 +71,7 @@ function actions_with_block_unblock(obj){
 //------------------------   dicths, panels
 
 dicths = {}
-list_panels = ['objects', 'views', 'scene', 'tools', 'help']
+list_panels = ['objects', 'views', 'scene', 'tools', 'interaction', 'help']
 
 function one_element_dicths(name_panel){
     dicths[name_panel] = function(){ generic_action_panel("#" + name_panel, '.panel_' + name_panel) }}
@@ -200,6 +200,7 @@ function init_interf_actions(){
       dicths.views()          //---------------------- Views..
       dicths.scene()          //---------------------- scene
       dicths.tools()          //---------------------- scene
+      dicths.interaction()    //---------------------- Interaction (physique)
       dicths.help()           //---------------------- Help
 
       // Actions

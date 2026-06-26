@@ -316,6 +316,25 @@ Panel scene
 Panel scene
 */
 
+.panel_interaction {
+
+	font-family: 'Playfair Display';
+	font-size: 0.85em;
+	letter-spacing: 0.2em;
+	position: absolute;
+	top: 50px;
+	right:2px;
+	margin-left:5px;
+	padding-left: 10px;
+	padding-top: 20px;
+	width: 400px;
+	height: 600px;
+	background-color:#fff;
+	z-index: 9999;
+	opacity: 1;
+
+}
+
 .panel_tools {
 
 	font-family: 'Playfair Display';

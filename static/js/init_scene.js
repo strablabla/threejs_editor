@@ -49,11 +49,17 @@ var keys = function(){/*
     * d : delete
 		* g : move a whole group
     * h : make an horizontal plane..
+    * o : sphere (ball)
+    * e : chain (balls linked by springs)
+    * u : link two objects with a spring
     * i : infos about the selected object
     * k : select camera position and view direction with the mouse..
     * l : simple cube
     * m : cubes with texture
-    * n : wall
+    * n : wall (single panel)
+    * w : box (enclosure of reflecting walls)
+    * a : start the physics animation
+    * x : toggle animation on/off
     * r : rotation
     * s : select an area
     * p: select many objects separately
@@ -128,16 +134,72 @@ function load_cube_mult_tex(name, msg){
 
 }
 
+function load_sphere(name, msg){
+
+      /*
+      Recharge une sphère (boule de chaîne incluse) avec sa vitesse/masse/etc.
+      */
+
+      curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
+      listorig[name] = basic_sphere( name, msg[name]['pos'], msg[name]['rot'], 0x000000 )
+      load_params(name, msg, curr_tex_addr)
+      list_moving_objects.push(listorig[name])   // redevient dynamique (anime au prochain 'a')
+
+}
+
+function load_wall_box(name, msg){
+
+      /*
+      Recharge un mur de boîte (wall_box) : dimensions, orientation, statique.
+      */
+
+      curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
+      curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr )
+      listmat[name] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey })
+      var dim = { width : msg[name]['width'], height : msg[name]['height'], thickness : msg[name]['thickness'] }
+      var obj = simple_parallelepiped( name, msg[name]['pos'], msg[name]['rot'], listmat[name], dim, 'wall_box' )
+      var ori = msg[name]['orientation']
+      if (ori){ obj.orientation = new THREE.Vector3(ori.x, ori.y, ori.z) }
+      listorig[name] = obj
+      load_params(name, msg, curr_tex_addr)
+      obj.blocked = true                         // mur statique
+      list_moving_objects.push(obj)              // dans la boucle d'interactions -> les boules rebondissent
+
+}
+
 function load_object(name, msg){
 
       /*
       Create a new object json file containing all the information about the scene..
       */
 
-      if (msg[name]['type'] in dic_type_parall){ load_parallelepiped_shapes(name, msg) }
-      else if (msg[name]['type'] == "cube_mult_tex"){ load_cube_mult_tex(name, msg) } // end else
+      var t = msg[name]['type']
+      if (t in dic_type_parall){ load_parallelepiped_shapes(name, msg) }
+      else if (t == "cube_mult_tex"){ load_cube_mult_tex(name, msg) }
+      else if (t == "sphere"){ load_sphere(name, msg) }
+      else if (t == "wall_box"){ load_wall_box(name, msg) }
+      // 'elastic'/'spring' : ignorés, recréés via load_chains
 
 } // end load_object ...
+
+function load_chains(msg){
+
+      /*
+      Reconstruit les liaisons de chaîne (ressorts) à partir des paires sauvegardées.
+      */
+
+      if (!msg['_chains']){ return }
+      for (var k in msg['_chains']){
+            var s0 = listorig[ msg['_chains'][k][0] ]
+            var s1 = listorig[ msg['_chains'][k][1] ]
+            if (s0 && s1){
+                  var el = create_elastic([s0, s1])
+                  list_paired_harmonic.push([s0, s1, el])
+            }
+      }
+      if (list_paired_harmonic.length > 0){ color_pairs_in_blue() }
+
+}
 
 function load_scene(msg){
 
@@ -149,6 +211,7 @@ function load_scene(msg){
               var name = Object.keys(msg)[i]  									// k is the objects name
               load_object(name, msg)                           // load the objects wall..
           } // end for
+      load_chains(msg)                                         // reconstruit les ressorts des chaînes
 
 } // end load_scene..
 
@@ -197,6 +260,8 @@ function condition_emit(i){
 
       var emit_conditions = objects[i].type != 'pawn' &
                             objects[i].type != null &
+                            objects[i].type != 'elastic' &   // recréés à partir des paires de chaîne (_chains)
+                            objects[i].type != 'spring' &
                             !objects[i].del
 
       return emit_conditions
@@ -210,7 +275,8 @@ function make_infos_obj(i){
       */
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
-                          'mass', 'speed', 'radius_interact', 'magnet', 'friction']
+                          'mass', 'speed', 'radius_interact', 'magnet', 'friction',
+                          'width', 'height', 'thickness', 'orientation']  // utiles pour recréer sphères/boîtes
       var x = objects[i].rotation.x
       var y = objects[i].rotation.y
       var z = objects[i].rotation.z
@@ -244,6 +310,9 @@ function emit_infos_scene(){          									// emits the positions toward the
               listpos['scene_name'] = scene.name
             }    // end if
           }    // end for
+    if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (par noms de boules)
+          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name] })
+    }
     socket.emit( 'message', JSON.stringify(listpos));  // send the informations to the server
   }    // end emit_infos_scene
 
