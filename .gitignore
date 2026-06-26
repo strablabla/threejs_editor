@@ -19,6 +19,9 @@ env/
 !/static/upload/Blank.jpg
 !/static/upload/face_color/
 
+# Assets de test/démo lourds, non utilisés par l'appli (~79 Mo) — gardés en local, non suivis
+/templates/tests/
+
 # Divers OS / éditeurs
 .DS_Store
 Thumbs.db
