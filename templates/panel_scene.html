@@ -6,32 +6,27 @@
 
           <br><br><br>
 
-          <div  class="help" > <span> Name: </span><span> </span>
-                  <input  value="" placeholder="nom de scène" size=16 id="scene_name">
+          <div  class="help" > <span> Name: </span>
+                  <input  value="" placeholder="nom" size=8 id="scene_name">
+                  <button id="save_as_scene" type="button" class="btn btn-success btn-sm"> Save as </button>
+                  <button id="new_scene"     type="button" class="btn btn-primary btn-sm"> New scene </button>
           </div> <br>
-          <div  class="help" > <span> Charger : </span>
-                  <div class="dropdown" style="display:inline-block; text-align:left">
-                    <button class="btn btn-default btn-sm dropdown-toggle" type="button"
+          <div  class="help" >
+                  <div class="dropdown" style="display:inline-block; text-align:left; font-size:1.5em">
+                    <button class="btn btn-default dropdown-toggle" type="button"
                             id="scene_dropdown_btn" data-toggle="dropdown"
                             aria-haspopup="true" aria-expanded="false">
-                      <span id="scene_dropdown_label">choisir&hellip;</span> <span class="caret"></span>
+                      <span id="scene_dropdown_label">choose&hellip;</span> <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu" id="scene_dropdown_menu" aria-labelledby="scene_dropdown_btn"></ul>
                   </div>
+                  <button id="load_scene" type="button" class="btn btn-warning"> Load </button>
+                  <button id="delete_scene" type="button" class="btn btn-danger btn-sm"> Supprimer </button>
           </div> <br>
-          <center>
-                   <button id="load_scene" type="button" class="btn btn-info"> Load </button>
-                   <button id="delete_scene" type="button" class="btn btn-danger"> Supprimer </button>
-          </center> <br>
           <div  class="help" id="scene_sky" > Sky </div><br>
           <div  class="help" id="scene_ground" > Ground </div><br>
           <div  class="help" id="scene_light" > Light </div><br>
           <div  class="help" id="scene_fog" > Fog </div><br>
-
-          <center> <button id="save_scene" type="button" class="btn btn-success">
-                    save
-                   </button>
-          </center> <br>
 
           <center> <button id="clear_scene" type="button" class="btn btn-alert">
                     Clear
@@ -44,11 +39,17 @@
 
     <script>
 
-    $('#save_scene').click(function(){
-         scene.name = $('#scene_name').val().trim()
-         emit_infos_scene()                       // archive tout de suite static/scenes/<nom>.json
-         setTimeout(populate_scene_list, 400)     // rafraîchit la liste (laisse le serveur écrire)
-    })
+    function update_scene_name_display(){         // nom de la scène affiché dans la navbar (à gauche du ?)
+         $('#scene_name_navbar').text(scene.name || '')
+    }
+
+    function archive_scene(name){                 // enregistre la scène courante sous <name> (-> scenes/<name>.json)
+         scene.name = (name || '').trim()
+         $('#scene_name').val(scene.name)
+         update_scene_name_display()
+         emit_infos_scene()
+         setTimeout(populate_scene_list, 400)     // la scène archivée apparaît dans la liste
+    }
 
     function clear_scene_local(){
          // retire du graphe 3D tous les objets + ressorts + marques, et réinitialise les listes
@@ -77,6 +78,27 @@
          if (confirm('Effacer toute la scène ? (irréversible)')){ clear_scene() }
     })
 
+    function new_scene(){
+         archive_scene($('#scene_name').val())    // 2e rôle : archive la scène courante (si elle porte un nom)
+         clear_scene_local()                      // puis repart sur une scène vierge
+         scene.name = ''
+         $('#scene_name').val('')
+         update_scene_name_display()
+         selected_scene = null
+         $('#scene_dropdown_label').html('choose&hellip;')
+         emit_infos_scene()                       // pos.json = vide
+    }
+
+    $('#new_scene').click(function(){
+         if (confirm('Nouvelle scène ? (la scène courante est archivée si elle porte un nom)')){ new_scene() }
+    })
+
+    $('#save_as_scene').click(function(){         // clone : enregistre la scène courante sous un nouveau nom
+         var name = prompt('Enregistrer la scène sous quel nom ?', scene.name || '')
+         if (name === null || !name.trim()){ return }
+         archive_scene(name)
+    })
+
     var selected_scene = null
 
     function populate_scene_list(){
@@ -102,6 +124,7 @@
                clear_scene_local()                // vide la scène courante (sans réécrire côté serveur)
                scene.name = selected_scene
                $('#scene_name').val(selected_scene)
+               update_scene_name_display()
                load_scene(data)                   // recrée objets + chaînes
          })
     })
@@ -111,7 +134,7 @@
          if (!confirm('Supprimer la scène « ' + selected_scene + ' » ?')){ return }
          $.getJSON('/scene_delete/' + encodeURIComponent(selected_scene), function(){
                selected_scene = null
-               $('#scene_dropdown_label').html('choisir&hellip;')
+               $('#scene_dropdown_label').html('choose&hellip;')
                populate_scene_list()              // rafraîchit la liste
          })
     })

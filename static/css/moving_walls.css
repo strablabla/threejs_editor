@@ -39,7 +39,80 @@ Navigation bar..
 	top: 10px;
 	z-index: 10010;
 	opacity: 1;
+	filter: brightness(0);   /* icônes emoji rendues en noir (silhouette) */
+	cursor: pointer;
 
+}
+
+/* Croix de fermeture des panneaux */
+.panel_close {
+	position: absolute;
+	top: 6px;
+	right: 12px;
+	font-size: 1.5em;
+	font-weight: bold;
+	line-height: 1;
+	color: #888;
+	cursor: pointer;
+	z-index: 2;
+}
+
+.panel_close:hover {
+	color: #000;
+}
+
+/* Tooltips au-dessus des panneaux (panneaux = z-index 9999) */
+.tooltip {
+	z-index: 10050 !important;
+}
+
+/* Icône "oeil" orientée (panneau Views) : ellipse + pupille décalée dans la direction du regard */
+.eye {
+	display: inline-block;
+	position: relative;
+	width: 30px;
+	height: 22px;
+	border: 2px solid #000;
+	border-radius: 50%;
+	background: #fff;
+	vertical-align: middle;
+	cursor: pointer;
+}
+/* la bordure de l'oeil doit survivre à ".input_interface * { border:none }" -> spécificité supérieure */
+.input_interface .eye {
+	border: 2px solid #000;
+}
+.eye::after {
+	content: "";
+	position: absolute;
+	width: 11px;
+	height: 11px;
+	background: #000;
+	border-radius: 50%;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+.eye-down::after  { top: 70%; }
+.eye-up::after    { top: 30%; }
+.eye-left::after  { left: 26%; }
+.eye-right::after { left: 74%; }
+
+/* Panneaux de menu : ombre (comme l'aide) + petite flèche pointant vers l'icône */
+.input_interface {
+	box-shadow: 10px 10px 12px;
+}
+
+.input_interface::before {
+	content: "";
+	position: absolute;
+	top: -11px;
+	left: var(--caret-left, 24px);   /* position horizontale fixée par le JS, sous l'icône */
+	width: 0;
+	height: 0;
+	border-left: 11px solid transparent;
+	border-right: 11px solid transparent;
+	border-bottom: 11px solid #fff;  /* triangle pointe vers le haut, couleur du panneau */
 }
 
 /*

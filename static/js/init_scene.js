@@ -212,6 +212,11 @@ function load_scene(msg){
               load_object(name, msg)                           // load the objects wall..
           } // end for
       load_chains(msg)                                         // reconstruit les ressorts des chaînes
+      if (msg['scene_name'] && msg['scene_name'] != 'None'){   // restitue le nom de la scène
+            scene.name = msg['scene_name']
+            $('#scene_name').val(scene.name)
+      }
+      if (typeof update_scene_name_display === 'function'){ update_scene_name_display() }
 
 } // end load_scene..
 
@@ -280,10 +285,12 @@ function make_infos_obj(i){
       var x = objects[i].rotation.x
       var y = objects[i].rotation.y
       var z = objects[i].rotation.z
+      var mat = objects[i].material
+      var opacity = (mat && mat._origOpacity !== undefined) ? mat._origOpacity : (mat ? mat.opacity : 1)  // opacité d'origine si objets atténués par les flèches
       var infos_obj = {
                        "pos": objects[i].position,
                        "rot": {x,y,z},
-                       'opacity' : objects[i].material.opacity
+                       'opacity' : opacity
                       };
       for (var j in list_attr_emit){
             var key = list_attr_emit[j]

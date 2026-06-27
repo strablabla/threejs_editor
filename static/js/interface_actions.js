@@ -4,16 +4,53 @@ Different actions on the scene
 
 */
 
+function position_panel_under_icon(name_obj, class_obj){
+
+      /*
+      Place le panneau juste sous son icône de menu (sans déborder de l'écran)
+      et règle la position horizontale de la flèche (variable CSS --caret-left).
+      */
+
+      var $icon = $(name_obj), $panel = $(class_obj)
+      var r = $icon[0].getBoundingClientRect()
+      var iconCenter = r.left + r.width/2
+      var panelW = $panel.outerWidth()
+      var winW = $(window).width()
+      var left = Math.round(iconCenter - 30)
+      if (left + panelW > winW - 6){ left = winW - panelW - 6 }   // pas de débordement à droite
+      if (left < 6){ left = 6 }
+      $panel.css({ left: left + 'px', right: 'auto' })
+      var caret = Math.round(iconCenter - left - 9)               // 9 ~ demi-base du triangle
+      caret = Math.max(12, Math.min(panelW - 24, caret))
+      $panel[0].style.setProperty('--caret-left', caret + 'px')
+
+}
+
 function generic_action_panel(name_obj, class_obj){
 
       /*
       Typical actions
       */
 
-      $(name_obj).click(function(){ $(class_obj).toggle() })  // show hide the views panel
+      $(name_obj).click(function(){                            // clic sur l'icône : ouvrir CE panneau, fermer les autres
+            var was_visible = $(class_obj).is(':visible')
+            for (var k in list_panels){ $('.panel_' + list_panels[k]).hide() }  // ferme tous les panneaux de menu
+            if (!was_visible){
+                  $(class_obj).show()                          // toggle : rouvre celui-ci s'il était fermé
+                  position_panel_under_icon(name_obj, class_obj)  // sous l'icône + flèche
+            }
+      })
       $(name_obj).hover(function(){ controls.enabled = false }) // deactivate the controls when mouse is hover..
-      mouseleave_hide_panel(class_obj)
-      $(".panel").hover(function(){ controls.enabled = false })  // deactivate the controls wfor panel
+      // plus d'auto-masquage à la sortie : on gère seulement les contrôles caméra
+      $(class_obj).hover(
+            function(){ controls.enabled = false },   // entrée dans le panneau : pas de rotation caméra
+            function(){ controls.enabled = true }     // sortie : on réactive les contrôles
+      )
+
+      // petite croix de fermeture en haut à droite du panneau
+      var $close = $('<div class="panel_close" title="Fermer"></div>').html('&times;')
+      $close.on('click', function(){ $(class_obj).hide() })
+      $(class_obj).append($close)
 
 }
 
@@ -211,5 +248,9 @@ function init_interf_actions(){
       //---------------------- Dropzone for textures
 
       manage_drop()  // manage the Dropzone
+
+      //---------------------- Tooltips des icônes de menu
+
+      $('[data-toggle="tooltip"]').tooltip({ container: 'body', placement: 'bottom' })
 
  }
