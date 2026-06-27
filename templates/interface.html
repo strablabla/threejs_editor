@@ -1,4 +1,54 @@
 
+<!-- Boîte de dialogue maison (div simple = champ éditable, + boutons Bootstrap) -->
+<div id="app_dialog_overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:10090;"></div>
+<div id="app_dialog" style="display:none; position:fixed; top:25%; left:50%; transform:translateX(-50%); width:340px; background:#fff; border:3px solid #2e7d32; border-radius:8px; box-shadow:0 8px 28px rgba(0,0,0,0.6); z-index:10100; font-family:'Playfair Display';">
+  <div id="app_dialog_title" style="padding:12px 16px; background:#2e7d32; color:#fff; border-radius:4px 4px 0 0; font-size:1.15em; font-weight:bold"></div>
+  <div style="padding:16px">
+    <div style="font-size:0.8em; color:#2e7d32; font-weight:bold; margin-bottom:8px">✏️ NOUVELLE boîte — champ éditable</div>
+    <p id="app_dialog_message" style="margin:0 0 10px"></p>
+    <input type="text" class="form-control" id="app_dialog_input" style="display:none; border:2px solid #2e7d32; -webkit-user-select:text; user-select:text; cursor:text;">
+  </div>
+  <div style="padding:10px 16px; border-top:1px solid #eee; text-align:right">
+    <button type="button" class="btn btn-default" id="app_dialog_cancel">Annuler</button>
+    <button type="button" class="btn btn-primary" id="app_dialog_ok">OK</button>
+  </div>
+</div>
+
+<script>
+function bs_dialog(opts){
+     $('#app_dialog_title').text(opts.title || '')
+     $('#app_dialog_message').text(opts.message || '')
+     var $input = $('#app_dialog_input')
+     if (opts.input){ $input.show().val(opts.defaultValue || '') } else { $input.hide() }
+     var $ok = $('#app_dialog_ok')
+     $ok.text(opts.okLabel || 'OK').attr('class', 'btn ' + (opts.okClass || 'btn-primary'))
+     function close_dialog(){ $('#app_dialog').hide(); $('#app_dialog_overlay').hide() }
+     function validate(){
+          var val = opts.input ? $input.val().trim() : true
+          if (opts.input && !val){ return }            // champ vide -> on ne valide pas
+          close_dialog()
+          if (opts.onOk){ opts.onOk(val) }
+     }
+     $ok.off('click').on('click', validate)
+     $('#app_dialog_cancel').off('click').on('click', close_dialog)
+     // isole le champ des handlers globaux (clavier ET souris) pour permettre saisie + sélection à la souris
+     $input.off('keydown keypress keyup mousedown mousemove mouseup dblclick')
+           .on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){
+          e.stopPropagation()
+          if (e.type === 'keypress' && e.which === 13){ validate() }   // Entrée = OK
+     })
+     $('#app_dialog_overlay').show()
+     $('#app_dialog').show()
+     if (opts.input){ setTimeout(function(){ $input.focus(); try { $input[0].select() } catch(e){} }, 50) }
+}
+function bs_confirm(title, message, onOk, okClass, okLabel){
+     bs_dialog({ title:title, message:message, input:false, okClass:okClass, okLabel:okLabel, onOk:function(){ onOk() } })
+}
+function bs_prompt(title, message, defaultValue, onOk){
+     bs_dialog({ title:title, message:message, input:true, defaultValue:defaultValue, onOk:function(v){ onOk(v) } })
+}
+</script>
+
 <!-- menu in the navigbar -->
 {% include 'main_menus.html' %}
 {% include 'secondary_menus.html' %}

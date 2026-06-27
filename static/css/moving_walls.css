@@ -66,6 +66,14 @@ Navigation bar..
 	z-index: 10050 !important;
 }
 
+/* Modales (dialogues) au-dessus de tout le reste */
+.modal {
+	z-index: 10100 !important;
+}
+.modal-backdrop {
+	z-index: 10090 !important;
+}
+
 /* Icône "oeil" orientée (panneau Views) : ellipse + pupille décalée dans la direction du regard */
 .eye {
 	display: inline-block;
@@ -369,7 +377,7 @@ Panel scene
 .panel_scene {
 
 	font-family: 'Playfair Display';
-	font-size: 0.85em;
+	font-size: 14px;        /* homogène avec la taille des boutons (Load) */
 	letter-spacing: 0.2em;
 	position: absolute;
 	top: 50px;

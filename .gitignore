@@ -14,6 +14,10 @@ env/
 /static/old/*
 !/static/old/.gitkeep
 
+# Scènes nommées générées au runtime (non versionnées)
+/static/scenes/*.json
+!/static/scenes/.gitkeep
+
 # Fichiers uploadés (textures déposées via Dropzone)
 /static/upload/*
 !/static/upload/Blank.jpg

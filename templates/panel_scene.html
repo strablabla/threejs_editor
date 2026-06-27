@@ -6,13 +6,15 @@
 
           <br><br><br>
 
+          <div style="margin-left:-20px">   <!-- partie du haut décalée de 20px vers la gauche -->
           <div  class="help" > <span> Name: </span>
-                  <input  value="" placeholder="nom" size=8 id="scene_name">
-                  <button id="save_as_scene" type="button" class="btn btn-success btn-sm"> Save as </button>
-                  <button id="new_scene"     type="button" class="btn btn-primary btn-sm"> New scene </button>
+                  <input  value="" placeholder="nom" size=6 id="scene_name" style="font-size:0.75em">
+                  <button id="save_as_scene" type="button" class="btn btn-success"> Save as </button>
+                  <button id="new_scene"     type="button" class="btn btn-primary"> New scene </button>
           </div> <br>
+          <div  class="help" > Scenes : </div>
           <div  class="help" >
-                  <div class="dropdown" style="display:inline-block; text-align:left; font-size:1.5em">
+                  <div class="dropdown" style="display:inline-block; text-align:left">
                     <button class="btn btn-default dropdown-toggle" type="button"
                             id="scene_dropdown_btn" data-toggle="dropdown"
                             aria-haspopup="true" aria-expanded="false">
@@ -20,18 +22,21 @@
                     </button>
                     <ul class="dropdown-menu" id="scene_dropdown_menu" aria-labelledby="scene_dropdown_btn"></ul>
                   </div>
-                  <button id="load_scene" type="button" class="btn btn-warning"> Load </button>
-                  <button id="delete_scene" type="button" class="btn btn-danger btn-sm"> Supprimer </button>
+                  <button id="load_scene"   type="button" class="btn btn-warning"> Load </button>
+                  <button id="delete_scene" type="button" class="btn btn-danger"> remove </button>
           </div> <br>
+          <center> <button id="clear_scene" type="button" class="btn btn-default"> Clear </button> </center> <br>
+          </div>   <!-- fin du décalage -->
+
+          <hr>
+          <div style="font-weight:bold; margin-bottom:8px"> Scene parameters </div>
           <div  class="help" id="scene_sky" > Sky </div><br>
           <div  class="help" id="scene_ground" > Ground </div><br>
           <div  class="help" id="scene_light" > Light </div><br>
           <div  class="help" id="scene_fog" > Fog </div><br>
 
-          <center> <button id="clear_scene" type="button" class="btn btn-alert">
-                    Clear
-                   </button>
-          </center>
+          <hr>
+          <center> <button id="quit_app" type="button" class="btn btn-danger"> Quitter (stop serveur) </button> </center>
 
           <br>
 
@@ -47,7 +52,7 @@
          scene.name = (name || '').trim()
          $('#scene_name').val(scene.name)
          update_scene_name_display()
-         emit_infos_scene()
+         emit_infos_scene(scene.name)             // sauvegarde EXPLICITE -> fige scenes/<name>.json
          setTimeout(populate_scene_list, 400)     // la scène archivée apparaît dans la liste
     }
 
@@ -75,7 +80,7 @@
     }
 
     $('#clear_scene').click(function(){
-         if (confirm('Effacer toute la scène ? (irréversible)')){ clear_scene() }
+         bs_confirm('Effacer la scène', 'Effacer toute la scène ? (irréversible)', function(){ clear_scene() }, 'btn-danger', 'Effacer')
     })
 
     function new_scene(){
@@ -90,19 +95,17 @@
     }
 
     $('#new_scene').click(function(){
-         if (confirm('Nouvelle scène ? (la scène courante est archivée si elle porte un nom)')){ new_scene() }
+         bs_confirm('Nouvelle scène', 'La scène courante sera archivée si elle porte un nom. Continuer ?', function(){ new_scene() })
     })
 
     $('#save_as_scene').click(function(){         // clone : enregistre la scène courante sous un nouveau nom
-         var name = prompt('Enregistrer la scène sous quel nom ?', scene.name || '')
-         if (name === null || !name.trim()){ return }
-         archive_scene(name)
+         bs_prompt('Enregistrer sous', 'Nom de la scène :', $('#scene_name').val(), function(name){ archive_scene(name) })
     })
 
     var selected_scene = null
 
     function populate_scene_list(){
-         $.getJSON('/scenes', function(names){
+         $.ajax({ url: '/scenes', dataType: 'json', cache: false }).done(function(names){
                var menu = $('#scene_dropdown_menu').empty()
                for (var i in names){
                      menu.append($('<li>').append(
@@ -112,31 +115,47 @@
          })
     }
 
+    function load_named_scene(name){             // charge une scène sauvegardée depuis le serveur
+         $.ajax({ url: '/scene/' + encodeURIComponent(name), dataType: 'json', cache: false })  // cache:false -> toujours la dernière version
+          .done(function(data){
+               clear_scene_local()
+               scene.name = name
+               $('#scene_name').val(name)
+               update_scene_name_display()
+               load_scene(data)                   // recrée objets + chaînes
+          })
+    }
+
     $('#scene_dropdown_menu').on('click', 'a', function(e){    // sélection d'une scène dans le dropdown
          e.preventDefault()
          selected_scene = $(this).attr('data-scene')
          $('#scene_dropdown_label').text(selected_scene)
     })
 
-    $('#load_scene').click(function(){
+    $('#load_scene').click(function(){           // Load = recharge la scène sélectionnée (état sauvegardé, figé)
          if (!selected_scene){ return }
-         $.getJSON('/scene/' + encodeURIComponent(selected_scene), function(data){
-               clear_scene_local()                // vide la scène courante (sans réécrire côté serveur)
-               scene.name = selected_scene
-               $('#scene_name').val(selected_scene)
-               update_scene_name_display()
-               load_scene(data)                   // recrée objets + chaînes
-         })
+         load_named_scene(selected_scene)
     })
 
     $('#delete_scene').click(function(){          // supprime la scène sélectionnée (fichier serveur)
          if (!selected_scene){ return }
-         if (!confirm('Supprimer la scène « ' + selected_scene + ' » ?')){ return }
-         $.getJSON('/scene_delete/' + encodeURIComponent(selected_scene), function(){
-               selected_scene = null
-               $('#scene_dropdown_label').html('choose&hellip;')
-               populate_scene_list()              // rafraîchit la liste
-         })
+         var n = selected_scene
+         bs_confirm('Remove', 'Retirer la scène « ' + n + ' » ?', function(){
+               $.getJSON('/scene_delete/' + encodeURIComponent(n), function(){
+                     selected_scene = null
+                     $('#scene_dropdown_label').html('choose&hellip;')
+                     populate_scene_list()        // rafraîchit la liste
+               })
+         }, 'btn-danger', 'remove')
+    })
+
+    $('#quit_app').click(function(){              // arrête le serveur et tente de fermer l'onglet
+         bs_confirm('Quitter', 'Arrêter le serveur et fermer la page ?', function(){
+               $.ajax({ url: '/shutdown', method: 'POST' }).always(function(){
+                     document.body.innerHTML = '<h2 style="font-family:sans-serif; padding:40px; color:#555">Serveur arrêté. Vous pouvez fermer cet onglet.</h2>'
+                     window.open('', '_self'); window.close();   // peut être bloqué par le navigateur pour un onglet normal
+               })
+         }, 'btn-danger', 'Quitter')
     })
 
     populate_scene_list()                         // remplit la liste au chargement

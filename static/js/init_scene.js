@@ -301,12 +301,7 @@ function make_infos_obj(i){
 
 }
 
-function emit_infos_scene(){          									// emits the positions toward the server to save them
-
-    /*
-    Send the informations (about position, cloning,
-        rotation, type of object..) to the server..
-    */
+function get_scene_data(){              // construit le JSON de la scène (sans l'envoyer) -- réutilisé par save init
 
     var listpos = {}         // dictionary of all the informations about the scene to be saved in a json file..
     for (i in objects){
@@ -320,7 +315,20 @@ function emit_infos_scene(){          									// emits the positions toward the
     if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (par noms de boules)
           listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name] })
     }
-    socket.emit( 'message', JSON.stringify(listpos));  // send the informations to the server
+    return listpos
+}
+
+function emit_infos_scene(archive_name){          									// emits the positions toward the server to save them
+
+    /*
+    Send the informations to the server (-> pos.json, état de travail courant).
+    archive_name (string) : si fourni, demande l'archivage explicite dans scenes/<archive_name>.json.
+    Appelé sans argument par l'auto-save (mouseup) -> pas d'archivage de scène nommée.
+    */
+
+    var data = get_scene_data()
+    if (typeof archive_name === 'string' && archive_name){ data['_archive'] = archive_name }  // sauvegarde explicite
+    socket.emit( 'message', JSON.stringify(data));
   }    // end emit_infos_scene
 
 function init() {

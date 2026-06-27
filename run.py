@@ -54,13 +54,12 @@ def receive(message):
         with open('static/old/pos_{}.json'.format(date), 'w') as g:
             g.write(f.read())
 
-    with open('static/pos.json', 'w') as f:
+    with open('static/pos.json', 'w') as f:                 # etat de travail courant (auto-save a chaque mouseup)
         f.write(str(message))
-    with open('static/pos.json', 'r') as f:
-        g = json.load(f)
-    sn = (g.get('scene_name') or '').strip()                # nom de scène nettoye
-    if sn and sn != 'None':                                  # n'archive que les scenes reellement nommees
-        with open('static/scenes/{}.json'.format(sn), 'w') as h:
+    g = json.loads(message)
+    archive_name = (g.get('_archive') or '').strip()        # archivage UNIQUEMENT sur sauvegarde explicite (Save as)
+    if archive_name and archive_name != 'None':             # -> les scenes nommees restent figees a l'etat sauvegarde
+        with open('static/scenes/{}.json'.format(archive_name), 'w') as h:
             h.write(str(message))
 
 @socketio.on('begin', namespace='/pos')
@@ -153,6 +152,17 @@ def delete_named_scene(name):
         os.remove(path)
         return flask.jsonify({'ok': True})
     return flask.jsonify({'error': 'scene not found'}), 404
+
+@app.route('/shutdown', methods=['GET', 'POST'])
+def shutdown():
+    '''
+    Stop the server (usage local). On laisse la réponse partir puis on quitte le process.
+    '''
+    def _kill():
+        time.sleep(0.3)
+        os._exit(0)
+    Thread(target=_kill).start()
+    return flask.jsonify({'stopping': True})
 
 def background_thread():
     """Example of how to send server generated events to clients."""

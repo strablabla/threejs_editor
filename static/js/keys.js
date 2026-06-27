@@ -80,6 +80,12 @@ function keyDownTextField1(event){
 
       */
 
+      var _t = event.target || event.srcElement                 // si on tape dans un champ (modale, nom de scène...),
+      if (_t){                                                   // ne pas déclencher les raccourcis de la scène 3D
+            var _tag = (_t.tagName || '').toLowerCase()
+            if (_tag === 'input' || _tag === 'textarea' || _tag === 'select' || _t.isContentEditable){ return }
+      }
+
       $('#curr_func').css('background-color','red')
 
       //if (event.keyCode == 16){    	         // SHIFT key, Picking objects to apply the same action after..
