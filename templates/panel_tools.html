@@ -7,6 +7,9 @@
       <div  class="help" id="distance" > distance </div><br>
       <div  class="help" id="properties" > group properties </div><br>
       <div  class="help" id="stats_area" > stats about selected area </div><br>
+      <div  class="help" >
+            <label><input type="checkbox" id="chk_energy_graph"> graphe d'énergie</label>
+      </div><br>
 
 </div>
 
@@ -21,6 +24,18 @@ $('#stats_area').click(function(){
 })
 $('.panel_tools_stats').click(function(){
     $(this).toggle()
+})
+
+// Graphe d'énergie : affiche/masque la fenêtre + active l'enregistrement
+$('#chk_energy_graph').prop('checked', show_energy_graph)
+$('#chk_energy_graph').change(function(){
+    show_energy_graph = this.checked
+    if (show_energy_graph){
+          energy_hist = { tot: [], kin: [], pot: [] }   // repart d'un historique vierge
+          $('#energy_graph_box').show()
+    } else {
+          $('#energy_graph_box').hide()
+    }
 })
 
 </script>

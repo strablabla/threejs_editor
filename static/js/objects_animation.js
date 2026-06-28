@@ -497,6 +497,32 @@ function initialize_energies(){
       elast_energy = 0
       kin_energy = 0
       grav_energy = 0
+      attract_energy = 0
+
+}
+
+function attraction_potential_energy(){
+
+      /*
+      Énergie potentielle de gravité newtonienne : U = - Σ G·m_i·m_j / r  (sur les paires centre-centre).
+      */
+
+      var U = 0
+      if (one_over_r2 && list_moving_objects.length > 1){
+            for (var i=0; i< list_moving_objects.length; i++){
+                  for (var j=i+1; j< list_moving_objects.length; j++){
+                        if ( allow_interaction_ij(i,j) ){
+                              var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
+                              if ( !(cnd1 & cnd2 & cnd3) ){                 // paires centre-centre (comme accel_attraction)
+                                    var oi = list_moving_objects[i], oj = list_moving_objects[j]
+                                    var dist = getDistance(oi, oj)
+                                    if (dist >= 1){ U += - attract_strength_one_over_r2 * oi.mass * oj.mass / dist }
+                              }
+                        }
+                  }
+            }
+      }
+      return U
 
 }
 
@@ -507,15 +533,20 @@ function energy_calculation(){
       */
 
       initialize_energies()
-      for (var i in list_moving_objects){
+      for (var i in list_moving_objects){                                  // cinétique + gravité uniforme (z) des objets mobiles
             var obj = list_moving_objects[i]
-            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){      // case it is a spring or an elastic..
-                  elast_energy += 5*0.5*harmonic_const*(obj.scale.z*420)**2
-            }else{
-              kin_energy += 0.5*obj.mass*obj.speed.dot(obj.speed)
-              grav_energy += obj.mass*9.81*obj.position.z*0.1
-             }  // case object with mass
+            if (obj.blocked){ continue }                                   // objets statiques (murs, ancres) exclus
+            if (list_forbid_obj_for_interact.indexOf(obj.type) == -1){     // objet avec masse (pas ressort/élastique)
+                  kin_energy += 0.5*obj.mass*obj.speed.dot(obj.speed)
+                  grav_energy += obj.mass*9.81*obj.position.z*0.1
+            }
       }
+      for (var k in list_paired_harmonic){                                 // élastique des ressorts : ½·k·(L-L0)²
+            var dx = getDistance(list_paired_harmonic[k][0], list_paired_harmonic[k][1]) - lenght_spring
+            elast_energy += 0.5 * harmonic_const * dx * dx
+      }
+      attract_energy = attraction_potential_energy()                       // PE gravité newtonienne (paires)
+      grav_energy += attract_energy                                        // gravité = uniforme (z) + newtonienne
       tot_energy = elast_energy + kin_energy + grav_energy
 
       return [elast_energy, kin_energy, grav_energy, tot_energy]
@@ -561,6 +592,85 @@ function calculate_total_energy(){
       var [txt_max_kin,txt_max_elast] = max_energies_and_text()
       //$('#curr_func').text( txt_elast + txt_kin + txt_grav + txt_tot )
       $('#curr_func').text( txt_max_elast + txt_max_kin + txt_grav + txt_tot )
+      record_energy()                                        // graphe temporel (si activé)
+
+}
+
+//===================================================================== Graphe d'énergie
+
+var energy_hist = { tot: [], kin: [], pot: [] }
+var ENERGY_HIST_MAX = 400
+
+function record_energy(){
+
+      /*
+      Mémorise l'énergie courante et redessine le graphe (uniquement si activé).
+      */
+
+      if (!show_energy_graph){ return }
+      energy_hist.tot.push(tot_energy)
+      energy_hist.kin.push(kin_energy)
+      energy_hist.pot.push(grav_energy + elast_energy)        // potentielle = gravité (uniforme+newton) + élastique
+      if (energy_hist.tot.length > ENERGY_HIST_MAX){
+            energy_hist.tot.shift(); energy_hist.kin.shift(); energy_hist.pot.shift()
+      }
+      draw_energy_graph()
+
+}
+
+function fmt_energy(v){                                       // format compact d'une valeur d'énergie
+
+      var a = Math.abs(v)
+      if (a !== 0 && (a >= 1e5 || a < 1e-2)){ return v.toExponential(1) }
+      if (a >= 100){ return v.toFixed(0) }
+      return v.toFixed(1)
+
+}
+
+function draw_energy_graph(){
+
+      var cv = document.getElementById('energy_graph')
+      if (!cv){ return }
+      var ctx = cv.getContext('2d')
+      var W = cv.width, H = cv.height
+      ctx.clearRect(0, 0, W, H)
+      var n = energy_hist.tot.length
+      if (n < 2){ return }
+      var ML = 48, MT = 6, MB = 6                             // marges (gauche = labels d'axe)
+      var plotW = W - ML, plotH = H - MT - MB
+      //--- échelle verticale automatique sur les 3 courbes
+      var lo = Infinity, hi = -Infinity
+      function scan(a){ for (var k=0;k<a.length;k++){ if (a[k]<lo) lo=a[k]; if (a[k]>hi) hi=a[k] } }
+      scan(energy_hist.tot); scan(energy_hist.kin); scan(energy_hist.pot)
+      if (lo === hi){ hi = lo + 1; lo = lo - 1 }
+      var pad = (hi - lo) * 0.1; lo -= pad; hi += pad
+      function X(i){ return ML + i / (ENERGY_HIST_MAX - 1) * plotW }
+      function Y(v){ return MT + (1 - (v - lo) / (hi - lo)) * plotH }
+      //--- grille + graduations chiffrées (axe Y = énergie, unités arbitraires)
+      ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+      var NT = 4
+      for (var t=0; t<=NT; t++){
+            var val = hi - (hi - lo) * t / NT
+            var y = Y(val)
+            ctx.strokeStyle = '#eee'; ctx.lineWidth = 1
+            ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W, y); ctx.stroke()
+            ctx.fillText(fmt_energy(val), ML - 4, y)
+      }
+      //--- ligne du zéro (marquée) si elle est dans la plage
+      if (lo < 0 && hi > 0){
+            ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1
+            ctx.beginPath(); ctx.moveTo(ML, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke()
+      }
+      //--- courbes
+      function line(a, color){
+            ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5
+            for (var i=0;i<a.length;i++){ var x = X(i), y = Y(a[i]); if (i === 0){ ctx.moveTo(x, y) } else { ctx.lineTo(x, y) } }
+            ctx.stroke()
+      }
+      line(energy_hist.pot, '#1e88e5')   // potentielle (bleu)
+      line(energy_hist.kin, '#e53935')   // cinétique (rouge)
+      line(energy_hist.tot, '#000000')   // totale (noir)
 
 }
 
@@ -581,17 +691,18 @@ après le pas Verlet : elles ne dérivent pas d'un potentiel lisse.
 function accel_attraction(i,j){
 
       /*
-      Attraction entre deux objets (terme « one_over_r2 »), ajoutée à l'accélération.
+      Gravité newtonienne entre deux objets : F = G·m_i·m_j / r²   (G = attract_strength_one_over_r2).
+      L'accélération de chaque objet = F/m, donc a_j = G·m_i/r² (vers i), a_i = G·m_j/r² (vers j).
       */
 
       if (!one_over_r2){ return }
       var [obji, objj] = objj_obji(i,j)
       var dist = getDistance(obji, objj)
       if (dist < 1){ return }                                  // évite la division par ~0
-      var vec = new THREE.Vector3().subVectors(obji.position, objj.position) // de j vers i
-      var f = attract_strength_one_over_r2/(dist*dist)
-      objj.acc.addScaledVector(vec,  f/objj.mass)              // j attiré vers i
-      obji.acc.addScaledVector(vec, -f/obji.mass)              // i attiré vers j
+      var dir = new THREE.Vector3().subVectors(obji.position, objj.position).divideScalar(dist) // unitaire j->i
+      var g = attract_strength_one_over_r2/(dist*dist)         // G/r²
+      objj.acc.addScaledVector(dir,  g*obji.mass)              // a_j = G·m_i/r² vers i
+      obji.acc.addScaledVector(dir, -g*objj.mass)              // a_i = G·m_j/r² vers j
 
 }
 

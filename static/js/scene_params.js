@@ -66,14 +66,16 @@ dist_inter_wall_obj = 50
 dist_min_center_center = 40;   // distance under which a shock is produced..
 lenght_spring = 150;   // longueur au repos des ressorts (> diamètre des boules) : évite le repliement de la chaîne
 one_over_r2 = true
-attract_strength_one_over_r2 = 3000;   // intensité de l'attraction (intégrée en Verlet)
+attract_strength_one_over_r2 = 50000;  // G (gravité newtonienne F = G·m_i·m_j/r²) — à ajuster via le panneau Interaction
 
 //-------------------- Energies
 
-elast_energy = 0  // elastic
-kin_energy = 0    // kinetic
-grav_energy = 0   // gravity
-tot_energy = 0    // total
+elast_energy = 0    // elastic
+kin_energy = 0      // kinetic
+grav_energy = 0     // gravity (uniforme en z + newtonienne)
+attract_energy = 0  // énergie potentielle de gravité newtonienne (paires)
+tot_energy = 0      // total
+show_energy_graph = false   // affichage du graphe temporel d'énergie (panneau Tools)
 
 //------------
 
