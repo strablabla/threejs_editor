@@ -54,6 +54,70 @@ function bs_prompt(title, message, defaultValue, onOk){
   <canvas id="energy_graph" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
+<!-- Menu contextuel (clic droit sur un objet VERT) : attributs éditables -->
+<div id="obj_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 10px; font-family:sans-serif; font-size:12px; min-width:200px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">
+    <span id="ctx_obj_title" style="font-weight:bold"></span>
+    <span id="ctx_obj_close" style="cursor:pointer; color:#888; padding-left:12px">&times;</span>
+  </div>
+  <div id="ctx_obj_fields"></div>
+</div>
+
+<script>
+(function(){
+  function num_row($f, label, get, set){
+        var $row = $('<div style="margin:4px 0; display:flex; justify-content:space-between; align-items:center">')
+        $row.append($('<span>').text(label))
+        var $inp = $('<input type="number" step="any" style="width:80px">').val(get())
+        $inp.on('input change', function(){ var v = parseFloat($inp.val()); if (!isNaN(v)){ set(v) } })
+        $inp.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+        $row.append($inp); $f.append($row)
+  }
+  function bool_row($f, label, get, set){
+        var $row = $('<div style="margin:4px 0">')
+        var $cb = $('<input type="checkbox">').prop('checked', !!get())
+        $cb.change(function(){ set($cb.is(':checked')) })
+        $row.append($('<label style="cursor:pointer">').append($cb).append(' ' + label))
+        $f.append($row)
+  }
+  window.show_object_context_menu = function(obj, x, y){
+        $('#ctx_obj_title').text((obj.type || 'object') + ' — ' + (obj.name || ''))
+        var $f = $('#ctx_obj_fields').empty()
+        num_row($f, 'mass',            function(){ return obj.mass },             function(v){ obj.mass = v })
+        num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ obj.material.transparent = true; obj.material.opacity = v; obj.material.needsUpdate = true })
+        num_row($f, 'friction',        function(){ return obj.friction },         function(v){ obj.friction = v })
+        num_row($f, 'radius_interact', function(){ return obj.radius_interact },  function(v){ obj.radius_interact = v })
+        bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ obj.magnet = v })
+        bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ obj.blocked = v })
+        var mw = 210, mh = 230
+        if (x + mw > $(window).width()){ x = $(window).width() - mw }
+        if (y + mh > $(window).height()){ y = $(window).height() - mh }
+        $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
+  }
+  function hide_ctx(){ $('#obj_context_menu').hide() }
+  $('#ctx_obj_close').on('click', hide_ctx)
+
+  // Clic droit sur le canvas : menu uniquement si l'objet visé est VERT (sélectionné)
+  renderer.domElement.addEventListener('contextmenu', function(event){
+        var ray = make_raycaster(event)            // preventDefault() interne -> pas de menu natif
+        var hits = ray.intersectObjects(objects)
+        if (hits.length){
+              var obj = hits[0].object
+              if (obj.material && obj.material.color && obj.material.color.getHex &&
+                  obj.material.color.getHex() === color_intersected_green){
+                    show_object_context_menu(obj, event.clientX, event.clientY)
+                    return
+              }
+        }
+        hide_ctx()
+  })
+  // Fermer le menu en cliquant ailleurs
+  $(document).on('mousedown', function(e){
+        if (!$(e.target).closest('#obj_context_menu').length){ hide_ctx() }
+  })
+})();
+</script>
+
 <!-- menu in the navigbar -->
 {% include 'main_menus.html' %}
 {% include 'secondary_menus.html' %}

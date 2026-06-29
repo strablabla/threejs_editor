@@ -7,12 +7,12 @@
           <br><br><br>
 
           <div style="margin-left:-20px">   <!-- partie du haut décalée de 20px vers la gauche -->
-          <div  class="help" > <span> Name: </span>
+          <div  class="help" > <span style="font-size:0.75em"> Name: </span>
                   <input  value="" placeholder="nom" size=6 id="scene_name" style="font-size:0.75em">
-                  <button id="save_as_scene" type="button" class="btn btn-success"> Save as </button>
+                  <button id="save_as_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="Save as">💾</button>
                   <button id="new_scene"     type="button" class="btn btn-primary"> New scene </button>
           </div> <br>
-          <div  class="help" > Scenes : </div>
+          <div  class="help" > <span style="font-size:0.75em"> Scenes : </span> </div>
           <div  class="help" >
                   <div class="dropdown" style="display:inline-block; text-align:left">
                     <button class="btn btn-default dropdown-toggle" type="button"
@@ -22,21 +22,18 @@
                     </button>
                     <ul class="dropdown-menu" id="scene_dropdown_menu" aria-labelledby="scene_dropdown_btn"></ul>
                   </div>
-                  <button id="load_scene"   type="button" class="btn btn-warning"> Load </button>
-                  <button id="delete_scene" type="button" class="btn btn-danger"> remove </button>
+                  <button id="load_scene"   type="button" class="btn btn-warning" data-toggle="tooltip" title="Load">⤓</button>
+                  <button id="delete_scene" type="button" class="btn btn-default" style="background:#ffc0cb" data-toggle="tooltip" title="Remove">❌</button>
           </div> <br>
-          <center> <button id="clear_scene" type="button" class="btn btn-default"> Clear </button> </center> <br>
-          </div>   <!-- fin du décalage -->
+          <center> <button id="clear_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="clear the scene"> Clear </button> </center> <br>
 
           <hr>
-          <div style="font-weight:bold; margin-bottom:8px"> Scene parameters </div>
-          <div  class="help" id="scene_sky" > Sky </div><br>
-          <div  class="help" id="scene_ground" > Ground </div><br>
-          <div  class="help" id="scene_light" > Light </div><br>
-          <div  class="help" id="scene_fog" > Fog </div><br>
-
-          <hr>
-          <center> <button id="quit_app" type="button" class="btn btn-danger"> Quit (stop server) </button> </center>
+          <div  class="help" > <span style="font-size:0.75em"> Scene parameters </span> </div>
+          <div  class="help" id="scene_sky"    > <span style="font-size:0.6em"> Sky </span> </div><br>
+          <div  class="help" id="scene_ground" > <span style="font-size:0.6em"> Ground </span> </div><br>
+          <div  class="help" id="scene_light"  > <span style="font-size:0.6em"> Light </span> </div><br>
+          <div  class="help" id="scene_fog"    > <span style="font-size:0.6em"> Fog </span> </div><br>
+          </div>   <!-- fin du décalage : tout le contenu aligné à -20px -->
 
           <br>
 
@@ -159,6 +156,12 @@
     })
 
     populate_scene_list()                         // remplit la liste au chargement
-    $('#scene').click(populate_scene_list)        // et à chaque ouverture du menu Scene
+    $('#scene').click(function(){                 // à l'ouverture du menu Scene : liste + sélection = scène actuelle
+         populate_scene_list()
+         if (scene.name){
+               selected_scene = scene.name
+               $('#scene_dropdown_label').text(scene.name)
+         }
+    })
 
     </script>

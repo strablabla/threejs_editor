@@ -264,4 +264,13 @@ function init_interf_actions(){
 
       $('[data-toggle="tooltip"]').tooltip({ container: 'body', placement: 'bottom' })
 
+      //---------------------- Clic sur le nom d'outil (navbar) -> no tool
+
+      $('#active_obj_navbar').click(function(){
+            reinit_params_ok()                              // désactive tous les outils
+            $('#active_obj_navbar').text('')
+            $('#curr_tool').text('')
+            if ($('#select_shape').length){ $('#select_shape').val('no tool') }   // synchro le dropdown
+      })
+
  }
