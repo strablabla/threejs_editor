@@ -50,6 +50,7 @@ function tool_key(key){
 
       reinit_params_ok();
       $('#curr_tool').text(key)
+      $('#active_obj_navbar').text(key)   // outil actif -> navbar (à droite de Dynamics)
       window['new_' + key + '_ok'] = true;
 
 }

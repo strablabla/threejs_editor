@@ -48,6 +48,7 @@ function toggle_tool(key){
             reinit_params_ok()
             if (key == 'string'){ list_string = [] }  // repartir sur une nouvelle chaîne au prochain usage
             $('#curr_tool').text('aucun outil')
+            $('#active_obj_navbar').text('')   // plus d'outil actif -> navbar vidée
       } else {
             if (key == 'string'){ list_string = [] }  // chaque activation démarre une chaîne indépendante
             tool_key(key)                    // active cet outil (et réinitialise les autres)

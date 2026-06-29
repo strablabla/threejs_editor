@@ -57,7 +57,8 @@ gravity_ok = true            // gravité verticale (z) activable depuis le panne
 springs_ok = true            // forces de ressort (chaînes/élastiques)
 step_up_down = 10;   								// vertical step when moving an object up or down
 list_moving_objects = []
-random_speed_module = 50;
+random_initial_speed = true   // true = vitesse de départ aléatoire (symétrique) ; false = départ à 0
+random_speed_module = 50;     // intensité de la vitesse de départ (curseur dans le panneau Interaction)
 list_paired_harmonic = []
 list_interm_pair = []
 paire_harmonic = false

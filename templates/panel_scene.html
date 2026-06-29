@@ -36,7 +36,7 @@
           <div  class="help" id="scene_fog" > Fog </div><br>
 
           <hr>
-          <center> <button id="quit_app" type="button" class="btn btn-danger"> Quitter (stop serveur) </button> </center>
+          <center> <button id="quit_app" type="button" class="btn btn-danger"> Quit (stop server) </button> </center>
 
           <br>
 
@@ -80,7 +80,7 @@
     }
 
     $('#clear_scene').click(function(){
-         bs_confirm('Effacer la scène', 'Effacer toute la scène ? (irréversible)', function(){ clear_scene() }, 'btn-danger', 'Effacer')
+         bs_confirm('Clear scene', 'Clear the whole scene? (irreversible)', function(){ clear_scene() }, 'btn-danger', 'Clear')
     })
 
     function new_scene(){
@@ -95,11 +95,11 @@
     }
 
     $('#new_scene').click(function(){
-         bs_confirm('Nouvelle scène', 'La scène courante sera archivée si elle porte un nom. Continuer ?', function(){ new_scene() })
+         bs_confirm('New scene', 'The current scene will be saved if it has a name. Continue?', function(){ new_scene() })
     })
 
     $('#save_as_scene').click(function(){         // clone : enregistre la scène courante sous un nouveau nom
-         bs_prompt('Enregistrer sous', 'Nom de la scène :', $('#scene_name').val(), function(name){ archive_scene(name) })
+         bs_prompt('Save as', 'Scene name:', $('#scene_name').val(), function(name){ archive_scene(name) })
     })
 
     var selected_scene = null
@@ -140,7 +140,7 @@
     $('#delete_scene').click(function(){          // supprime la scène sélectionnée (fichier serveur)
          if (!selected_scene){ return }
          var n = selected_scene
-         bs_confirm('Remove', 'Retirer la scène « ' + n + ' » ?', function(){
+         bs_confirm('Remove', 'Remove scene "' + n + '"?', function(){
                $.getJSON('/scene_delete/' + encodeURIComponent(n), function(){
                      selected_scene = null
                      $('#scene_dropdown_label').html('choose&hellip;')
@@ -150,12 +150,12 @@
     })
 
     $('#quit_app').click(function(){              // arrête le serveur et tente de fermer l'onglet
-         bs_confirm('Quitter', 'Arrêter le serveur et fermer la page ?', function(){
+         bs_confirm('Quit', 'Stop the server and close the page?', function(){
                $.ajax({ url: '/shutdown', method: 'POST' }).always(function(){
-                     document.body.innerHTML = '<h2 style="font-family:sans-serif; padding:40px; color:#555">Serveur arrêté. Vous pouvez fermer cet onglet.</h2>'
+                     document.body.innerHTML = '<h2 style="font-family:sans-serif; padding:40px; color:#555">Server stopped. You can close this tab.</h2>'
                      window.open('', '_self'); window.close();   // peut être bloqué par le navigateur pour un onglet normal
                })
-         }, 'btn-danger', 'Quitter')
+         }, 'btn-danger', 'Quit')
     })
 
     populate_scene_list()                         // remplit la liste au chargement

@@ -1,84 +1,189 @@
 # Éditeur de scènes 3D — bac à sable physique
 
 Éditeur de scènes 3D dans le navigateur : on crée des objets (murs, cubes, sphères,
-pistes, ressorts…) à la souris ou **à la voix** (en français), on les anime avec un
-petit moteur physique (gravité, collisions élastiques, attraction en 1/r², ressorts),
-et l'état de la scène est sauvegardé en JSON côté serveur.
+boîtes, chaînes de ressorts…) à la souris, au clavier ou **à la voix**, on les anime
+avec un moteur physique (gravité newtonienne, collisions élastiques, ressorts), et
+l'état est sauvegardé en JSON côté serveur.
 
-- **Client** : [Three.js](https://threejs.org) (r75), jQuery, Bootstrap, Dropzone,
-  [Artyom.js](https://github.com/sdkcarlos/artyom.js) pour la reconnaissance vocale.
-  Toute la logique métier est dans `static/js/` (≈20 fichiers, variables globales partagées).
-- **Serveur** : Flask + Flask-SocketIO. Sert la page et persiste l'état de la scène en JSON.
+- **Client** : [Three.js](https://threejs.org) (r75), jQuery, Bootstrap 3, Dropzone,
+  [Artyom.js](https://github.com/sdkcarlos/artyom.js) (reconnaissance vocale).
+  Toute la logique métier est dans `static/js/` (≈20 fichiers, **variables globales partagées**).
+- **Serveur** : Flask + Flask-SocketIO. Sert la page et persiste les scènes en JSON.
+- **Interface en anglais.**
+
+---
 
 ## Prérequis
 
 - **Python 3.8** (versions épinglées dans `requirements.txt`).
-- **Chrome** recommandé côté navigateur.
-- **Une connexion Internet** : Three.js, socket.io et les polices sont chargés depuis
-  des CDN, et la reconnaissance vocale utilise l'API Web Speech de Google.
+- **Chrome** recommandé.
+- **Connexion Internet** : Three.js, socket.io et les polices viennent de CDN, et la
+  reconnaissance vocale utilise l'API Web Speech de Google.
 
-## Installation
+## Installation & lancement
 
 ```bash
 python3 -m venv venv
-source venv/bin/activate          # Windows : venv\Scripts\activate
-pip install -r requirements.txt
+./venv/bin/pip install -r requirements.txt   # appeler le venv directement évite les conflits conda/python2
+mkdir -p static/old static/scenes            # dossiers d'état runtime
+./venv/bin/python run.py
 ```
 
-Créer les dossiers de sauvegarde (sinon l'enregistrement de scène échoue) :
+Puis **http://localhost:5000** dans Chrome. Le message `no serial connection` est
+**normal** (accéléromètre série optionnel `/dev/ttyACM0`).
 
-```bash
-mkdir -p static/old static/scenes
-```
+> Versions épinglées : le client embarque l'ancien `socket.io 1.3.5`, donc Flask-SocketIO 4.x
+> (et Flask/Werkzeug anciens) est le combo compatible et testé.
 
-## Lancement
+---
 
-```bash
-python run.py
-```
+## Interface
 
-Puis ouvrir **http://localhost:5000** dans Chrome.
+Barre de menus en haut, avec des **icônes + tooltips** ; chaque panneau s'ouvre **sous
+son icône** (avec une flèche et une ombre), **un seul à la fois**, et se ferme par sa
+**croix** ou en recliquant l'icône.
 
-Le message `no serial connection` est **normal** : c'est la connexion accéléromètre
-série optionnelle (`/dev/ttyACM0`), inutile pour un usage standard.
+| Icône | Panneau | Rôle |
+|---|---|---|
+| 🎬 | **Scene** | nommer / sauvegarder / charger / effacer des scènes |
+| 📦 | **Object** | sélecteur d'outil de création + paramètres par défaut |
+| 👁 | **Views** | vues prédéfinies (flèches 3D) |
+| 🔧 | **Tools** | distance, stats, **graphe d'énergie** |
+| 🧲 | **Dynamics** | pilotage de la physique en direct |
+| ? | **Help** | aide / raccourcis |
 
-## Utilisation
+Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲, et le **nom de la
+scène** courante à gauche du `?`.
 
-- **Souris** : sélectionner un outil (clavier ou voix) puis cliquer dans le plan pour
-  créer l'objet. `TrackballControls` permet de tourner / zoomer la vue.
-- **Raccourcis clavier** (voir `static/js/init_scene.js`) :
-  `c` cloner · `d` supprimer · `r` rotation · `s` sélectionner une zone ·
-  `p` sélection multiple · `g` déplacer un groupe · `h` plan horizontal ·
-  `i` infos objet · `l` cube simple · `m` cube texturé · `n` mur ·
-  flèches haut/bas pour monter/descendre.
-- **Commandes vocales** (français, voir `static/js/interaction_voice.js`) :
-  « cube », « boule », « mur », « piste », « pavé », « plan », « chaîne »… pour
-  choisir l'outil ; « animation », « stoppe l'animation », « reprends l'animation »,
-  « vitesse nulle » pour piloter la simulation.
+---
 
-## Sauvegarde
+## Créer des objets
 
-À chaque relâchement de souris, le client envoie tout l'état au serveur via SocketIO,
-qui l'écrit dans `static/pos.json` (copie horodatée dans `static/old/`, et dans
-`static/scenes/<nom>.json` si la scène est nommée). À l'ouverture suivante, la scène
-est rechargée automatiquement.
+1. **Choisir un outil** — au choix :
+   - panneau **Object** → liste déroulante (wall, cube, sphere, box, string…) ;
+   - **clavier** : `o` sphère · `e` chaîne · `n` mur · `w` boîte · `m` cube texturé · `t` piste (appui = on, 2ᵉ appui = off ; `b` coupe tout) ;
+   - **voix** : « cube », « boule », « mur », « boîte », « chaîne », « piste », « pavé », « plan », « pas d'outil ».
+2. **Cliquer dans le plan** pour déposer l'objet (la **boîte** se dessine en 2 clics).
+
+`TrackballControls` : rotation / zoom de la vue à la souris.
+
+### Autres raccourcis clavier
+`a` lancer l'animation · `x` play/pause · `c` cloner · `d` supprimer · `r` rotation ·
+`s` sélectionner une zone · `p` sélection multiple · `g` déplacer un groupe ·
+`h` plan horizontal · `i` infos objet · `k` position caméra · `u` relier deux objets
+par un ressort · flèches haut/bas pour monter/descendre.
+
+### Voix — pilotage
+« animation » (démarre) · « stoppe l'animation » · « reprends l'animation » ·
+« vitesse zéro ».
+
+---
+
+## Physique
+
+Le moteur utilise un intégrateur **Velocity Verlet symplectique** (énergie bornée, pas
+de dérive) pour les forces lisses ; collisions, rebonds murs et sol sont des
+**impulsions** appliquées après le pas Verlet.
+
+Réglages en direct dans le panneau **Dynamics** :
+
+- **Gravity (z)** — gravité verticale. **Décochée = mode planaire** : `z` est figé, la
+  scène n'évolue qu'en x-y (utile pour les chaînes).
+- **Springs (chains)** — forces de ressort des chaînes (longueur au repos `lenght_spring`).
+- **Object interaction (1/r²)** — **gravité newtonienne** entre objets :
+  `F = G·mᵢ·mⱼ / r²`. Les masses comptent (un objet lourd attire plus). Boutons
+  **Attraction / Repulsion** (signe) et **Strength** (la constante `G`).
+- **Random initial velocity** + **Velocity strength** — vitesse de départ aléatoire
+  **symétrique** (centrée sur 0) d'intensité réglable, injectée **à la création** de
+  chaque boule (ou départ à 0 si décochée).
+
+### Murs & boîtes
+- **boîte** (`w` / « boîte ») → enceinte de **4 murs réfléchissants** (`wall_box`),
+  actifs automatiquement : les boules rebondissent dessus.
+- **mur** (« mur ») isolé → panneau décoratif (ne réfléchit pas).
+- Un objet **bloqué** (`blocked`) devient une **ancre statique** (mur, ou point fixe
+  d'une chaîne de ressorts).
+
+---
+
+## Diagnostic d'énergie
+
+`Tools → ☑ energy graph` affiche un **graphe temporel** (en bas à gauche) des énergies
+**total / cinétique / potentielle**, avec axe gradué (unités arbitraires). La potentielle
+inclut la **gravité uniforme (z) + la gravité newtonienne (−G·mᵢ·mⱼ/r)** et l'élastique
+`½·k·(L−L₀)²`. Avec Verlet, la courbe **totale doit rester quasi constante** — c'est le
+diagnostic de conservation.
+
+---
+
+## Scènes (sauvegarde / chargement)
+
+Panneau **Scene** :
+
+- **pos.json** (état de travail) est **auto-sauvegardé à chaque relâchement de souris**
+  → la scène courante est rechargée au rafraîchissement.
+- **Save as** *(nom)* → fige la scène dans `static/scenes/<nom>.json`. **Les scènes
+  nommées ne sont écrites QUE sur sauvegarde explicite** (pas par l'auto-save), donc
+  recharger une scène nommée rend **exactement l'état sauvegardé**.
+- **Load** → recharge la scène **sélectionnée dans la liste déroulante** (état figé).
+- **New scene** → archive la scène courante (si nommée) puis repart à vide.
+- **remove** → supprime la scène sélectionnée · **Clear** → vide l'éditeur.
+- **Quit (stop server)** → arrête le serveur (route `/shutdown`).
+
+Sphères, **chaînes de ressorts** (liaisons reconstruites) et **boîtes** (`wall_box`)
+sont persistées. Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
+
+> Les fichiers de scènes runtime (`static/scenes/*.json`, `static/pos.json`) sont
+> **ignorés par git** (voir `.gitignore`).
+
+---
+
+## Vues
+
+Panneau **Views** :
+- **3D directions** → affiche 5 **flèches 3D** (une par vue), atténue les objets à 0,5 ;
+  **cliquer une flèche** applique la vue correspondante et restaure l'opacité.
+- « mouse keys navigation ».
+
+---
+
+## Routes serveur (`run.py`)
+
+| Route | Rôle |
+|---|---|
+| `/` | page principale |
+| `/upload_file` | upload de textures (Dropzone) |
+| `/scenes` | liste des scènes nommées |
+| `/scene/<nom>` | charge une scène (et la copie dans `pos.json`) |
+| `/scene_delete/<nom>` | supprime une scène |
+| `/shutdown` | arrête le serveur |
+| socket `message` / `begin` | sauvegarde / restitution de l'état |
+
+---
 
 ## Structure
 
 | Chemin | Rôle |
 |---|---|
-| `run.py` | Serveur Flask + SocketIO (page, sauvegarde JSON, upload textures) |
+| `run.py` | Serveur Flask + SocketIO (page, routes scènes, upload, shutdown) |
 | `templates/moving_walls.html` | Page principale ; inclut tous les modules JS |
-| `static/js/init_scene.js` | Construction de la scène, chargement/sauvegarde |
-| `static/js/objects_animation.js` | Moteur physique (gravité, collisions, ressorts, énergies) |
+| `templates/main_menus.html`, `panel_*.html`, `interface.html` | Barre de menus + panneaux + dialogue Bootstrap maison |
+| `static/js/init_scene.js` | Construction de la scène, sauvegarde/chargement (`get_scene_data`, `load_scene`) |
+| `static/js/objects_animation.js` | Moteur physique : **Velocity Verlet**, gravité newtonienne, ressorts, collisions, **énergies + graphe** |
+| `static/js/scene_params.js` | Paramètres globaux (constantes physiques, flags) |
 | `static/js/basic_objects.js`, `objects_from_basic.js`, `make_objects.js` | Fabriques d'objets 3D |
-| `static/js/*_interact.js` | Interactions souris/clavier (sélection, magnétisme, pistes, groupes…) |
+| `static/js/*_interact.js` | Interactions souris/clavier (sélection, magnétisme, pistes, groupes, vues…) |
+| `static/js/keys.js`, `keys_interactions1.js` | Raccourcis clavier |
 | `static/js/interaction_voice.js` | Commandes vocales (Artyom) |
-| `static/js/scene_params.js` | Paramètres globaux (constantes physiques, couleurs, flags d'outils) |
+| `static/css/moving_walls.css` | Styles (panneaux, icônes, graphe…) |
+
+---
 
 ## Remarques
 
-- Les versions de `requirements.txt` sont épinglées car le client embarque l'ancien
-  `socket.io 1.3.5` ; Flask-SocketIO 4.x (et donc Flask/Werkzeug anciens) reste le
-  combo compatible et testé.
-- `library/game.js` (gamepad / AngularJS) est un module hérité, non utilisé par la page principale.
+- Toute la logique partage des **variables globales** (d'où le découpage en nombreux
+  petits fichiers chargés dans l'ordre par `moving_walls.html`).
+- `library/game.js` et `templates/tests/` sont des modules/assets **hérités, non utilisés**.
+- Réglages physiques principaux dans `static/js/scene_params.js` :
+  `gravity_ok`, `springs_ok`, `one_over_r2`, `attract_strength_one_over_r2` (G),
+  `harmonic_const`, `lenght_spring`, `random_initial_speed`, `random_speed_module`.

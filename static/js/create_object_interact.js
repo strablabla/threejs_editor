@@ -94,7 +94,8 @@ function random_coord_speed(){
       Random speed coordinate
       */
 
-      return Math.round(random_speed_module*gaussianRandom(-1,1),1)
+      if (!random_initial_speed){ return 0 }                  // mode « vitesse de départ à 0 »
+      return random_speed_module * (gaussianRand() - 0.5) * 2 // aléatoire SYMÉTRIQUE, centré sur 0, dans [-module, +module]
 }
 
 function select_coord_random_speed(obj,coord){

@@ -152,6 +152,17 @@ function set_new_view(x, y, altit){
 
 }
 
+function apply_view(name){                  // applique un preset de vue (utilisé par les flèches 3D du panneau Views)
+
+      var altit_high = 2000, altit_low = 200
+      if (name === 'above_view'){ set_new_view(0, 0, altit_high) }
+      else if (name === 'front_view'){ set_new_view(0, -2000, altit_low) }
+      else if (name === 'back_view'){ set_new_view(0, 2000, altit_low) }
+      else if (name === 'left_view'){ set_new_view(-2000, 0, altit_low) }
+      else if (name === 'right_view'){ set_new_view(2000, 0, altit_low) }
+
+}
+
 $(document).ready(function(){
 
       /*

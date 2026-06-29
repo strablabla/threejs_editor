@@ -6,15 +6,7 @@
 
       <br><br><br>
 
-      <div style="line-height:2.6; padding-left:6px">
-        <span class="eye eye-down"  id="above_view" data-toggle="tooltip" title="Vue de dessus"   style="margin-right:16px"></span>
-        <span class="eye eye-up"    id="front_view" data-toggle="tooltip" title="Vue de face"     style="margin-right:16px"></span>
-        <span class="eye eye-down"  id="back_view"  data-toggle="tooltip" title="Vue de derrière" style="margin-right:16px"></span>
-        <span class="eye eye-right" id="left_view"  data-toggle="tooltip" title="Vue de gauche"   style="margin-right:16px"></span>
-        <span class="eye eye-left"  id="right_view" data-toggle="tooltip" title="Vue de droite"></span>
-      </div>
-      <br>
-      <center><button id="show_view_dirs" type="button" class="btn btn-default btn-sm"> Directions 3D </button></center>
+      <center><button id="show_view_dirs" type="button" class="btn btn-default btn-sm"> 3D directions </button></center>
       <hr>
       <div  class="help" id="mouse_keys_nav" > mouse keys navigation </div>
 
@@ -62,7 +54,7 @@
     function hide_view_arrows(){
          if (view_arrows){ scene.remove(view_arrows); view_arrows = null }
          restore_objects_opacity()
-         $('#show_view_dirs').text('Directions 3D')
+         $('#show_view_dirs').text('3D directions')
     }
 
     function show_view_arrows(){
@@ -86,7 +78,7 @@
          }
          scene.add(view_arrows)
          dim_objects()
-         $('#show_view_dirs').text('Cacher les directions')
+         $('#show_view_dirs').text('Hide directions')
     }
 
     function toggle_view_arrows(){
@@ -111,7 +103,7 @@
          if (o && o.userData.viewId){
                var vid = o.userData.viewId
                hide_view_arrows()              // retire flèches + restaure opacité
-               $('#' + vid).click()            // applique la vue (handler existant)
+               apply_view(vid)                 // applique la vue
          }
     }
     renderer.domElement.addEventListener('click', on_arrow_click, false)
