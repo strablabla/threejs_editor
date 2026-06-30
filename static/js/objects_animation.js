@@ -543,7 +543,8 @@ function energy_calculation(){
       }
       for (var k in list_paired_harmonic){                                 // élastique des ressorts : ½·k·(L-L0)²
             var dx = getDistance(list_paired_harmonic[k][0], list_paired_harmonic[k][1]) - lenght_spring
-            elast_energy += 0.5 * harmonic_const * dx * dx
+            var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const
+            elast_energy += 0.5 * kc * dx * dx
       }
       attract_energy = attraction_potential_energy()                       // PE gravité newtonienne (paires)
       grav_energy += attract_energy                                        // gravité = uniforme (z) + newtonienne
@@ -715,11 +716,12 @@ function accel_spring(k){
 
       var p0 = list_paired_harmonic[k][0]
       var p1 = list_paired_harmonic[k][1]
+      var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const  // raideur propre à la paire (repli global)
       var vec = new THREE.Vector3().subVectors(p1.position, p0.position)
       var diff_length = vec.length() - lenght_spring
       vec.normalize().multiplyScalar(diff_length)
-      p0.acc.addScaledVector(vec,  harmonic_const/p0.mass)
-      p1.acc.addScaledVector(vec, -harmonic_const/p1.mass)
+      p0.acc.addScaledVector(vec,  kc/p0.mass)
+      p1.acc.addScaledVector(vec, -kc/p1.mass)
 
 }
 

@@ -94,15 +94,34 @@ function bs_prompt(title, message, defaultValue, onOk){
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
   }
+  window.show_elastic_context_menu = function(pair, x, y){       // clic droit sur un élastique : sa raideur propre
+        $('#ctx_obj_title').text('elastic — ' + (((pair[0] && pair[0].name) || '?') + ' ↔ ' + ((pair[1] && pair[1].name) || '?')))
+        var $f = $('#ctx_obj_fields').empty()
+        num_row($f, 'stiffness',
+              function(){ return (pair.k_spring !== undefined) ? pair.k_spring : harmonic_const },
+              function(v){ pair.k_spring = v })                  // raideur de CET élastique seulement
+        var mw = 210, mh = 110
+        if (x + mw > $(window).width()){ x = $(window).width() - mw }
+        if (y + mh > $(window).height()){ y = $(window).height() - mh }
+        $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
+  }
   function hide_ctx(){ $('#obj_context_menu').hide() }
   $('#ctx_obj_close').on('click', hide_ctx)
 
-  // Clic droit sur le canvas : menu uniquement si l'objet visé est VERT (sélectionné)
+  // Clic droit : ÉLASTIQUE -> menu raideur ; sinon OBJET VERT (sélectionné) -> menu attributs
   renderer.domElement.addEventListener('contextmenu', function(event){
         var ray = make_raycaster(event)            // preventDefault() interne -> pas de menu natif
         var hits = ray.intersectObjects(objects)
         if (hits.length){
               var obj = hits[0].object
+              if (obj.type === 'elastic'){                       // clic droit sur un élastique -> sa raideur
+                    for (var i in list_paired_harmonic){
+                          if (list_paired_harmonic[i][2] === obj){
+                                show_elastic_context_menu(list_paired_harmonic[i], event.clientX, event.clientY)
+                                return
+                          }
+                    }
+              }
               if (obj.material && obj.material.color && obj.material.color.getHex &&
                   obj.material.color.getHex() === color_intersected_green){
                     show_object_context_menu(obj, event.clientX, event.clientY)

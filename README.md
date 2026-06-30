@@ -75,13 +75,16 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
 `h` plan horizontal · `i` infos objet · `k` position caméra · `u` relier deux objets
 par un ressort · flèches haut/bas pour monter/descendre.
 
-### Éditer un objet (clic droit)
-**Clic droit sur un objet sélectionné (passé en vert)** → un **menu contextuel** affiche
-ses attributs **éditables en direct** : `mass`, `opacity`, `friction`, `radius_interact`,
-`magnet`, `blocked`. Les changements sont pris en compte immédiatement par le moteur
-(ex. la masse influe sur la gravité newtonienne, les collisions et les ressorts) et sont
-**sauvegardés** avec la scène. Le menu n'apparaît que sur un objet vert (pas sur le sol) ;
-il se ferme par sa **×** ou en cliquant ailleurs.
+### Éditer un objet / un élastique (clic droit)
+- **Clic droit sur un objet sélectionné (passé en vert)** → **menu contextuel** de ses
+  attributs **éditables en direct** : `mass`, `opacity`, `friction`, `radius_interact`,
+  `magnet`, `blocked`. Effet immédiat sur le moteur (ex. la masse influe sur la gravité
+  newtonienne, les collisions, les ressorts) et **sauvegardé** avec la scène.
+- **Clic droit sur un élastique** → menu de sa **raideur (`stiffness`)**. Chaque élastique
+  a sa **propre raideur** (repli sur `harmonic_const`), donc une boule reliée par deux
+  élastiques peut avoir **deux raideurs différentes**.
+
+Le menu se ferme par sa **×** ou en cliquant ailleurs.
 
 ### Voix — pilotage
 « animation » (démarre) · « stoppe l'animation » · « reprends l'animation » ·
@@ -173,6 +176,63 @@ Panneau **Views** :
 | `/scene_delete/<nom>` | supprime une scène |
 | `/shutdown` | arrête le serveur |
 | socket `message` / `begin` | sauvegarde / restitution de l'état |
+
+---
+
+## Schéma du programme
+
+### Arborescence des modules
+
+```
+threejs_editor/
+├── run.py                          Serveur Flask + SocketIO
+│   ├── routes  /  /upload_file  /scenes  /scene/<nom>  /scene_delete  /shutdown
+│   ├── socket  message (sauvegarde)  ·  begin (restitution)
+│   └── open_browser()              ouverture auto de Chrome
+│
+├── templates/
+│   ├── moving_walls.html           page principale — charge tous les JS dans l'ordre
+│   ├── main_menus.html             navbar : 🎬 📦 👁 🔧 🧲  …  ?  ⏻
+│   ├── secondary_menus.html
+│   ├── interface.html              dialogue maison + menus contextuels (objet / élastique)
+│   └── panel_*.html                scene · object · views · tools · interaction · one_object
+│
+├── static/
+│   ├── js/                         (variables GLOBALES partagées entre fichiers)
+│   │   ├── init_scene.js           construction scène + save/load (get_scene_data, load_scene)
+│   │   ├── scene_params.js         constantes physiques & flags globaux
+│   │   ├── objects_animation.js    MOTEUR PHYSIQUE (Verlet, gravité, ressorts, énergies+graphe)
+│   │   ├── basic_objects.js  ┐
+│   │   ├── objects_from_basic.js ├ fabriques d'objets 3D (sphère, mur, cube, élastique…)
+│   │   ├── make_objects.js   ┘
+│   │   ├── *_interact.js           souris/clavier : sélection, magnétisme, pistes, groupes, vues
+│   │   ├── keys.js / keys_interactions1.js   raccourcis clavier
+│   │   └── interaction_voice.js    commandes vocales (Artyom)
+│   ├── pos.json                    état de travail (auto-save à chaque relâchement souris)
+│   ├── scenes/*.json               scènes nommées (figées sur « Save as »)
+│   └── old/*.json                  copies horodatées de pos.json
+│
+├── requirements.txt   ·   README.md   ·   .gitignore
+```
+
+### Flux d'exécution (boucle d'animation)
+
+```
+animate()                              boucle de rendu (requestAnimationFrame)
+├── controls.update()                  caméra (TrackballControls)
+├── renderer.render(scene, camera)
+└── si animation active :
+    ├── compute_accelerations()        a = F/m pour chaque objet mobile
+    │   ├── gravité (z constant, ou 0 en mode planaire)
+    │   ├── accel_attraction()         gravité newtonienne  G·mᵢ·mⱼ / r²
+    │   └── accel_spring()             ressorts  −k·(L−L₀)   (k = raideur propre, repli global)
+    ├── verlet_positions()             x(t+dt)  ← Velocity Verlet
+    ├── compute_accelerations()        a(t+dt)
+    ├── verlet_velocities()            v(t+dt)
+    ├── interactions_between_objects()  collisions + rebonds murs (impulsions)
+    ├── ground_bounce()                rebond sur le sol (impulsion)
+    └── energy_calculation()           cinétique + potentielle → graphe d'énergie
+```
 
 ---
 

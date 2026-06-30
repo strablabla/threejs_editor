@@ -194,7 +194,10 @@ function load_chains(msg){
             var s1 = listorig[ msg['_chains'][k][1] ]
             if (s0 && s1){
                   var el = create_elastic([s0, s1])
-                  list_paired_harmonic.push([s0, s1, el])
+                  var pair = [s0, s1, el]
+                  var ksaved = msg['_chains'][k][2]               // raideur propre sauvegardée (si réglée)
+                  if (ksaved !== undefined && ksaved !== null){ pair.k_spring = ksaved }
+                  list_paired_harmonic.push(pair)
             }
       }
       if (list_paired_harmonic.length > 0){ color_pairs_in_blue() }
@@ -312,8 +315,8 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
               listpos['scene_name'] = scene.name
             }    // end if
           }    // end for
-    if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (par noms de boules)
-          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name] })
+    if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (noms des boules + raideur propre)
+          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring] })
     }
     return listpos
 }
