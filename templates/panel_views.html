@@ -13,6 +13,13 @@
 
 </div>
 
+<!-- Menu contextuel (Maj+D) : afficher / masquer les flèches de vue -->
+<div id="ground_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 12px; font-family:sans-serif; font-size:12px;">
+  <label style="cursor:pointer; white-space:nowrap; margin:0">
+    <input type="checkbox" id="ground_show_arrows"> Show view arrows
+  </label>
+</div>
+
 <script>
 
     var view_arrows = null
@@ -107,5 +114,35 @@
          }
     }
     renderer.domElement.addEventListener('click', on_arrow_click, false)
+
+    // ---- Maj+D : menu contextuel pour afficher / masquer les flèches de vue ----
+    function hide_ground_menu(){ $('#ground_context_menu').hide() }
+
+    var _gm_mx = 0, _gm_my = 0                                     // dernière position souris (pour placer le menu)
+    document.addEventListener('mousemove', function(e){ _gm_mx = e.clientX; _gm_my = e.clientY })
+
+    document.addEventListener('keydown', function(event){
+         var t = event.target || event.srcElement                 // ne pas déclencher si on tape dans un champ
+         if (t){ var tag = (t.tagName || '').toLowerCase()
+                 if (tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable){ return } }
+         if (event.shiftKey && event.keyCode === 68){             // Maj + D
+               event.preventDefault()
+               if ($('#ground_context_menu').is(':visible')){ hide_ground_menu(); return }   // 2e appui = ferme
+               $('#ground_show_arrows').prop('checked', view_arrows != null)   // reflète l'état courant
+               var x = _gm_mx, y = _gm_my
+               if (x + 200 > $(window).width()){  x = $(window).width()  - 200 }
+               if (y + 60  > $(window).height()){ y = $(window).height() - 60  }
+               $('#ground_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
+         }
+    })
+
+    $('#ground_show_arrows').change(function(){                    // (dé)cocher = afficher / masquer les flèches
+         if ($(this).is(':checked')){ if (!view_arrows){ show_view_arrows() } }
+         else                       { if ( view_arrows){ hide_view_arrows() } }
+    })
+
+    $(document).on('mousedown', function(e){                       // fermer le menu en cliquant ailleurs
+         if (!$(e.target).closest('#ground_context_menu').length){ hide_ground_menu() }
+    })
 
 </script>

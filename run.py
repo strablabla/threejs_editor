@@ -17,6 +17,7 @@ eventlet.monkey_patch()
 import os, sys, time, json, glob
 opd, opb = os.path.dirname, os.path.basename
 import shutil as sh
+import webbrowser, subprocess
 sys.path.append('/usr/lib/python2.7/dist-packages')
 from threading import Thread
 import flask
@@ -184,5 +185,18 @@ def index():
     #return render_template('test_dropzone.html') #
     #return render_template('first_page.html') #
 
+def open_browser():
+    '''Ouvre automatiquement le navigateur (Chrome de préférence) sur l'appli.'''
+    sleep(1.5)                                            # laisser le serveur démarrer
+    url = 'http://localhost:5000'
+    for b in ('google-chrome', 'google-chrome-stable', 'chromium-browser', 'chromium'):
+        path = sh.which(b)
+        if path:
+            subprocess.Popen([path, url])
+            return
+    webbrowser.open(url)                                  # repli : navigateur par défaut
+
 if __name__ == '__main__':
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':     # n'ouvrir qu'une fois (pas a chaque reload)
+        Thread(target=open_browser, daemon=True).start()
     socketio.run(app, debug=True)

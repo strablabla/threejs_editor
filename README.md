@@ -29,8 +29,9 @@ mkdir -p static/old static/scenes            # dossiers d'état runtime
 ./venv/bin/python run.py
 ```
 
-Puis **http://localhost:5000** dans Chrome. Le message `no serial connection` est
-**normal** (accéléromètre série optionnel `/dev/ttyACM0`).
+Au démarrage, **Chrome s'ouvre automatiquement** sur **http://localhost:5000** (repli
+sur Chromium puis le navigateur par défaut si Chrome est absent). Le message
+`no serial connection` est **normal** (accéléromètre série optionnel `/dev/ttyACM0`).
 
 > Versions épinglées : le client embarque l'ancien `socket.io 1.3.5`, donc Flask-SocketIO 4.x
 > (et Flask/Werkzeug anciens) est le combo compatible et testé.
@@ -51,9 +52,10 @@ son icône** (avec une flèche et une ombre), **un seul à la fois**, et se ferm
 | 🔧 | **Tools** | distance, stats, **graphe d'énergie** |
 | 🧲 | **Dynamics** | pilotage de la physique en direct |
 | ? | **Help** | aide / raccourcis |
+| ⏻ | **Quit** | arrête le serveur (route `/shutdown`), tout à droite de la barre |
 
-Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲, et le **nom de la
-scène** courante à gauche du `?`.
+Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer dessus =
+**no tool**), et le **nom de la scène** courante à gauche du `?`.
 
 ---
 
@@ -72,6 +74,14 @@ scène** courante à gauche du `?`.
 `s` sélectionner une zone · `p` sélection multiple · `g` déplacer un groupe ·
 `h` plan horizontal · `i` infos objet · `k` position caméra · `u` relier deux objets
 par un ressort · flèches haut/bas pour monter/descendre.
+
+### Éditer un objet (clic droit)
+**Clic droit sur un objet sélectionné (passé en vert)** → un **menu contextuel** affiche
+ses attributs **éditables en direct** : `mass`, `opacity`, `friction`, `radius_interact`,
+`magnet`, `blocked`. Les changements sont pris en compte immédiatement par le moteur
+(ex. la masse influe sur la gravité newtonienne, les collisions et les ressorts) et sont
+**sauvegardés** avec la scène. Le menu n'apparaît que sur un objet vert (pas sur le sol) ;
+il se ferme par sa **×** ou en cliquant ailleurs.
 
 ### Voix — pilotage
 « animation » (démarre) · « stoppe l'animation » · « reprends l'animation » ·
@@ -125,10 +135,12 @@ Panneau **Scene** :
 - **Save as** *(nom)* → fige la scène dans `static/scenes/<nom>.json`. **Les scènes
   nommées ne sont écrites QUE sur sauvegarde explicite** (pas par l'auto-save), donc
   recharger une scène nommée rend **exactement l'état sauvegardé**.
-- **Load** → recharge la scène **sélectionnée dans la liste déroulante** (état figé).
+- **💾 Save as** *(nom)* archive ; **⤓ Load** recharge la scène **sélectionnée dans la
+  liste déroulante** (état figé) ; **❌ remove** la supprime — boutons à **icônes + tooltips**.
+  À l'ouverture du panneau, la liste se **positionne sur la scène courante**.
 - **New scene** → archive la scène courante (si nommée) puis repart à vide.
-- **remove** → supprime la scène sélectionnée · **Clear** → vide l'éditeur.
-- **Quit (stop server)** → arrête le serveur (route `/shutdown`).
+- **Clear** (tooltip *clear the scene*) → vide l'éditeur.
+- **Quit** est désormais l'icône **⏻** dans la navbar (et non plus dans ce panneau).
 
 Sphères, **chaînes de ressorts** (liaisons reconstruites) et **boîtes** (`wall_box`)
 sont persistées. Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
@@ -143,6 +155,9 @@ sont persistées. Une copie horodatée de l'ancien `pos.json` est gardée dans `
 Panneau **Views** :
 - **3D directions** → affiche 5 **flèches 3D** (une par vue), atténue les objets à 0,5 ;
   **cliquer une flèche** applique la vue correspondante et restaure l'opacité.
+- **Maj+D** → ouvre un **menu contextuel** (à la souris) avec la case **« Show view
+  arrows »** pour afficher / masquer ces flèches sans passer par le panneau (2ᵉ appui =
+  ferme). *(`d` seul reste la suppression d'objet ; Maj+D ne supprime pas.)*
 - « mouse keys navigation ».
 
 ---
@@ -165,7 +180,7 @@ Panneau **Views** :
 
 | Chemin | Rôle |
 |---|---|
-| `run.py` | Serveur Flask + SocketIO (page, routes scènes, upload, shutdown) |
+| `run.py` | Serveur Flask + SocketIO (page, routes scènes, upload, shutdown) + ouverture auto du navigateur |
 | `templates/moving_walls.html` | Page principale ; inclut tous les modules JS |
 | `templates/main_menus.html`, `panel_*.html`, `interface.html` | Barre de menus + panneaux + dialogue Bootstrap maison |
 | `static/js/init_scene.js` | Construction de la scène, sauvegarde/chargement (`get_scene_data`, `load_scene`) |
