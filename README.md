@@ -22,6 +22,26 @@ l'état est sauvegardé en JSON côté serveur.
 
 ## Installation & lancement
 
+### Installation automatique (recommandé)
+
+```bash
+./install.sh
+```
+
+Le script `install.sh` :
+
+- **crée le venv** avec `python3.8` **seulement s'il n'existe pas** (relançable sans risque : un venv déjà présent n'est pas réinstallé) et installe `requirements.txt` ;
+- génère `launch.sh`, un lanceur qui active le venv et démarre `run.py` ;
+- pose un **raccourci sur le bureau** (`~/Bureau/threejs_editor.desktop`) avec l'icône de l'appli, prêt à l'emploi (double-clic).
+
+Sur une machine où `python3.8` n'est pas le binaire par défaut, forcer une autre version :
+
+```bash
+PYTHON_BIN=python3 ./install.sh
+```
+
+### Installation manuelle
+
 ```bash
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt   # appeler le venv directement évite les conflits conda/python2
@@ -249,6 +269,9 @@ animate()                              boucle de rendu (requestAnimationFrame)
 
 | Chemin | Rôle |
 |---|---|
+| `install.sh` | Installe le venv (si absent) + génère `launch.sh` + pose le raccourci bureau |
+| `launch.sh` | Lanceur généré : active le venv et démarre `run.py` (utilisé par le raccourci) |
+| `static/img/app_icon.svg`, `app_icon.png` | Icône de l'appli (raccourci bureau) |
 | `run.py` | Serveur Flask + SocketIO (page, routes scènes, upload, shutdown) + ouverture auto du navigateur |
 | `templates/create_3d.html` | Page principale ; inclut tous les modules JS |
 | `templates/main_menus.html`, `panel_*.html`, `interface.html` | Barre de menus + panneaux + dialogue Bootstrap maison |
