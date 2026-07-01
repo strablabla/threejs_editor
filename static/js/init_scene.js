@@ -330,6 +330,7 @@ function emit_infos_scene(archive_name){          									// emits the position
     */
 
     var data = get_scene_data()
+    if (typeof history_record === 'function'){ history_record(data) }   // undo/redo : enregistre l'état (ignoré pendant une restauration)
     if (typeof archive_name === 'string' && archive_name){ data['_archive'] = archive_name }  // sauvegarde explicite
     socket.emit( 'message', JSON.stringify(data));
   }    // end emit_infos_scene
@@ -390,6 +391,7 @@ function init() {
   socket.emit( 'begin',  "hello from client"); // send mess to server for ping pong..
   socket.on('server_pos', function(msg) {
         load_scene(msg)             // When receiving the scene from the server (pos.json), load it in the client..
+        if (typeof history_seed === 'function'){ history_seed() }   // undo/redo : reprend l'historique de la scène (ou pose la baseline)
       });// end socket.on
 
   // var gjson ;

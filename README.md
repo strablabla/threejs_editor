@@ -74,6 +74,7 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
 `s` sélectionner une zone · `p` sélection multiple · `g` déplacer un groupe ·
 `h` plan horizontal · `i` infos objet · `k` position caméra · `u` relier deux objets
 par un ressort · flèches haut/bas pour monter/descendre.
+**Ctrl+Z** annuler · **Ctrl+Y** (ou **Ctrl+Maj+Z**) rétablir.
 
 ### Éditer un objet / un élastique (clic droit)
 - **Clic droit sur un objet sélectionné (passé en vert)** → **menu contextuel** de ses
@@ -148,6 +149,13 @@ Panneau **Scene** :
 Sphères, **chaînes de ressorts** (liaisons reconstruites) et **boîtes** (`wall_box`)
 sont persistées. Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
 
+### Undo / redo (Ctrl+Z / Ctrl+Y)
+Chaque changement validé (relâchement de souris) enregistre un **snapshot** de la scène.
+**Ctrl+Z** revient en arrière, **Ctrl+Y** (ou **Ctrl+Maj+Z**) avance. L'historique est
+**propre à chaque scène** (clé = nom de scène) et stocké en **localStorage** : il **survit
+au rafraîchissement** de la page. Une simple rotation caméra ne crée pas d'entrée
+(dédoublonnage) ; profondeur bornée (`HISTORY_MAX`).
+
 > Les fichiers de scènes runtime (`static/scenes/*.json`, `static/pos.json`) sont
 > **ignorés par git** (voir `.gitignore`).
 
@@ -200,6 +208,7 @@ threejs_editor/
 ├── static/
 │   ├── js/                         (variables GLOBALES partagées entre fichiers)
 │   │   ├── init_scene.js           construction scène + save/load (get_scene_data, load_scene)
+│   │   ├── scene_history.js        undo/redo par scène (Ctrl+Z / Ctrl+Y, localStorage)
 │   │   ├── scene_params.js         constantes physiques & flags globaux
 │   │   ├── objects_animation.js    MOTEUR PHYSIQUE (Verlet, gravité, ressorts, énergies+graphe)
 │   │   ├── basic_objects.js  ┐

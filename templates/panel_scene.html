@@ -120,6 +120,7 @@
                $('#scene_name').val(name)
                update_scene_name_display()
                load_scene(data)                   // recrée objets + chaînes
+               if (typeof history_seed === 'function'){ history_seed() }   // undo/redo : historique propre à cette scène
           })
     }
 
