@@ -119,12 +119,51 @@ for (var i in list_panels){ one_element_dicths(list_panels[i]) } // make_dicths
 function hide_show_keys(){
 
       /*
-      panel keys actions
+      Panneau des raccourcis clavier : carte propre, sections, touches en <kbd>.
       */
 
-      $('.panel_keys').html(simple_md(keys))
-      $('#keys').click(function(){ $('.panel_keys').toggle() })			// show hide the key panel
-      mouseleave_hide_panel('.panel_keys')
+      var groups = [
+            { title:'Create', rows:[
+                  {k:['o'], d:'sphere (ball)'},        {k:['e'], d:'chain (balls + springs)'},
+                  {k:['n'], d:'wall'},                 {k:['w'], d:'box (reflecting walls)'},
+                  {k:['m'], d:'textured cube'},        {k:['l'], d:'simple cube'},
+                  {k:['t'], d:'track'},                {k:['u'], d:'link two objects (spring)'},
+                  {k:['b'], d:'no tool / cancel'} ]},
+            { title:'Edit', rows:[
+                  {k:['c'], d:'clone'},   {k:['d'], d:'delete'},  {k:['r'], d:'rotate'},
+                  {k:['h'], d:'horizontal plane'}, {k:['i'], d:'object info'},
+                  {k:['↑'], d:'move up'}, {k:['↓'], d:'move down'} ]},
+            { title:'Select', rows:[
+                  {k:['s'], d:'select an area'}, {k:['p'], d:'pick several objects'},
+                  {k:['g'], d:'move a group'} ]},
+            { title:'Animation', rows:[
+                  {k:['a'], d:'start animation'}, {k:['x'], d:'play / pause'} ]},
+            { title:'View', rows:[
+                  {k:['k'], d:'set camera position'}, {k:['Shift','D'], d:'show / hide view arrows'} ]},
+            { title:'History', rows:[
+                  {k:['Ctrl','Z'], d:'undo'}, {k:['Ctrl','Y'], d:'redo'} ]},
+            { title:'Mouse', rows:[
+                  {k:['right-click'], d:'green object → edit attributes'},
+                  {k:['right-click'], d:'elastic → edit stiffness'} ]}
+      ]
+
+      var html = '<span class="pk_close" title="close">&times;</span>'
+      html += '<h2>Keyboard shortcuts</h2><div class="pk_grid">'
+      for (var g in groups){
+            html += '<div class="pk_section"><h3>' + groups[g].title + '</h3>'
+            for (var r in groups[g].rows){
+                  var row = groups[g].rows[r], kb = []
+                  for (var i in row.k){ kb.push('<kbd class="pk">' + row.k[i] + '</kbd>') }
+                  html += '<div class="pk_row"><span class="pk_desc">' + row.d + '</span>'
+                       +  '<span class="pk_keys">' + kb.join('<span class="pk_plus">+</span>') + '</span></div>'
+            }
+            html += '</div>'
+      }
+      html += '</div>'
+
+      $('.panel_keys').html(html)
+      $('#keys').click(function(){ $('.panel_keys').toggle() })          // ouvre/ferme depuis Help > keys
+      $('.panel_keys').on('click', '.pk_close', function(){ $('.panel_keys').hide() })
 
 }
 

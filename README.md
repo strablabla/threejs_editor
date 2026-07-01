@@ -199,7 +199,7 @@ threejs_editor/
 │   └── open_browser()              ouverture auto de Chrome
 │
 ├── templates/
-│   ├── moving_walls.html           page principale — charge tous les JS dans l'ordre
+│   ├── create_3d.html           page principale — charge tous les JS dans l'ordre
 │   ├── main_menus.html             navbar : 🎬 📦 👁 🔧 🧲  …  ?  ⏻
 │   ├── secondary_menus.html
 │   ├── interface.html              dialogue maison + menus contextuels (objet / élastique)
@@ -250,7 +250,7 @@ animate()                              boucle de rendu (requestAnimationFrame)
 | Chemin | Rôle |
 |---|---|
 | `run.py` | Serveur Flask + SocketIO (page, routes scènes, upload, shutdown) + ouverture auto du navigateur |
-| `templates/moving_walls.html` | Page principale ; inclut tous les modules JS |
+| `templates/create_3d.html` | Page principale ; inclut tous les modules JS |
 | `templates/main_menus.html`, `panel_*.html`, `interface.html` | Barre de menus + panneaux + dialogue Bootstrap maison |
 | `static/js/init_scene.js` | Construction de la scène, sauvegarde/chargement (`get_scene_data`, `load_scene`) |
 | `static/js/objects_animation.js` | Moteur physique : **Velocity Verlet**, gravité newtonienne, ressorts, collisions, **énergies + graphe** |
@@ -259,14 +259,14 @@ animate()                              boucle de rendu (requestAnimationFrame)
 | `static/js/*_interact.js` | Interactions souris/clavier (sélection, magnétisme, pistes, groupes, vues…) |
 | `static/js/keys.js`, `keys_interactions1.js` | Raccourcis clavier |
 | `static/js/interaction_voice.js` | Commandes vocales (Artyom) |
-| `static/css/moving_walls.css` | Styles (panneaux, icônes, graphe…) |
+| `static/css/create_3d.css` | Styles (panneaux, icônes, graphe…) |
 
 ---
 
 ## Remarques
 
 - Toute la logique partage des **variables globales** (d'où le découpage en nombreux
-  petits fichiers chargés dans l'ordre par `moving_walls.html`).
+  petits fichiers chargés dans l'ordre par `create_3d.html`).
 - `library/game.js` et `templates/tests/` sont des modules/assets **hérités, non utilisés**.
 - Réglages physiques principaux dans `static/js/scene_params.js` :
   `gravity_ok`, `springs_ok`, `one_over_r2`, `attract_strength_one_over_r2` (G),

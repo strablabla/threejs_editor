@@ -114,7 +114,7 @@ def upload_file(debug=1):
                 f.save(full_path)
 
     #print("####### On the point to scan UPLOADED_PATH !!!")
-    return render_template('moving_walls.html')
+    return render_template('create_3d.html')
 
 @app.route('/scenes')
 def list_scenes():
@@ -181,7 +181,7 @@ def index():
     #     thread = Thread(target=background_thread)
     #     thread.daemon = True
     #     thread.start()
-    return render_template('moving_walls.html') #
+    return render_template('create_3d.html') #
     #return render_template('test_dropzone.html') #
     #return render_template('first_page.html') #
 
