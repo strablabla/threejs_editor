@@ -119,64 +119,29 @@ function check_change_color(obj,col0){
 
 }
 
-function masses_and_speeds(i,j){
-
-      var mi = list_moving_objects[i].mass
-      var mj = list_moving_objects[j].mass
-      //--------------
-      var vi = list_moving_objects[i].speed
-      var vj = list_moving_objects[j].speed
-
-      return [mi,mj,vi,vj]
-
-}
-
 function change_speed_after_center_center_collision(i,j){
 
       /*
-      Change the speeds after collision..
+      Collision élastique 3D par impulsion le long de la ligne des centres.
+      On n'inverse que la composante NORMALE de la vitesse relative ; les composantes
+      tangentielles restent inchangées. C'est indispensable pour la thermalisation :
+      un simple échange des vecteurs vitesse complets (masses égales) ne ferait que
+      permuter les vitesses -> distribution des |v| figée (pas d'équilibre statistique).
+
+      Impulsion (restitution e = 1) :  J = -2·v_n / (1/m_i + 1/m_j)
+            v_i += (J/m_i)·n     v_j -= (J/m_j)·n     avec n = normale unitaire j->i
       */
 
-      var vc = speed_center_mass(i,j)
-      var [dvi,dvj] = dv_in_center_of_mass(i,j)
-      //--------------
-      var new_vi = new THREE.Vector3();
-      var new_vj = new THREE.Vector3();
-      //--------------
-      list_moving_objects[i].speed = new_vi.add(vc).add(dvi)  // vc + dvi
-      list_moving_objects[j].speed = new_vj.add(vc).add(dvj)  // vc + dvj
-
-}
-
-function dv_in_center_of_mass(i,j){
-
-      /*
-      Speed in center of mass after interaction
-      */
-
-      var [mi,mj,vi,vj] = masses_and_speeds(i,j)
-      var dvi = new THREE.Vector3();
-      var dvj = new THREE.Vector3();
-      dvi.subVectors(vi,vj).multiplyScalar(-mj/(mi+mj))
-      dvj.subVectors(vj,vi).multiplyScalar(-mi/(mi+mj))
-
-      return [dvi,dvj]
-
-}
-
-function speed_center_mass(i,j){
-
-      /*
-      Speed of the center of mass
-      */
-
-      var [mi,mj,vi,vj] = masses_and_speeds(i,j)
-      var vc = new THREE.Vector3();
-      vc.add( vi.multiplyScalar(mi) ) ;
-      vc.add( vj.multiplyScalar(mj) ) ;
-      vc.multiplyScalar( 1/(mi+mj) ) ;
-
-      return vc
+      var oi = list_moving_objects[i], oj = list_moving_objects[j]
+      var n = new THREE.Vector3().subVectors(oi.position, oj.position)
+      var d = n.length()
+      if (d === 0){ return }                                   // centres confondus : pas de normale définie
+      n.divideScalar(d)                                        // normale unitaire j->i
+      var vn = new THREE.Vector3().subVectors(oi.speed, oj.speed).dot(n)  // vitesse relative normale
+      if (vn >= 0){ return }                                   // objets déjà en éloignement : pas de choc
+      var imp = -2 * vn / (1/oi.mass + 1/oj.mass)              // impulsion scalaire (élastique)
+      oi.speed.addScaledVector(n,  imp/oi.mass)
+      oj.speed.addScaledVector(n, -imp/oj.mass)
 
 }
 
