@@ -594,6 +594,7 @@ function calculate_total_energy(){
       //$('#curr_func').text( txt_elast + txt_kin + txt_grav + txt_tot )
       $('#curr_func').text( txt_max_elast + txt_max_kin + txt_grav + txt_tot )
       record_energy()                                        // graphe temporel (si activé)
+      draw_velocity_hist()                                   // histogramme des vitesses (si activé)
 
 }
 
@@ -672,6 +673,86 @@ function draw_energy_graph(){
       line(energy_hist.pot, '#1e88e5')   // potentielle (bleu)
       line(energy_hist.kin, '#e53935')   // cinétique (rouge)
       line(energy_hist.tot, '#000000')   // totale (noir)
+
+}
+
+//===================================================================== Histogramme des vitesses
+
+var VELO_HIST_BINS = 20                                       // nombre de classes de |v|
+
+function collect_speeds(){
+
+      /*
+      Normes des vitesses des objets massifs mobiles (mêmes exclusions que l'énergie
+      cinétique : ni statiques/ancres, ni ressorts/élastiques/pions).
+      */
+
+      var speeds = []
+      for (var i in list_moving_objects){
+            var obj = list_moving_objects[i]
+            if (obj.blocked){ continue }
+            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
+            speeds.push(Math.sqrt(obj.speed.dot(obj.speed)))
+      }
+      return speeds
+
+}
+
+function draw_velocity_hist(){
+
+      /*
+      Histogramme (instantané) de la distribution des normes de vitesse.
+      Axe X = |v| (0 -> max courant), axe Y = nombre d'objets par classe.
+      */
+
+      if (!show_velocity_hist){ return }
+      var cv = document.getElementById('velocity_hist')
+      if (!cv){ return }
+      var ctx = cv.getContext('2d')
+      var W = cv.width, H = cv.height
+      ctx.clearRect(0, 0, W, H)
+      var speeds = collect_speeds()
+      var n = speeds.length
+      if (n === 0){ return }
+      //--- max de vitesse -> échelle horizontale
+      var vmax = 0
+      for (var k=0;k<n;k++){ if (speeds[k] > vmax) vmax = speeds[k] }
+      if (vmax <= 0){ vmax = 1 }
+      //--- remplissage des classes
+      var bins = new Array(VELO_HIST_BINS).fill(0)
+      for (var k=0;k<n;k++){
+            var b = Math.floor(speeds[k] / vmax * VELO_HIST_BINS)
+            if (b >= VELO_HIST_BINS){ b = VELO_HIST_BINS - 1 }
+            bins[b]++
+      }
+      var cmax = 0
+      for (var b=0;b<VELO_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
+      if (cmax <= 0){ cmax = 1 }
+      //--- géométrie
+      var ML = 26, MT = 6, MB = 16                             // marges (gauche = comptes, bas = |v|)
+      var plotW = W - ML - 6, plotH = H - MT - MB
+      //--- axe Y : graduations entières (comptes)
+      ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+      var NT = Math.min(cmax, 4)
+      for (var t=0; t<=NT; t++){
+            var val = Math.round(cmax * t / NT)
+            var y = MT + (1 - t / NT) * plotH
+            ctx.strokeStyle = '#eee'; ctx.lineWidth = 1
+            ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W - 6, y); ctx.stroke()
+            ctx.fillText(val, ML - 4, y)
+      }
+      //--- barres
+      var bw = plotW / VELO_HIST_BINS
+      ctx.fillStyle = '#43a047'                                // vert
+      for (var b=0;b<VELO_HIST_BINS;b++){
+            var h = bins[b] / cmax * plotH
+            ctx.fillRect(ML + b * bw + 1, MT + plotH - h, bw - 2, h)
+      }
+      //--- axe X : bornes 0 et vmax
+      ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
+      ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
+      ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vmax), W - 6, MT + plotH + 3)
 
 }
 

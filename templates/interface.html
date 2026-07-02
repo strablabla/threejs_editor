@@ -54,6 +54,12 @@ function bs_prompt(title, message, defaultValue, onOk){
   <canvas id="energy_graph" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
+<!-- Histogramme des normes de vitesse (toggle dans le panneau Tools) -->
+<div id="velocity_hist_box" style="display:none; position:fixed; bottom:10px; right:10px; z-index:9998; background:rgba(255,255,255,0.93); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
+  <div style="margin-bottom:3px;"><b>Velocities</b> <span style="color:#888">(count vs |v|)</span></div>
+  <canvas id="velocity_hist" width="340" height="160" style="display:block; background:#fafafa"></canvas>
+</div>
+
 <!-- Menu contextuel (clic droit sur un objet VERT) : attributs éditables -->
 <div id="obj_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 10px; font-family:sans-serif; font-size:12px; min-width:200px;">
   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">

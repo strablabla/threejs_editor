@@ -78,6 +78,7 @@ grav_energy = 0     // gravity (uniforme en z + newtonienne)
 attract_energy = 0  // énergie potentielle de gravité newtonienne (paires)
 tot_energy = 0      // total
 show_energy_graph = false   // affichage du graphe temporel d'énergie (panneau Tools)
+show_velocity_hist = false  // affichage de l'histogramme des normes de vitesse (panneau Tools)
 
 //------------
 

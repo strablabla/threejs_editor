@@ -148,6 +148,14 @@ inclut la **gravité uniforme (z) + la gravité newtonienne (−G·mᵢ·mⱼ/r)
 `½·k·(L−L₀)²`. Avec Verlet, la courbe **totale doit rester quasi constante** — c'est le
 diagnostic de conservation.
 
+## Distribution des vitesses
+
+`Tools → ☑ velocity histogram` affiche (en bas à droite) un **histogramme instantané** des
+**normes de vitesse** `|v|` des objets massifs mobiles (mêmes exclusions que l'énergie
+cinétique : ni statiques/ancres, ni ressorts/élastiques/pions). Axe X = `|v|` (0 → max
+courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Il se dessine
+**dès qu'on coche la case** puis se met à jour à chaque frame pendant l'animation.
+
 ---
 
 ## Scènes (sauvegarde / chargement)

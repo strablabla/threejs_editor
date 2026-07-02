@@ -10,6 +10,9 @@
       <div  class="help" >
             <label><input type="checkbox" id="chk_energy_graph"> energy graph</label>
       </div><br>
+      <div  class="help" >
+            <label><input type="checkbox" id="chk_velocity_hist"> velocity histogram</label>
+      </div><br>
 
 </div>
 
@@ -35,6 +38,18 @@ $('#chk_energy_graph').change(function(){
           $('#energy_graph_box').show()
     } else {
           $('#energy_graph_box').hide()
+    }
+})
+
+// Histogramme des vitesses : affiche/masque la fenêtre
+$('#chk_velocity_hist').prop('checked', show_velocity_hist)
+$('#chk_velocity_hist').change(function(){
+    show_velocity_hist = this.checked
+    if (show_velocity_hist){
+          $('#velocity_hist_box').show()
+          draw_velocity_hist()                           // dessin immédiat (sans attendre l'animation)
+    } else {
+          $('#velocity_hist_box').hide()
     }
 })
 
