@@ -417,6 +417,23 @@ Panel scene
 Panel scene
 */
 
+/* Sous-titres de rubrique (Interactions, Initial speeds) dans le panneau Dynamics */
+.subtitle_dyn {
+	font-family: 'Playfair Display';
+	font-size: 1.6em;
+	letter-spacing: 0.15em;
+	font-weight: bold;
+	padding-left: 30px;
+	margin: 6px 0 10px;
+	border-bottom: 1px solid #ccc;
+}
+
+/* Contenu des rubriques du panneau Dynamics : plus petit que les titres, non gras */
+.panel_interaction .help { font-size: 1em; font-weight: normal; }
+
+/* Indentation des contrôles rattachés à une option parente (ex : sous Object interaction) */
+.help.indent_dyn { padding-left: 90px; }
+
 .panel_interaction {
 
 	font-family: 'Playfair Display';

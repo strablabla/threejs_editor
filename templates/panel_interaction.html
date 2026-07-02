@@ -6,6 +6,9 @@
 
           <br><br><br>
 
+          <!-- ===== Interactions ===== -->
+          <div class="subtitle_dyn"> Interactions </div>
+
           <div class="help">
             <label><input type="checkbox" id="chk_gravity"> Gravity (z)</label>
           </div><br>
@@ -18,22 +21,29 @@
             <label><input type="checkbox" id="chk_attract"> Object interaction (1/r²)</label>
           </div><br>
 
-          <div class="help">
+          <div class="help indent_dyn">
             <label><input type="radio" name="attract_sign" id="rad_attract"> Attraction</label>
             &nbsp;
             <label><input type="radio" name="attract_sign" id="rad_repulse"> Repulsion</label>
           </div><br>
 
-          <div class="help"> <span> Strength: </span>
-            <input value="3000" size=8 id="attract_strength_input">
+          <div class="help indent_dyn"> <span> Strength: </span>
+            <input type="range" id="attract_strength_input" min="0" max="100000" step="1000" style="vertical-align:middle; width:120px">
+            <span id="attract_strength_val"></span>
           </div><br>
 
-          <hr>
+          <!-- ===== Initial speeds ===== -->
+          <div class="subtitle_dyn"> Initial speeds </div>
+
           <div class="help">
-            <label><input type="checkbox" id="chk_random_speed"> Random initial velocity</label>
+            <label><input type="checkbox" id="chk_random_speed"> Random</label>
           </div><br>
 
-          <div class="help"> <span> Velocity strength: </span>
+          <div class="help">
+            <label><input type="checkbox" id="chk_random_speed_z"> z component</label>
+          </div><br>
+
+          <div class="help"> <span> Strength: </span>
             <input type="range" id="rng_speed_intensity" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
             <span id="speed_intensity_val"></span>
           </div><br>
@@ -49,6 +59,7 @@
     $('#rad_attract').prop('checked', attract_strength_one_over_r2 >= 0)
     $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
     $('#attract_strength_input').val(Math.abs(attract_strength_one_over_r2))
+    $('#attract_strength_val').text(Math.abs(attract_strength_one_over_r2))
 
     // --- Câblage : chaque contrôle écrit dans le drapeau physique correspondant ---
     $('#chk_gravity').change(function(){ gravity_ok = this.checked })
@@ -59,6 +70,7 @@
         var mag  = Math.abs(parseFloat($('#attract_strength_input').val()) || 0)
         var sign = $('#rad_repulse').is(':checked') ? -1 : 1   // répulsion = signe négatif
         attract_strength_one_over_r2 = sign * mag
+        $('#attract_strength_val').text(mag)
     }
     $('#rad_attract').change(update_attract_strength)
     $('#rad_repulse').change(update_attract_strength)
@@ -66,9 +78,11 @@
 
     // --- Vitesse de départ des boules : mode aléatoire/zéro + intensité ---
     $('#chk_random_speed').prop('checked', random_initial_speed)
+    $('#chk_random_speed_z').prop('checked', random_speed_z)
     $('#rng_speed_intensity').val(random_speed_module)
     $('#speed_intensity_val').text(random_speed_module)
     $('#chk_random_speed').change(function(){ random_initial_speed = this.checked })
+    $('#chk_random_speed_z').change(function(){ random_speed_z = this.checked })
     $('#rng_speed_intensity').on('input change', function(){
         random_speed_module = parseFloat(this.value)
         $('#speed_intensity_val').text(random_speed_module)

@@ -131,7 +131,7 @@ function make_new_sphere(){
 
       var [newname, interptsub] = random_name_mousepos()
       var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},0x000000)
-      random_speed_chose_xyz(sph, ['x','y'])         // add random speed
+      random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // add random speed (z optionnel)
       sph.magnet = false        // remove magnet
       list_moving_objects.push(sph)                  // rend la boule dynamique (gravité, ressorts, collisions)
 
@@ -145,7 +145,7 @@ function make_new_string(){
 
       var [newname, interptsub] = random_name_mousepos()
       var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},0x000000)
-      random_speed_chose_xyz(sph, ['x','y'])         // add random speed
+      random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // add random speed (z optionnel)
       sph.magnet = false        // remove magnet
       list_moving_objects.push(sph)                  // rend la boule dynamique (gravité, ressorts, collisions)
       list_string.push(sph)
