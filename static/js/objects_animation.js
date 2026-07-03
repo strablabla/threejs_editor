@@ -244,14 +244,28 @@ function attraction(i,j,dist){
       }
 }
 
+function collision_radius(o){
+
+      /*
+      Rayon de collision d'un objet : son rayon réel s'il en a un (sphères),
+      sinon repli sur dist_min_center_center/2 (compat. anciens objets sans .radius).
+      */
+
+      return (o.radius !== undefined) ? o.radius : dist_min_center_center/2
+
+}
+
 function collision(i,j,dist){
 
       /*
-      Collision interaction
+      Collision interaction : contact quand la distance centre-centre passe sous la
+      SOMME DES RAYONS réels des deux billes (sphères dures), et non plus sous une
+      constante fixe.
       */
 
       var [obji, objj] = objj_obji(i,j)
-      if (dist < dist_min_center_center){
+      var contact = collision_radius(obji) + collision_radius(objj)
+      if (dist < contact){
             check_change_color(obji,0xff0000)
             check_change_color(objj,0xff0000)
             change_speed_after_center_center_collision(i,j)  // physical interaction

@@ -51,6 +51,7 @@ function basic_sphere(name,p,r,col){
         object = obj_basics(object,p,r,name)
         object.type = 'sphere'
         object.height = radius // useful for gravity
+        object.radius = radius // rayon réel (détection de collision boule-boule)
         scene.add( object );
         objects.push( object )
 
