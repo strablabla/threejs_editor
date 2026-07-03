@@ -59,6 +59,21 @@ function basic_sphere(name,p,r,col){
 
 }
 
+function set_sphere_radius(obj, R){
+
+      /*
+      Change le rayon RÉEL d'une sphère : met à l'échelle le mesh (relativement au
+      rayon courant, sans stocker de rayon de base), et met à jour le rayon de
+      collision (obj.radius) et la hauteur (rebond sol).
+      */
+
+      if (obj.type !== 'sphere' || !obj.radius || R <= 0){ return }
+      obj.scale.multiplyScalar(R / obj.radius)                 // facteur relatif au rayon actuel
+      obj.radius = R                                           // rayon de collision boule-boule
+      obj.height = R                                           // cohérence du rebond au sol
+
+}
+
 function make_meshFaceMaterial(tex_mult_addr){
 
         /*

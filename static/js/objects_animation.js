@@ -692,6 +692,10 @@ function draw_velocity_hist(){
       ctx.clearRect(0, 0, W, H)
       var speeds = collect_speeds()
       var n = speeds.length
+      //--- nombre total d'objets comptés (toujours affiché, coin haut-droit)
+      ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'
+      ctx.textAlign = 'right'; ctx.textBaseline = 'top'
+      ctx.fillText('N = ' + n, W - 4, 2)
       if (n === 0){ return }
       //--- max de vitesse -> échelle horizontale
       var vmax = 0

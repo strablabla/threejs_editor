@@ -143,6 +143,7 @@ function load_sphere(name, msg){
       curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
       listorig[name] = basic_sphere( name, msg[name]['pos'], msg[name]['rot'], 0x000000 )
       load_params(name, msg, curr_tex_addr)
+      if (msg[name]['radius'] !== undefined){ set_sphere_radius(listorig[name], msg[name]['radius']) }  // rayon sauvegardé
       list_moving_objects.push(listorig[name])   // redevient dynamique (anime au prochain 'a')
 
 }
@@ -283,7 +284,7 @@ function make_infos_obj(i){
       */
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
-                          'mass', 'speed', 'radius_interact', 'magnet', 'friction',
+                          'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
                           'width', 'height', 'thickness', 'orientation']  // utiles pour recréer sphères/boîtes
       var x = objects[i].rotation.x
       var y = objects[i].rotation.y

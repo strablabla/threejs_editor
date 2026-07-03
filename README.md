@@ -101,6 +101,10 @@ par un ressort · flèches haut/bas pour monter/descendre.
   attributs **éditables en direct** : `mass`, `opacity`, `friction`, `radius_interact`,
   `magnet`, `blocked`. Effet immédiat sur le moteur (ex. la masse influe sur la gravité
   newtonienne, les collisions, les ressorts) et **sauvegardé** avec la scène.
+- **Rayon des boules** : sur une **sphère**, le menu ajoute une **glissière `radius`**.
+  La case **« all »** applique le nouveau rayon à **toutes** les boules (sinon à la seule
+  cliquée). Le rayon met à jour le **visuel**, le **rayon de collision** (les boules se
+  touchent d'autant plus tôt) et le **rebond sol** ; il est **persisté** avec la scène.
 - **Clic droit sur un élastique** → menu de sa **raideur (`stiffness`)**. Chaque élastique
   a sa **propre raideur** (repli sur `harmonic_const`), donc une boule reliée par deux
   élastiques peut avoir **deux raideurs différentes**.
@@ -153,8 +157,9 @@ diagnostic de conservation.
 `Tools → ☑ velocity histogram` affiche (en bas à droite) un **histogramme instantané** des
 **normes de vitesse** `|v|` des objets massifs mobiles (mêmes exclusions que l'énergie
 cinétique : ni statiques/ancres, ni ressorts/élastiques/pions). Axe X = `|v|` (0 → max
-courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Il se dessine
-**dès qu'on coche la case** puis se met à jour à chaque frame pendant l'animation.
+courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Le **nombre
+total d'objets comptés** est affiché en haut à droite (`N = …`). Il se dessine **dès
+qu'on coche la case** puis se met à jour à chaque frame pendant l'animation.
 
 ---
 
@@ -163,7 +168,9 @@ courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Il se 
 Panneau **Scene** :
 
 - **pos.json** (état de travail) est **auto-sauvegardé à chaque relâchement de souris**
-  → la scène courante est rechargée au rafraîchissement.
+  → la scène courante est rechargée au rafraîchissement. Il est **non versionné**
+  (dans `.gitignore`) ; sur un dépôt fraîchement cloné, l'appli démarre sur une **scène
+  vide** puis le recrée au premier enregistrement.
 - **Save as** *(nom)* → fige la scène dans `static/scenes/<nom>.json`. **Les scènes
   nommées ne sont écrites QUE sur sauvegarde explicite** (pas par l'auto-save), donc
   recharger une scène nommée rend **exactement l'état sauvegardé**.

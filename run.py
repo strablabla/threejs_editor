@@ -51,9 +51,10 @@ def receive(message):
 
     print("infos are {0} ".format(message))
     date = datetime.now().strftime('%Y-%m-%d-%H-%M')
-    with open('static/pos.json', 'r') as f:
-        with open('static/old/pos_{}.json'.format(date), 'w') as g:
-            g.write(f.read())
+    if os.path.exists('static/pos.json'):                   # sauvegarde de l'etat precedent (si deja present)
+        with open('static/pos.json', 'r') as f:
+            with open('static/old/pos_{}.json'.format(date), 'w') as g:
+                g.write(f.read())
 
     with open('static/pos.json', 'w') as f:                 # etat de travail courant (auto-save a chaque mouseup)
         f.write(str(message))
@@ -70,8 +71,11 @@ def receive(begin):
     '''
 
     print("position x is {0} ".format(begin))
-    with open('static/pos.json','r') as f:
-        data = json.load(f)
+    if os.path.exists('static/pos.json'):
+        with open('static/pos.json','r') as f:
+            data = json.load(f)
+    else:
+        data = {}                                           # depot frais : pas d'etat de travail -> scene vide
     socketio.emit('server_pos', data, namespace='/pos')
 
 def accelero(ser):

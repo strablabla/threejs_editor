@@ -86,6 +86,30 @@ function bs_prompt(title, message, defaultValue, onOk){
         $row.append($('<label style="cursor:pointer">').append($cb).append(' ' + label))
         $f.append($row)
   }
+  function radius_row($f, obj){                                  // glissière de rayon (sphères) + portée "all"
+        var $row = $('<div style="margin:6px 0">')
+        var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
+        var $val = $('<span style="min-width:30px; text-align:right">').text(Math.round(obj.radius))
+        $top.append($('<span>').text('radius')).append($val)
+        var $rng = $('<input type="range" min="5" max="150" step="1" style="width:100%">').val(obj.radius)
+        var $allLbl = $('<label style="cursor:pointer; font-size:11px; color:#555">')
+        var $all = $('<input type="checkbox">')
+        $allLbl.append($all).append(' all (toutes les boules)')
+        function apply(){
+              var R = parseFloat($rng.val()); if (isNaN(R)){ return }
+              $val.text(Math.round(R))
+              if ($all.is(':checked')){
+                    for (var k in objects){ if (objects[k].type === 'sphere'){ set_sphere_radius(objects[k], R) } }
+              } else {
+                    set_sphere_radius(obj, R)
+              }
+        }
+        $rng.on('input change', apply)
+        // persiste (pos.json) au relâchement, car le mouseup local est stoppé plus bas
+        $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
+        $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+        $row.append($top).append($rng).append($allLbl); $f.append($row)
+  }
   window.show_object_context_menu = function(obj, x, y){
         $('#ctx_obj_title').text((obj.type || 'object') + ' — ' + (obj.name || ''))
         var $f = $('#ctx_obj_fields').empty()
@@ -93,9 +117,10 @@ function bs_prompt(title, message, defaultValue, onOk){
         num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ obj.material.transparent = true; obj.material.opacity = v; obj.material.needsUpdate = true })
         num_row($f, 'friction',        function(){ return obj.friction },         function(v){ obj.friction = v })
         num_row($f, 'radius_interact', function(){ return obj.radius_interact },  function(v){ obj.radius_interact = v })
+        if (obj.type === 'sphere'){ radius_row($f, obj) }      // rayon réel (glissière + "all")
         bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ obj.magnet = v })
         bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ obj.blocked = v })
-        var mw = 210, mh = 230
+        var mw = 210, mh = 280
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
