@@ -10,6 +10,7 @@
           <div class="dyn_tabs">
             <button type="button" class="dyn_tab_btn active" data-tab="tab_interactions">Interactions</button>
             <button type="button" class="dyn_tab_btn" data-tab="tab_speeds">Initial speeds</button>
+fo            <button type="button" class="dyn_tab_btn" data-tab="tab_monitoring">Monitoring</button>
           </div>
 
           <!-- ===== Page : Interactions ===== -->
@@ -63,6 +64,19 @@
 
             <div class="help">
               <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
+            </div><br>
+
+          </div>
+
+          <!-- ===== Page : Monitoring ===== -->
+          <div id="tab_monitoring" class="dyn_tab" style="display:none">
+
+            <div class="help">
+              <label><input type="checkbox" id="chk_energy_graph"> energy graph</label>
+            </div><br>
+
+            <div class="help">
+              <label><input type="checkbox" id="chk_velocity_hist"> velocity histogram</label>
             </div><br>
 
           </div>
@@ -126,6 +140,30 @@
     $('#btn_reinit_speeds').on('click', function(){
         reinitialize_speeds()
         if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // rafraîchit l'histogramme si affiché
+    })
+
+    // --- Monitoring : graphe d'énergie ---
+    $('#chk_energy_graph').prop('checked', show_energy_graph)
+    $('#chk_energy_graph').change(function(){
+        show_energy_graph = this.checked
+        if (show_energy_graph){
+              energy_hist = { tot: [], kin: [], pot: [] }   // repart d'un historique vierge
+              $('#energy_graph_box').show()
+        } else {
+              $('#energy_graph_box').hide()
+        }
+    })
+
+    // --- Monitoring : histogramme des vitesses ---
+    $('#chk_velocity_hist').prop('checked', show_velocity_hist)
+    $('#chk_velocity_hist').change(function(){
+        show_velocity_hist = this.checked
+        if (show_velocity_hist){
+              $('#velocity_hist_box').show()
+              draw_velocity_hist()                          // dessin immédiat (sans attendre l'animation)
+        } else {
+              $('#velocity_hist_box').hide()
+        }
     })
 
     // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)

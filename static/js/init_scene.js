@@ -97,6 +97,10 @@ function load_params(name, msg, curr_tex_addr){
           var attr = list_attr_obj[i]
           listorig[name][attr] = msg[name][attr]
     }
+    if (msg[name]['color'] !== undefined && listorig[name].material && listorig[name].material.color){
+          listorig[name].material.color.setHex(msg[name]['color'])   // couleur sauvegardée
+          listorig[name].currentHex = msg[name]['color']             // + couleur "réelle" mémorisée
+    }
     load_speed(msg,name)
 
 }
@@ -299,6 +303,10 @@ function make_infos_obj(i){
       for (var j in list_attr_emit){
             var key = list_attr_emit[j]
             infos_obj[key] = objects[i][key]
+      }
+      // couleur "réelle" (currentHex si l'objet est sélectionné/vert, sinon la couleur du matériau)
+      if (mat && mat.color){
+            infos_obj['color'] = (objects[i].currentHex !== undefined) ? objects[i].currentHex : mat.color.getHex()
       }
 
       return infos_obj

@@ -105,14 +105,16 @@ function clone_object(){
       Clone the selected object
       */
 
-      dict_shift_clone = {"wall":100, "simple_cube":200, "pavement": 200}     // shift distance for clone
+      dict_shift_clone = {"wall":100, "simple_cube":200, "pavement": 200, "sphere":100}     // shift distance for clone
       clone = INTERSECTED.clone();
+      clone.material = clone.material.clone();   // matériau PROPRE (THREE.clone() le partage) -> couleur/sélection indépendantes
+      clone._ownMaterial = true
       clone_basics(clone)
       //-----------  Clone infos
       INTERSECTED.clone_infos.numclone += 1;
       clone.clone_infos = {"numclone":0,"cloned":true,"origclone":INTERSECTED.name}
       //-----------
-      clone.position.x += dict_shift_clone[clone.type];                      // shift position in relation with the original piece
+      clone.position.x += (dict_shift_clone[clone.type] || 100);             // shift position in relation with the original piece (repli 100 si type absent)
       clone.material.color.setHex( color_clone_pale_blue );      // clone color, pale blue
       //-----------
       scene.add(clone)

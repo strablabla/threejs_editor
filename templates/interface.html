@@ -86,6 +86,25 @@ function bs_prompt(title, message, defaultValue, onOk){
         $row.append($('<label style="cursor:pointer">').append($cb).append(' ' + label))
         $f.append($row)
   }
+  function color_row($f, obj){                                   // sélecteur de couleur de l'objet
+        var cur = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
+        var hexstr = '#' + ('000000' + cur.toString(16)).slice(-6)
+        var $row = $('<div style="margin:4px 0; display:flex; justify-content:space-between; align-items:center">')
+        $row.append($('<span>').text('color'))
+        var $inp = $('<input type="color" style="width:80px; height:24px; padding:0; border:1px solid #999; cursor:pointer">').val(hexstr)
+        $inp.on('input change', function(){
+              var hex = parseInt($inp.val().slice(1), 16)
+              if (!obj._ownMaterial){                           // matériau souvent PARTAGÉ (clones) -> le rendre propre
+                    obj.material = obj.material.clone()          // sinon on colorerait toutes les boules/murs liés
+                    obj._ownMaterial = true
+              }
+              obj.material.color.setHex(hex)                     // visuel immédiat (cet objet seul)
+              obj.material.needsUpdate = true
+              obj.currentHex = hex                              // couleur "réelle" mémorisée (restaurée à la désélection + sauvegardée)
+        })
+        $inp.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+        $row.append($inp); $f.append($row)
+  }
   function radius_row($f, obj){                                  // glissière de rayon (sphères) + portée "all"
         var $row = $('<div style="margin:6px 0">')
         var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
@@ -115,12 +134,13 @@ function bs_prompt(title, message, defaultValue, onOk){
         var $f = $('#ctx_obj_fields').empty()
         num_row($f, 'mass',            function(){ return obj.mass },             function(v){ obj.mass = v })
         num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ obj.material.transparent = true; obj.material.opacity = v; obj.material.needsUpdate = true })
+        if (obj.material && obj.material.color){ color_row($f, obj) }   // couleur de l'objet
         num_row($f, 'friction',        function(){ return obj.friction },         function(v){ obj.friction = v })
         num_row($f, 'radius_interact', function(){ return obj.radius_interact },  function(v){ obj.radius_interact = v })
         if (obj.type === 'sphere'){ radius_row($f, obj) }      // rayon réel (glissière + "all")
         bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ obj.magnet = v })
         bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ obj.blocked = v })
-        var mw = 210, mh = 280
+        var mw = 210, mh = 320
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
