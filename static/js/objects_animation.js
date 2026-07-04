@@ -109,12 +109,12 @@ function update_all_pos(delta){
 function check_change_color(obj,col0){
 
       /*
-      Change color and keep in memory
+      Suivi des objets en interaction (sans changer leur couleur : on préserve les
+      couleurs personnalisées pendant l'animation).
       */
 
       if (list_interact.indexOf(obj) == -1){
             list_interact.push(obj)
-            obj.material.color.setHex(col0)
       }
 
 }
@@ -405,20 +405,6 @@ function interaction_harmonic_between_pairs(){
 
 }
 
-function no_interaction_color(){
-
-      /*
-      Change color to white in case of no interaction
-      */
-
-      for (var i in list_moving_objects){
-            if (list_interact.indexOf(list_moving_objects[i]) == -1) {
-                  list_moving_objects[i].material.color.setHex(color_no_interaction_pink)
-            }
-      }
-
-}
-
 function permitted_interaction(index){
 
       /*
@@ -460,7 +446,7 @@ function interactions_between_objects(){
                   } // end for j
             } // end for i
       } // end if in moving_objects
-      no_interaction_color()  // restitute color if no interaction
+      // (plus de recoloration rose/rouge : on préserve les couleurs des objets)
 
 }
 

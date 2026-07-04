@@ -88,6 +88,7 @@ max_elast = 0     // maximum of elastic energy
 //--------------
 
 nearest_elem = null;
+yellow_obj = null;      // objet actuellement colorié en jaune (surbrillance "plus proche")
 radius_spring = 40;     // spring radius
 radius_elastic = 20;    // elastic radius
 list_forbid_obj_for_interact = ['spring', 'elastic', 'pawn'] // list of non interacting types..

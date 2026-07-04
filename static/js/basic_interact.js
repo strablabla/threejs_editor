@@ -109,38 +109,43 @@ function getDistance(mesh1, mesh2) {
 
 //$('#curr_func').css('background-color','blue')
 
-function near_mindist_mini(currobj,i,mindist,mini){
+function restore_yellow(){
 
       /*
-      Change mindist and mini
+      Rend au dernier objet colorié en jaune (surbrillance "plus proche") sa VRAIE couleur.
       */
 
-      var dist = getDistance(currobj, objects[i])
-      if ( dist < mindist ){        // smaller distance
-              mini = i
-              mindist = dist       // change mini distance..
-      } else { objects[i].material.color.setHex(INTERSECTED.currentHex) } // initial color
-
-      return [mindist,mini]
+      if (yellow_obj){
+            yellow_obj.material.color.setHex(yellow_obj.currentHex)
+            yellow_obj = null
+      }
 
 }
 
 function nearest_object(currobj){
 
       /*
-      Find the nearest object and change its color in yellow..
+      Trouve l'objet le plus proche et le colorie en jaune (surbrillance de magnétisme).
+      NE colorie QUE cet objet et restaure le précédent — ne repeint pas tous les objets
+      (l'ancienne version forçait la couleur de TOUS les objets à INTERSECTED.currentHex).
       */
 
-      var mindist = 200;
-      mini = -1;
-      for ( i in objects ){
-          if (objects[i] != currobj){
-                [mindist,mini] = near_mindist_mini(currobj,i,mindist,mini)  // find mindist and mini
-            } // end if objects[i]
-        } // end for
-      if ( mini != -1 ){ objects[mini].material.color.setHex(color_near_object_yellow) }    // change the color to yellow
-
-      return objects[mini]  // return the nearest object..
+      var mindist = 200, mini = -1
+      for ( var i in objects ){
+          if (objects[i] === currobj){ continue }
+          var dist = getDistance(currobj, objects[i])
+          if ( dist < mindist ){ mindist = dist; mini = i }
+      }
+      var target = (mini != -1) ? objects[mini] : null
+      if (yellow_obj !== target){                                    // le plus proche a changé
+            restore_yellow()                                         // restaure l'ancien
+            if (target){
+                  target.currentHex = target.material.color.getHex() // mémorise sa vraie couleur
+                  target.material.color.setHex(color_near_object_yellow)
+                  yellow_obj = target
+            }
+      }
+      return target
 
 } // end nearest_object
 

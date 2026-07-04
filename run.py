@@ -31,8 +31,17 @@ platf = platform.system()
 
 app = Flask(__name__, static_url_path = '/static')
 app.config['SECRET_KEY'] = 'secret!'
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0   # pas de cache navigateur des statiques (JS/CSS) -> toujours la derniere version
 socketio = SocketIO(app) #, async_mode=async_mode
 thread = None
+
+@app.after_request
+def add_no_cache_headers(resp):
+    # Empeche la mise en cache : evite de servir d'anciens JS/CSS/templates apres modification.
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 try:
     if platf == 'Darwin':

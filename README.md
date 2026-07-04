@@ -69,8 +69,8 @@ son icône** (avec une flèche et une ombre), **un seul à la fois**, et se ferm
 | 🎬 | **Scene** | nommer / sauvegarder / charger / effacer des scènes |
 | 📦 | **Object** | sélecteur d'outil de création + paramètres par défaut |
 | 👁 | **Views** | vues prédéfinies (flèches 3D) |
-| 🔧 | **Tools** | distance, stats, **graphe d'énergie** |
-| 🧲 | **Dynamics** | pilotage de la physique en direct |
+| 🔧 | **Tools** | distance, propriétés de groupe, stats de zone |
+| 🧲 | **Dynamics** | pilotage de la physique en direct — onglets **Interactions / Initial speeds / Monitoring** |
 | ? | **Help** | aide / raccourcis |
 | ⏻ | **Quit** | arrête le serveur (route `/shutdown`), tout à droite de la barre |
 
@@ -97,10 +97,15 @@ par un ressort · flèches haut/bas pour monter/descendre.
 **Ctrl+Z** annuler · **Ctrl+Y** (ou **Ctrl+Maj+Z**) rétablir.
 
 ### Éditer un objet / un élastique (clic droit)
-- **Clic droit sur un objet sélectionné (passé en vert)** → **menu contextuel** de ses
-  attributs **éditables en direct** : `mass`, `opacity`, `friction`, `radius_interact`,
-  `magnet`, `blocked`. Effet immédiat sur le moteur (ex. la masse influe sur la gravité
+Le **clic droit** ouvre **seulement** le menu contextuel — il n'attrape pas l'objet (pas
+de déplacement).
+- **Clic droit sur un objet** → **menu contextuel** de ses attributs **éditables en
+  direct** : `mass`, `opacity`, **`color`**, `friction`, `radius_interact`, `magnet`,
+  `blocked`. Effet immédiat sur le moteur (ex. la masse influe sur la gravité
   newtonienne, les collisions, les ressorts) et **sauvegardé** avec la scène.
+- **Couleur** : un **sélecteur de couleur** change la teinte de l'objet. La couleur est
+  propre à l'objet (le matériau est dupliqué au besoin, donc les autres objets ne
+  changent pas) et **persistée** avec la scène.
 - **Rayon des boules** : sur une **sphère**, le menu ajoute une **glissière `radius`**.
   La case **« all »** applique le nouveau rayon à **toutes** les boules (sinon à la seule
   cliquée). Le rayon met à jour le **visuel**, le **rayon de collision** (les boules se
@@ -109,7 +114,8 @@ par un ressort · flèches haut/bas pour monter/descendre.
   a sa **propre raideur** (repli sur `harmonic_const`), donc une boule reliée par deux
   élastiques peut avoir **deux raideurs différentes**.
 
-Le menu se ferme par sa **×** ou en cliquant ailleurs.
+Le menu se ferme par sa **×** ou en cliquant ailleurs. Les couleurs des objets sont
+**préservées pendant l'animation** (pas de recoloration automatique).
 
 ### Voix — pilotage
 « animation » (démarre) · « stoppe l'animation » · « reprends l'animation » ·
@@ -123,7 +129,7 @@ Le moteur utilise un intégrateur **Velocity Verlet symplectique** (énergie bor
 de dérive) pour les forces lisses ; collisions, rebonds murs et sol sont des
 **impulsions** appliquées après le pas Verlet.
 
-Réglages en direct dans le panneau **Dynamics**, organisé en **deux onglets** :
+Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets** :
 
 **Onglet « Interactions »**
 - **Gravity (z)** — gravité verticale. **Décochée = mode planaire** : `z` est figé, la
@@ -132,6 +138,8 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **deux onglets** 
 - **Object interaction (1/r²)** — **gravité newtonienne** entre objets :
   `F = G·mᵢ·mⱼ / r²`. Les masses comptent (un objet lourd attire plus). Boutons
   **Attraction / Repulsion** (signe) et **Strength** (glissière réglant la constante `G`).
+- **deactivate the interactions** — case maîtresse : désactive/réactive **toutes** les
+  interactions ci-dessus d'un coup (cochée automatiquement si aucune n'est active).
 
 **Onglet « Initial speeds »**
 - **Random** + **Strength** — vitesse de départ aléatoire **symétrique** (centrée sur 0,
@@ -141,6 +149,8 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **deux onglets** 
 - **reinitialize all** — réattribue la vitesse de **toutes** les boules selon les
   paramètres ci-dessus, pour **relancer une simulation de zéro** à tout moment (Random
   décoché ⇒ toutes à l'arrêt). Ne touche pas aux positions.
+
+**Onglet « Monitoring »** — cases `energy graph` et `velocity histogram` (voir plus bas).
 
 ### Collisions
 - **Bille-bille** : collision **élastique** résolue par **impulsion le long de la ligne
@@ -165,7 +175,7 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **deux onglets** 
 
 ## Diagnostic d'énergie
 
-`Tools → ☑ energy graph` affiche un **graphe temporel** (en bas à gauche) des énergies
+`Dynamics → Monitoring → ☑ energy graph` affiche un **graphe temporel** (en bas à gauche) des énergies
 **total / cinétique / potentielle**, avec axe gradué (unités arbitraires). La potentielle
 inclut la **gravité uniforme (z) + la gravité newtonienne (−G·mᵢ·mⱼ/r)** et l'élastique
 `½·k·(L−L₀)²`. Avec Verlet, la courbe **totale doit rester quasi constante** — c'est le
@@ -173,7 +183,7 @@ diagnostic de conservation.
 
 ## Distribution des vitesses
 
-`Tools → ☑ velocity histogram` affiche (en bas à droite) un **histogramme instantané** des
+`Dynamics → Monitoring → ☑ velocity histogram` affiche (en bas à droite) un **histogramme instantané** des
 **normes de vitesse** `|v|` des objets massifs mobiles (mêmes exclusions que l'énergie
 cinétique : ni statiques/ancres, ni ressorts/élastiques/pions). Axe X = `|v|` (0 → max
 courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Le **nombre
@@ -324,6 +334,9 @@ animate()                              boucle de rendu (requestAnimationFrame)
 
 - Toute la logique partage des **variables globales** (d'où le découpage en nombreux
   petits fichiers chargés dans l'ordre par `create_3d.html`).
+- **Cache navigateur désactivé** : `run.py` envoie des en-têtes `no-store, no-cache` sur
+  toutes les réponses (+ `SEND_FILE_MAX_AGE_DEFAULT = 0`), pour que chaque rechargement
+  serve **toujours** les derniers JS/CSS modifiés (fini les `Ctrl+Shift+R`).
 - `library/game.js` et `templates/tests/` sont des modules/assets **hérités, non utilisés**.
 - Réglages physiques principaux dans `static/js/scene_params.js` :
   `gravity_ok`, `springs_ok`, `one_over_r2`, `attract_strength_one_over_r2` (G),

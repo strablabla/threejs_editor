@@ -54,6 +54,11 @@ function onDocumentMouseDown( event ) {
       Mouse down
       */
 
+      if ( event.button === 2 ){            // clic droit -> menu contextuel seulement
+          if ( INTERSECTED ){ INTERSECTED.material.color.setHex( color_intersected_green ) }  // vert (requis par le menu), SANS attraper l'objet
+          return
+      }
+
       var raycaster = make_raycaster(event)
       var intersects = raycaster.intersectObjects( objects );
       if ( intersects.length > 0 ) { intersects = mouse_down_case_intersections(intersects,raycaster) }
@@ -71,6 +76,8 @@ function onDocumentMouseUp( event ) {
       event.preventDefault();
       controls.enabled = true;
       if (nearest_elem){ magnet_between_objects(nearest_elem) }  // attraction between walls.. by the sides..
+      restore_yellow()                          // rend sa vraie couleur au dernier objet en jaune
+      nearest_elem = null
       if ( SELECTED && selpos.length === 0 ) { // relâcher l'objet attrapé, SAUF pendant la définition d'une zone
           LAST_SELECTED = SELECTED;            // (les coins de zone doivent suivre la souris jusqu'au 2e clic).
           SELECTED = null;                     // selpos vide => drag d'objet réel : on lâche (corrige le « collé à la souris »).
