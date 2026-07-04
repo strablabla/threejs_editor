@@ -123,6 +123,25 @@ function random_speed_chose_xyz(obj, list_coord){
 
 }
 
+function reinitialize_speeds(){
+
+      /*
+      Réattribue la vitesse de TOUTES les boules mobiles selon les paramètres courants
+      d'Initial speeds (Random, Strength, z component). Permet de relancer une simulation
+      « de zéro » à tout moment sans recréer la scène. Si « Random » est décoché (ou
+      Strength = 0), toutes les boules repartent à l'arrêt.
+      */
+
+      var coords = random_speed_z ? ['x','y','z'] : ['x','y']
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o.type !== 'sphere' || o.blocked){ continue }   // boules dynamiques uniquement
+            o.speed.set(0, 0, 0)                                 // remise à zéro (z inclus si non tiré)
+            random_speed_chose_xyz(o, coords)                   // vitesse selon les params courants
+      }
+
+}
+
 function make_new_sphere(){
 
       /*

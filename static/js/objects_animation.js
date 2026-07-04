@@ -145,28 +145,6 @@ function change_speed_after_center_center_collision(i,j){
 
 }
 
-function wall_box_rebounce(obji, objj){
-
-      /*
-      Rebounce
-      */
-
-      var comment = false
-      if (comment){
-          alert("rebouncing")
-          alert(objj.type)
-          alert(objj.orientation.x)
-          alert(objj.orientation.y)
-          alert(objj.orientation.z)
-      }
-      var dotspeed = objj.orientation.dot(obji.speed)  // scalar product between wall and object
-      if (comment){ alert( dotspeed ) }
-      var ojo = new THREE.Vector3( objj.orientation.x, objj.orientation.y, objj.orientation.z )
-      var rebounce = ojo.multiplyScalar(2*dotspeed).negate()
-      obji.speed.add(rebounce)
-      //obji.material.color.setHex(0x0000ff)
-}
-
 function find_obj_wall(objj,obji){
 
       /*
@@ -197,21 +175,42 @@ function objj_obji(i,j){
 function interaction_obj_plane(i,j){
 
       /*
-      Interaction with plane
+      Rebond bille-mur ROBUSTE (mur dur, anti-tunneling) :
+        - détection CONTINUE : si le centre a franchi le plan du mur entre l'ancienne
+          (_ppos) et la nouvelle position, dans l'emprise latérale, c'est une traversée ;
+        - correction de POSITION : la bille est ramenée du bon côté, à distance = rayon ;
+        - réflexion élastique de la composante NORMALE de la vitesse.
+      => une bille ne peut jamais terminer une frame de l'autre côté d'une paroi.
       */
-      //var scale_rebounce = 3
+
       var [obji, objj] = objj_obji(i,j)
-      var [obj, wall] = find_obj_wall(objj,obji) // find which is obj, which is wall..
-      var [dist_to_plane, dist_lat_in_plane] = getDistanceToPLane(obj, wall) // distance center-plane
-      var cnd1 = dist_to_plane < dist_inter_wall_obj
-      var cnd2 = dist_lat_in_plane < wall.width/2
-      if (cnd1 & cnd2){
-          // obj.material.color.setHex(0x00ff00)
-          //obj.scale.set(scale_rebounce,scale_rebounce,scale_rebounce)
-          //obj.material.color.setHex(0xff0000)
-          wall_box_rebounce(obj, wall) // handle the rebounce on the walls of the box..
-          //obj.scale.set(1,1,1)
-      }
+      var [obj, wall] = find_obj_wall(objj,obji)               // identifie bille / mur
+
+      var n = new THREE.Vector3().copy(wall.orientation)       // normale du mur
+      var nlen = n.length()
+      if (nlen === 0){ return }
+      n.divideScalar(nlen)                                     // normalisée
+
+      //--- emprise latérale (dans le plan du mur) : la bille est-elle en face du mur ?
+      var vec_lat = new THREE.Vector3().crossVectors(new THREE.Vector3(0,0,1), n).normalize()
+      var lat = Math.abs(obj.position.dot(vec_lat) - wall.position.dot(vec_lat))
+      var rad = (obj.radius !== undefined) ? obj.radius : dist_inter_wall_obj
+      if (lat > wall.width/2 + rad){ return }                  // hors du mur -> pas de collision
+
+      //--- distances signées au plan (avant / après le pas)
+      var contact = rad + (wall.thickness ? wall.thickness/2 : 0)  // surface bille au ras de la paroi
+      var wp = wall.position.dot(n)
+      var sd_now  = obj.position.dot(n) - wp
+      var sd_prev = obj._ppos ? (obj._ppos.dot(n) - wp) : sd_now
+      var crossed = (sd_prev > 0) !== (sd_now > 0)             // changement de côté = traversée
+      if (!crossed && Math.abs(sd_now) >= contact){ return }   // ni traversée ni contact
+
+      //--- côté à préserver = celui d'AVANT le pas (l'intérieur de la boîte)
+      var side = (sd_prev !== 0) ? Math.sign(sd_prev) : (Math.sign(sd_now) || 1)
+      obj.position.addScaledVector(n, side*contact - sd_now)   // repositionne à 'contact' du plan, bon côté
+      var vn = obj.speed.dot(n)
+      obj.speed.addScaledVector(n, side*Math.abs(vn) - vn)     // renvoie la vitesse normale vers l'intérieur (élastique)
+      check_change_color(obj, 0xff0000)
 
 }
 
@@ -831,6 +830,8 @@ function verlet_positions(delta){
             if (!o.acc){ o.acc = new THREE.Vector3() }
             if (!gravity_ok){ o.speed.z = 0; o.acc.z = 0 }     // mode planaire : pas de vitesse verticale résiduelle
             if (o.blocked){ continue }                         // objet statique/ancre : ne bouge pas
+            if (!o._ppos){ o._ppos = new THREE.Vector3() }
+            o._ppos.copy(o.position)                           // position AVANT le pas (détection continue mur)
             o.position.x += o.speed.x*delta + o.acc.x*hdt2
             o.position.y += o.speed.y*delta + o.acc.y*hdt2
             o.position.z += o.speed.z*delta + o.acc.z*hdt2

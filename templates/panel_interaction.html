@@ -48,6 +48,10 @@
             <span id="speed_intensity_val"></span>
           </div><br>
 
+          <div class="help">
+            <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
+          </div><br>
+
     </div>
 
     <script>
@@ -86,6 +90,12 @@
     $('#rng_speed_intensity').on('input change', function(){
         random_speed_module = parseFloat(this.value)
         $('#speed_intensity_val').text(random_speed_module)
+    })
+
+    // Réinitialise la vitesse de TOUTES les boules selon les params courants (relance une simu de zéro)
+    $('#btn_reinit_speeds').on('click', function(){
+        reinitialize_speeds()
+        if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // rafraîchit l'histogramme si affiché
     })
 
     // Ne pas faire pivoter la caméra quand on manipule le panneau
