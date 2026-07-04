@@ -4,53 +4,68 @@
 
       <div class="titlepanel" > Dynamics </div>
 
-          <br><br><br>
+          <br><br>
 
-          <!-- ===== Interactions ===== -->
-          <div class="subtitle_dyn"> Interactions </div>
+          <!-- Onglets -->
+          <div class="dyn_tabs">
+            <button type="button" class="dyn_tab_btn active" data-tab="tab_interactions">Interactions</button>
+            <button type="button" class="dyn_tab_btn" data-tab="tab_speeds">Initial speeds</button>
+          </div>
 
-          <div class="help">
-            <label><input type="checkbox" id="chk_gravity"> Gravity (z)</label>
-          </div><br>
+          <!-- ===== Page : Interactions ===== -->
+          <div id="tab_interactions" class="dyn_tab">
 
-          <div class="help">
-            <label><input type="checkbox" id="chk_springs"> Springs (chains)</label>
-          </div><br>
+            <div class="help">
+              <label><input type="checkbox" id="chk_gravity"> Gravity (z)</label>
+            </div><br>
 
-          <div class="help">
-            <label><input type="checkbox" id="chk_attract"> Object interaction (1/r²)</label>
-          </div><br>
+            <div class="help">
+              <label><input type="checkbox" id="chk_springs"> Springs (chains)</label>
+            </div><br>
 
-          <div class="help indent_dyn">
-            <label><input type="radio" name="attract_sign" id="rad_attract"> Attraction</label>
-            &nbsp;
-            <label><input type="radio" name="attract_sign" id="rad_repulse"> Repulsion</label>
-          </div><br>
+            <div class="help">
+              <label><input type="checkbox" id="chk_attract"> Object interaction (1/r²)</label>
+            </div><br>
 
-          <div class="help indent_dyn"> <span> Strength: </span>
-            <input type="range" id="attract_strength_input" min="0" max="100000" step="1000" style="vertical-align:middle; width:120px">
-            <span id="attract_strength_val"></span>
-          </div><br>
+            <div class="help indent_dyn">
+              <label><input type="radio" name="attract_sign" id="rad_attract"> Attraction</label>
+              &nbsp;
+              <label><input type="radio" name="attract_sign" id="rad_repulse"> Repulsion</label>
+            </div><br>
 
-          <!-- ===== Initial speeds ===== -->
-          <div class="subtitle_dyn"> Initial speeds </div>
+            <div class="help indent_dyn"> <span> Strength: </span>
+              <input type="range" id="attract_strength_input" min="0" max="100000" step="1000" style="vertical-align:middle; width:120px">
+              <span id="attract_strength_val"></span>
+            </div><br>
 
-          <div class="help">
-            <label><input type="checkbox" id="chk_random_speed"> Random</label>
-          </div><br>
+            <hr>
+            <div class="help">
+              <label><input type="checkbox" id="chk_deactivate_all"> deactivate the interactions</label>
+            </div><br>
 
-          <div class="help">
-            <label><input type="checkbox" id="chk_random_speed_z"> z component</label>
-          </div><br>
+          </div>
 
-          <div class="help"> <span> Strength: </span>
-            <input type="range" id="rng_speed_intensity" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
-            <span id="speed_intensity_val"></span>
-          </div><br>
+          <!-- ===== Page : Initial speeds ===== -->
+          <div id="tab_speeds" class="dyn_tab" style="display:none">
 
-          <div class="help">
-            <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
-          </div><br>
+            <div class="help">
+              <label><input type="checkbox" id="chk_random_speed"> Random</label>
+            </div><br>
+
+            <div class="help">
+              <label><input type="checkbox" id="chk_random_speed_z"> z component</label>
+            </div><br>
+
+            <div class="help"> <span> Strength: </span>
+              <input type="range" id="rng_speed_intensity" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
+              <span id="speed_intensity_val"></span>
+            </div><br>
+
+            <div class="help">
+              <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
+            </div><br>
+
+          </div>
 
     </div>
 
@@ -65,10 +80,25 @@
     $('#attract_strength_input').val(Math.abs(attract_strength_one_over_r2))
     $('#attract_strength_val').text(Math.abs(attract_strength_one_over_r2))
 
+    // La case "deactivate" est cochée quand AUCUNE interaction n'est active
+    function sync_deactivate_all(){
+        $('#chk_deactivate_all').prop('checked', !gravity_ok && !springs_ok && !one_over_r2)
+    }
+    sync_deactivate_all()
+
     // --- Câblage : chaque contrôle écrit dans le drapeau physique correspondant ---
-    $('#chk_gravity').change(function(){ gravity_ok = this.checked })
-    $('#chk_springs').change(function(){ springs_ok = this.checked })
-    $('#chk_attract').change(function(){ one_over_r2 = this.checked })
+    $('#chk_gravity').change(function(){ gravity_ok = this.checked; sync_deactivate_all() })
+    $('#chk_springs').change(function(){ springs_ok = this.checked; sync_deactivate_all() })
+    $('#chk_attract').change(function(){ one_over_r2 = this.checked; sync_deactivate_all() })
+
+    // Case maîtresse : cochée = désactive TOUTES les interactions ; décochée = les réactive
+    $('#chk_deactivate_all').change(function(){
+        var on = !this.checked
+        gravity_ok = on; springs_ok = on; one_over_r2 = on
+        $('#chk_gravity').prop('checked', on)
+        $('#chk_springs').prop('checked', on)
+        $('#chk_attract').prop('checked', on)
+    })
 
     function update_attract_strength(){
         var mag  = Math.abs(parseFloat($('#attract_strength_input').val()) || 0)
@@ -96,6 +126,16 @@
     $('#btn_reinit_speeds').on('click', function(){
         reinitialize_speeds()
         if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // rafraîchit l'histogramme si affiché
+    })
+
+    // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)
+    // Délégué + scopé au panneau courant pour ne pas interférer entre panneaux.
+    $(document).on('click', '.dyn_tab_btn', function(){
+        var $panel = $(this).closest('.input_interface')
+        $panel.find('.dyn_tab_btn').removeClass('active')
+        $(this).addClass('active')
+        $panel.find('.dyn_tab').hide()
+        $panel.find('#' + $(this).data('tab')).show()
     })
 
     // Ne pas faire pivoter la caméra quand on manipule le panneau

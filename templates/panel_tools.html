@@ -2,17 +2,30 @@
 
   <div class="titlepanel" > Tools </div>
 
-      <br><br><br>
+      <br><br>
 
-      <div  class="help" id="distance" > distance </div><br>
-      <div  class="help" id="properties" > group properties </div><br>
-      <div  class="help" id="stats_area" > stats about selected area </div><br>
-      <div  class="help" >
-            <label><input type="checkbox" id="chk_energy_graph"> energy graph</label>
-      </div><br>
-      <div  class="help" >
-            <label><input type="checkbox" id="chk_velocity_hist"> velocity histogram</label>
-      </div><br>
+      <!-- Onglets -->
+      <div class="dyn_tabs">
+        <button type="button" class="dyn_tab_btn active" data-tab="tab_graphs">Graphs</button>
+        <button type="button" class="dyn_tab_btn" data-tab="tab_measures">Measures</button>
+      </div>
+
+      <!-- ===== Page : Graphs ===== -->
+      <div id="tab_graphs" class="dyn_tab">
+          <div  class="help" >
+                <label><input type="checkbox" id="chk_energy_graph"> energy graph</label>
+          </div><br>
+          <div  class="help" >
+                <label><input type="checkbox" id="chk_velocity_hist"> velocity histogram</label>
+          </div><br>
+      </div>
+
+      <!-- ===== Page : Measures ===== -->
+      <div id="tab_measures" class="dyn_tab" style="display:none">
+          <div  class="help" id="distance" > distance </div><br>
+          <div  class="help" id="properties" > group properties </div><br>
+          <div  class="help" id="stats_area" > stats about selected area </div><br>
+      </div>
 
 </div>
 

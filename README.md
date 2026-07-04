@@ -123,21 +123,40 @@ Le moteur utilise un intégrateur **Velocity Verlet symplectique** (énergie bor
 de dérive) pour les forces lisses ; collisions, rebonds murs et sol sont des
 **impulsions** appliquées après le pas Verlet.
 
-Réglages en direct dans le panneau **Dynamics** :
+Réglages en direct dans le panneau **Dynamics**, organisé en **deux onglets** :
 
+**Onglet « Interactions »**
 - **Gravity (z)** — gravité verticale. **Décochée = mode planaire** : `z` est figé, la
   scène n'évolue qu'en x-y (utile pour les chaînes).
 - **Springs (chains)** — forces de ressort des chaînes (longueur au repos `lenght_spring`).
 - **Object interaction (1/r²)** — **gravité newtonienne** entre objets :
   `F = G·mᵢ·mⱼ / r²`. Les masses comptent (un objet lourd attire plus). Boutons
-  **Attraction / Repulsion** (signe) et **Strength** (la constante `G`).
-- **Random initial velocity** + **Velocity strength** — vitesse de départ aléatoire
-  **symétrique** (centrée sur 0) d'intensité réglable, injectée **à la création** de
-  chaque boule (ou départ à 0 si décochée).
+  **Attraction / Repulsion** (signe) et **Strength** (glissière réglant la constante `G`).
+
+**Onglet « Initial speeds »**
+- **Random** + **Strength** — vitesse de départ aléatoire **symétrique** (centrée sur 0,
+  loi quasi-gaussienne) d'intensité réglable, injectée **à la création** de chaque boule
+  (ou départ à 0 si décochée / Strength = 0).
+- **z component** — ajoute une composante `z` à la vitesse initiale (sinon dans le plan x-y).
+- **reinitialize all** — réattribue la vitesse de **toutes** les boules selon les
+  paramètres ci-dessus, pour **relancer une simulation de zéro** à tout moment (Random
+  décoché ⇒ toutes à l'arrêt). Ne touche pas aux positions.
+
+### Collisions
+- **Bille-bille** : collision **élastique** résolue par **impulsion le long de la ligne
+  des centres** (seule la composante normale de la vitesse relative est inversée ;
+  tangentielle inchangée) → conserve quantité de mouvement **et** énergie, et **thermalise**
+  vers Maxwell-Boltzmann. Le contact est détecté à la **somme des rayons réels** des billes.
+- **Rayon des billes** réglable par clic droit (voir plus haut) ; il pilote à la fois la
+  taille et la distance de contact.
 
 ### Murs & boîtes
 - **boîte** (`w` / « boîte ») → enceinte de **4 murs réfléchissants** (`wall_box`),
   actifs automatiquement : les boules rebondissent dessus.
+- **Murs durs (anti-tunneling)** : détection **continue** (on teste si le centre a franchi
+  le plan du mur pendant le pas) + **repositionnement** de la bille du bon côté à distance
+  = son rayon, puis réflexion élastique. Une bille **ne peut jamais traverser** une paroi,
+  même à grande vitesse.
 - **mur** (« mur ») isolé → panneau décoratif (ne réfléchit pas).
 - Un objet **bloqué** (`blocked`) devient une **ancre statique** (mur, ou point fixe
   d'une chaîne de ressorts).
