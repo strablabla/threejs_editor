@@ -86,7 +86,16 @@ function bs_prompt(title, message, defaultValue, onOk){
         $row.append($('<label style="cursor:pointer">').append($cb).append(' ' + label))
         $f.append($row)
   }
-  function color_row($f, obj){                                   // sélecteur de couleur de l'objet
+  function set_object_color(t, hex){                            // couleur d'un objet, matériau rendu propre au besoin
+        if (!t._ownMaterial){                                   // matériau souvent PARTAGÉ (clones) -> le rendre propre
+              t.material = t.material.clone()                    // sinon on colorerait toutes les boules/murs liés
+              t._ownMaterial = true
+        }
+        t.material.color.setHex(hex)
+        t.material.needsUpdate = true
+        t.currentHex = hex                                      // couleur "réelle" mémorisée (restaurée à la désélection + sauvegardée)
+  }
+  function color_row($f, obj, applyAll){                        // sélecteur de couleur de l'objet
         var cur = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
         var hexstr = '#' + ('000000' + cur.toString(16)).slice(-6)
         var $row = $('<div style="margin:4px 0; display:flex; justify-content:space-between; align-items:center">')
@@ -94,53 +103,51 @@ function bs_prompt(title, message, defaultValue, onOk){
         var $inp = $('<input type="color" style="width:80px; height:24px; padding:0; border:1px solid #999; cursor:pointer">').val(hexstr)
         $inp.on('input change', function(){
               var hex = parseInt($inp.val().slice(1), 16)
-              if (!obj._ownMaterial){                           // matériau souvent PARTAGÉ (clones) -> le rendre propre
-                    obj.material = obj.material.clone()          // sinon on colorerait toutes les boules/murs liés
-                    obj._ownMaterial = true
-              }
-              obj.material.color.setHex(hex)                     // visuel immédiat (cet objet seul)
-              obj.material.needsUpdate = true
-              obj.currentHex = hex                              // couleur "réelle" mémorisée (restaurée à la désélection + sauvegardée)
+              applyAll(function(t){ set_object_color(t, hex) })  // cet objet, ou toutes les boules si "all"
         })
         $inp.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($inp); $f.append($row)
   }
-  function radius_row($f, obj){                                  // glissière de rayon (sphères) + portée "all"
+  function radius_row($f, obj, applyAll){                        // glissière de rayon (sphères) — portée via la case "all"
         var $row = $('<div style="margin:6px 0">')
         var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
         var $val = $('<span style="min-width:30px; text-align:right">').text(Math.round(obj.radius))
         $top.append($('<span>').text('radius')).append($val)
         var $rng = $('<input type="range" min="5" max="150" step="1" style="width:100%">').val(obj.radius)
-        var $allLbl = $('<label style="cursor:pointer; font-size:11px; color:#555">')
-        var $all = $('<input type="checkbox">')
-        $allLbl.append($all).append(' all (toutes les boules)')
-        function apply(){
+        $rng.on('input change', function(){
               var R = parseFloat($rng.val()); if (isNaN(R)){ return }
               $val.text(Math.round(R))
-              if ($all.is(':checked')){
-                    for (var k in objects){ if (objects[k].type === 'sphere'){ set_sphere_radius(objects[k], R) } }
-              } else {
-                    set_sphere_radius(obj, R)
-              }
-        }
-        $rng.on('input change', apply)
+              applyAll(function(t){ set_sphere_radius(t, R) })    // cette boule, ou toutes si "all"
+        })
         // persiste (pos.json) au relâchement, car le mouseup local est stoppé plus bas
         $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
-        $row.append($top).append($rng).append($allLbl); $f.append($row)
+        $row.append($top).append($rng); $f.append($row)
   }
   window.show_object_context_menu = function(obj, x, y){
         $('#ctx_obj_title').text((obj.type || 'object') + ' — ' + (obj.name || ''))
         var $f = $('#ctx_obj_fields').empty()
-        num_row($f, 'mass',            function(){ return obj.mass },             function(v){ obj.mass = v })
-        num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ obj.material.transparent = true; obj.material.opacity = v; obj.material.needsUpdate = true })
-        if (obj.material && obj.material.color){ color_row($f, obj) }   // couleur de l'objet
-        num_row($f, 'friction',        function(){ return obj.friction },         function(v){ obj.friction = v })
-        num_row($f, 'radius_interact', function(){ return obj.radius_interact },  function(v){ obj.radius_interact = v })
-        if (obj.type === 'sphere'){ radius_row($f, obj) }      // rayon réel (glissière + "all")
-        bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ obj.magnet = v })
-        bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ obj.blocked = v })
-        var mw = 210, mh = 320
+        // Case maîtresse "all" (sphères) : applique CHAQUE changement d'attribut à toutes les boules
+        var $all = null
+        if (obj.type === 'sphere'){
+              var $arow = $('<div style="margin:2px 0 8px; padding-bottom:6px; border-bottom:1px solid #ddd">')
+              $all = $('<input type="checkbox">')
+              $arow.append($('<label style="cursor:pointer; font-weight:bold">').append($all).append(' all (appliquer à toutes les boules)'))
+              $f.append($arow)
+        }
+        function spheres(){ var a=[]; for (var k in objects){ if (objects[k].type === 'sphere'){ a.push(objects[k]) } } return a }
+        function applyAll(setter){                             // setter(cible) : cet objet, ou toutes les boules si "all" coché
+              if ($all && $all.is(':checked')){ spheres().forEach(setter) } else { setter(obj) }
+        }
+        num_row($f, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })
+        num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
+        if (obj.material && obj.material.color){ color_row($f, obj, applyAll) }   // couleur de l'objet
+        num_row($f, 'friction',        function(){ return obj.friction },         function(v){ applyAll(function(t){ t.friction = v }) })
+        num_row($f, 'radius_interact', function(){ return obj.radius_interact },  function(v){ applyAll(function(t){ t.radius_interact = v }) })
+        if (obj.type === 'sphere'){ radius_row($f, obj, applyAll) }      // rayon réel
+        bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
+        bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ applyAll(function(t){ t.blocked = v }) })
+        var mw = 210, mh = 340
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()

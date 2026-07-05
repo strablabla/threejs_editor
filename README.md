@@ -135,9 +135,11 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets**
 - **Gravity (z)** — gravité verticale. **Décochée = mode planaire** : `z` est figé, la
   scène n'évolue qu'en x-y (utile pour les chaînes).
 - **Springs (chains)** — forces de ressort des chaînes (longueur au repos `lenght_spring`).
-- **Object interaction (1/r²)** — **gravité newtonienne** entre objets :
-  `F = G·mᵢ·mⱼ / r²`. Les masses comptent (un objet lourd attire plus). Boutons
-  **Attraction / Repulsion** (signe) et **Strength** (glissière réglant la constante `G`).
+- **Object interaction (1/r²)** — **gravité newtonienne** entre objets, **adoucie**
+  (softening de Plummer) : `F = G·mᵢ·mⱼ · r / (r²+ε²)^{3/2}`. Les masses comptent (un
+  objet lourd attire plus). Boutons **Attraction / Repulsion** (signe), **Strength**
+  (glissière réglant `G`) et **Softening ε** (glissière) : `ε = 0` → 1/r² pur ; `ε > 0`
+  supprime la singularité à courte distance et **stabilise l'énergie** (voir *Collisions*).
 - **deactivate the interactions** — case maîtresse : désactive/réactive **toutes** les
   interactions ci-dessus d'un coup (cochée automatiquement si aucune n'est active).
 
@@ -157,8 +159,19 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets**
   des centres** (seule la composante normale de la vitesse relative est inversée ;
   tangentielle inchangée) → conserve quantité de mouvement **et** énergie, et **thermalise**
   vers Maxwell-Boltzmann. Le contact est détecté à la **somme des rayons réels** des billes.
+- **Dé-pénétration** : à chaque choc, les billes qui se chevauchent sont **écartées à la
+  distance de contact** (réparties selon leur inverse-masse), pour que le rebond ait
+  toujours lieu à la même profondeur — sinon une interpénétration variable **pompe de
+  l'énergie**. Les **objets bloqués** (ancres) agissent comme des murs immobiles.
 - **Rayon des billes** réglable par clic droit (voir plus haut) ; il pilote à la fois la
   taille et la distance de contact.
+
+#### Conservation de l'énergie avec la gravité 1/r²
+Une force **1/r² pure est singulière** : en rencontre proche, l'accélération explose et le
+pas de temps fixe de Verlet ne la résout plus → l'énergie **dérive**. Deux remèdes sont en
+place : le **softening ε** (borne la force à courte distance) et la **dé-pénétration** des
+chocs. Avec `ε > 0`, la courbe d'énergie **totale** reste bien plus plate. Si elle dérive
+encore avec un `G` très fort, **augmenter ε** (ou réduire le pas de temps).
 
 ### Murs & boîtes
 - **boîte** (`w` / « boîte ») → enceinte de **4 murs réfléchissants** (`wall_box`),

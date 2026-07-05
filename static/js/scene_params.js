@@ -69,6 +69,7 @@ dist_min_center_center = 40;   // distance under which a shock is produced..
 lenght_spring = 150;   // longueur au repos des ressorts (> diamètre des boules) : évite le repliement de la chaîne
 one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (gravité newtonienne F = G·m_i·m_j/r²) — à ajuster via le panneau Interaction
+attract_softening = 40;                // ε : adoucissement de Plummer F = G·m·m/(r²+ε²) — supprime la singularité 1/r² (conservation d'énergie)
 
 //-------------------- Energies
 
@@ -127,6 +128,7 @@ color_basic_default_pale_grey = 0xf2f2f2
 color_near_object_yellow = 0xffff66;
 color_intersected_green = 0x66ff33;
 color_object_inside_pink = 0xffcccc;
+color_sphere_default = 0xffcccc;    // couleur par défaut des boules à la création (rose)
 color_clone_pale_blue = 0xcceeff;
 color_mark_pale_rose = 0xffcccc;
 color_mark_quite_red = 0xff1a1a;

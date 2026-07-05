@@ -39,6 +39,11 @@
               <span id="attract_strength_val"></span>
             </div><br>
 
+            <div class="help indent_dyn"> <span> Softening ε: </span>
+              <input type="range" id="softening_input" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
+              <span id="softening_val"></span>
+            </div><br>
+
             <hr>
             <div class="help">
               <label><input type="checkbox" id="chk_deactivate_all"> deactivate the interactions</label>
@@ -123,6 +128,14 @@
     $('#rad_attract').change(update_attract_strength)
     $('#rad_repulse').change(update_attract_strength)
     $('#attract_strength_input').on('input change', update_attract_strength)
+
+    // --- Softening ε de la gravité (F = G·m·m/(r²+ε²)) : ε=0 -> 1/r² pur ---
+    $('#softening_input').val(attract_softening)
+    $('#softening_val').text(attract_softening)
+    $('#softening_input').on('input change', function(){
+        attract_softening = parseFloat(this.value)
+        $('#softening_val').text(attract_softening)
+    })
 
     // --- Vitesse de départ des boules : mode aléatoire/zéro + intensité ---
     $('#chk_random_speed').prop('checked', random_initial_speed)

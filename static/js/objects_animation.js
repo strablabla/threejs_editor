@@ -128,8 +128,11 @@ function change_speed_after_center_center_collision(i,j){
       un simple échange des vecteurs vitesse complets (masses égales) ne ferait que
       permuter les vitesses -> distribution des |v| figée (pas d'équilibre statistique).
 
-      Impulsion (restitution e = 1) :  J = -2·v_n / (1/m_i + 1/m_j)
-            v_i += (J/m_i)·n     v_j -= (J/m_j)·n     avec n = normale unitaire j->i
+      Impulsion (restitution e = 1) :  J = -2·v_n / (w_i + w_j)   (w = 1/m, 0 si bloqué)
+            v_i += J·w_i·n     v_j -= J·w_j·n     avec n = normale unitaire j->i
+      De plus : DÉ-PÉNÉTRATION — les billes sont écartées jusqu'à la distance de contact
+      (somme des rayons), pour que le rebond ait toujours lieu à la même profondeur du
+      puits attractif (sinon l'interpénétration variable pompe de l'énergie).
       */
 
       var oi = list_moving_objects[i], oj = list_moving_objects[j]
@@ -137,11 +140,25 @@ function change_speed_after_center_center_collision(i,j){
       var d = n.length()
       if (d === 0){ return }                                   // centres confondus : pas de normale définie
       n.divideScalar(d)                                        // normale unitaire j->i
+      var wi = oi.blocked ? 0 : 1/oi.mass                      // inverse-masse (0 = figé/ancre)
+      var wj = oj.blocked ? 0 : 1/oj.mass
+      var wsum = wi + wj
+      if (wsum === 0){ return }                                // deux objets figés
+
+      // --- dé-pénétration : ramène à la distance de contact (r_i + r_j) ---
+      var contact = collision_radius(oi) + collision_radius(oj)
+      if (d < contact){
+            var push = contact - d
+            oi.position.addScaledVector(n,  push * wi/wsum)     // chacun écarté selon son inverse-masse
+            oj.position.addScaledVector(n, -push * wj/wsum)
+      }
+
+      // --- impulsion élastique (composante normale) ---
       var vn = new THREE.Vector3().subVectors(oi.speed, oj.speed).dot(n)  // vitesse relative normale
       if (vn >= 0){ return }                                   // objets déjà en éloignement : pas de choc
-      var imp = -2 * vn / (1/oi.mass + 1/oj.mass)              // impulsion scalaire (élastique)
-      oi.speed.addScaledVector(n,  imp/oi.mass)
-      oj.speed.addScaledVector(n, -imp/oj.mass)
+      var imp = -2 * vn / wsum                                 // impulsion scalaire (élastique)
+      oi.speed.addScaledVector(n,  imp*wi)
+      oj.speed.addScaledVector(n, -imp*wj)
 
 }
 
@@ -468,7 +485,8 @@ function initialize_energies(){
 function attraction_potential_energy(){
 
       /*
-      Énergie potentielle de gravité newtonienne : U = - Σ G·m_i·m_j / r  (sur les paires centre-centre).
+      Énergie potentielle de gravité newtonienne ADOUCIE (cohérente avec accel_attraction) :
+      U = - Σ G·m_i·m_j / √(r² + ε²)   (softening de Plummer, ε = attract_softening).
       */
 
       var U = 0
@@ -480,7 +498,8 @@ function attraction_potential_energy(){
                               if ( !(cnd1 & cnd2 & cnd3) ){                 // paires centre-centre (comme accel_attraction)
                                     var oi = list_moving_objects[i], oj = list_moving_objects[j]
                                     var dist = getDistance(oi, oj)
-                                    if (dist >= 1){ U += - attract_strength_one_over_r2 * oi.mass * oj.mass / dist }
+                                    var soft = Math.sqrt(dist*dist + attract_softening*attract_softening)  // √(r²+ε²)
+                                    U += - attract_strength_one_over_r2 * oi.mass * oj.mass / soft
                               }
                         }
                   }
@@ -741,18 +760,20 @@ après le pas Verlet : elles ne dérivent pas d'un potentiel lisse.
 function accel_attraction(i,j){
 
       /*
-      Gravité newtonienne entre deux objets : F = G·m_i·m_j / r²   (G = attract_strength_one_over_r2).
-      L'accélération de chaque objet = F/m, donc a_j = G·m_i/r² (vers i), a_i = G·m_j/r² (vers j).
+      Gravité newtonienne ADOUCIE (softening de Plummer) :
+            F = G·m_i·m_j · r_vec / (r² + ε²)^{3/2}     (ε = attract_softening)
+      Pour ε = 0 on retrouve le 1/r² pur. Le softening supprime la singularité à r→0
+      (accélérations bornées) : le pas Verlet reste précis même en rencontre proche,
+      donc l'énergie se conserve. r_vec (non normalisé) porte déjà la direction.
       */
 
       if (!one_over_r2){ return }
       var [obji, objj] = objj_obji(i,j)
-      var dist = getDistance(obji, objj)
-      if (dist < 1){ return }                                  // évite la division par ~0
-      var dir = new THREE.Vector3().subVectors(obji.position, objj.position).divideScalar(dist) // unitaire j->i
-      var g = attract_strength_one_over_r2/(dist*dist)         // G/r²
-      objj.acc.addScaledVector(dir,  g*obji.mass)              // a_j = G·m_i/r² vers i
-      obji.acc.addScaledVector(dir, -g*objj.mass)              // a_i = G·m_j/r² vers j
+      var rvec = new THREE.Vector3().subVectors(obji.position, objj.position)   // j -> i (longueur = r)
+      var soft2 = rvec.lengthSq() + attract_softening*attract_softening         // r² + ε²
+      var g = attract_strength_one_over_r2 / (soft2 * Math.sqrt(soft2))         // G / (r²+ε²)^{3/2}
+      objj.acc.addScaledVector(rvec,  g*obji.mass)             // a_j vers i
+      obji.acc.addScaledVector(rvec, -g*objj.mass)             // a_i vers j
 
 }
 
