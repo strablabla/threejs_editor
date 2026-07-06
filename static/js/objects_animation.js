@@ -578,6 +578,7 @@ function calculate_total_energy(){
       $('#curr_func').text( txt_max_elast + txt_max_kin + txt_grav + txt_tot )
       record_energy()                                        // graphe temporel (si activé)
       draw_velocity_hist()                                   // histogramme des vitesses (si activé)
+      record_trajectories()                                  // trajectoires + MSD (si activé)
 
 }
 
@@ -743,6 +744,109 @@ function draw_velocity_hist(){
 
 }
 
+//===================================================================== Trajectoires + MSD
+
+var TRAJ_MAX = 200000                                       // échantillons max par trajectoire (borne mémoire, ~1h @60fps)
+var TRAJ_DRAW_MAX = 2000                                    // points max tracés par courbe (décimation -> rendu rapide)
+var traj_palette = ['#e53935','#1e88e5','#43a047','#f9a825','#8e24aa','#00acc1','#ff7043','#5e35b1']
+
+function tracked_objects(){                                 // objets dont la trajectoire est suivie
+      var a = []
+      for (var k in objects){ if (objects[k] && objects[k].track_trajectory){ a.push(objects[k]) } }
+      return a
+}
+
+function reset_trajectory(obj){                             // (re)démarre l'enregistrement à partir de la position courante
+      obj.traj = { x:[], y:[], msd:[], x0:null, y0:null, z0:null }
+}
+
+function reset_all_trajectories(){
+      var t = tracked_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }
+}
+
+function record_trajectories(){                             // appelé chaque frame d'animation
+
+      if (!show_trajectories){ return }
+      var t = tracked_objects()
+      for (var i=0;i<t.length;i++){
+            var o = t[i]; if (!o.traj){ reset_trajectory(o) }
+            var tr = o.traj
+            if (tr.x0 === null){ tr.x0 = o.position.x; tr.y0 = o.position.y; tr.z0 = o.position.z }  // origine r0
+            var dx = o.position.x-tr.x0, dy = o.position.y-tr.y0, dz = o.position.z-tr.z0
+            tr.x.push(o.position.x); tr.y.push(o.position.y); tr.msd.push(dx*dx+dy*dy+dz*dz)          // |r-r0|²
+            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.msd.shift() }
+      }
+      draw_trajectories()
+
+}
+
+function traj_stride(n){ return Math.max(1, Math.ceil(n / TRAJ_DRAW_MAX)) }  // décimation : au plus TRAJ_DRAW_MAX points
+
+function draw_trajectories(){
+
+      var t = tracked_objects()
+
+      //---- fenêtre 1 : trajectoires (projection x-y, échelle isotrope) ----
+      var cv = document.getElementById('traj_canvas')
+      if (cv){
+            var ctx = cv.getContext('2d'), W = cv.width, H = cv.height
+            ctx.clearRect(0,0,W,H)
+            var xmin=Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity, npts=0
+            for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.x.length)continue
+                  var n=tr.x.length, st=traj_stride(n)
+                  for (var k=0;k<n;k+=st){ npts++
+                        if(tr.x[k]<xmin)xmin=tr.x[k]; if(tr.x[k]>xmax)xmax=tr.x[k]
+                        if(tr.y[k]<ymin)ymin=tr.y[k]; if(tr.y[k]>ymax)ymax=tr.y[k] }
+                  var lx=tr.x[n-1], ly=tr.y[n-1]                 // toujours inclure le dernier point
+                  if(lx<xmin)xmin=lx; if(lx>xmax)xmax=lx; if(ly<ymin)ymin=ly; if(ly>ymax)ymax=ly }
+            if (npts>0){
+                  var span=Math.max((xmax-xmin)||1,(ymax-ymin)||1)
+                  var cxx=(xmin+xmax)/2, cyy=(ymin+ymax)/2, pad=10, S=(Math.min(W,H)-2*pad)/(span*1.1)
+                  var PX=function(x){ return W/2 + (x-cxx)*S }
+                  var PY=function(y){ return H/2 - (y-cyy)*S }
+                  for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.x.length<2)continue
+                        var n=tr.x.length, st=traj_stride(n), col=traj_palette[i%traj_palette.length]
+                        ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath()
+                        var first=true
+                        for (var k=0;k<n;k+=st){ var X=PX(tr.x[k]),Y=PY(tr.y[k]); if(first){ctx.moveTo(X,Y);first=false}else ctx.lineTo(X,Y) }
+                        ctx.lineTo(PX(tr.x[n-1]),PY(tr.y[n-1]))   // dernier point
+                        ctx.stroke()
+                        ctx.fillStyle=col; ctx.beginPath(); ctx.arc(PX(tr.x[n-1]),PY(tr.y[n-1]),3,0,2*Math.PI); ctx.fill()
+                  }
+            }
+      }
+
+      //---- fenêtre 2 : MSD |r-r0|² vs temps (index d'échantillon) ----
+      var cv2 = document.getElementById('msd_canvas')
+      if (cv2){
+            var c2 = cv2.getContext('2d'), W2=cv2.width, H2=cv2.height
+            c2.clearRect(0,0,W2,H2)
+            var nmax=0, vmaxm=0
+            for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.msd.length)continue
+                  if(tr.msd.length>nmax)nmax=tr.msd.length
+                  var n=tr.msd.length, st=traj_stride(n)
+                  for(var k=0;k<n;k+=st){ if(tr.msd[k]>vmaxm)vmaxm=tr.msd[k] }
+                  if(tr.msd[n-1]>vmaxm)vmaxm=tr.msd[n-1] }
+            if (nmax>1 && vmaxm>0){
+                  var ML=46, MT=6, MB=6, plotW=W2-ML-4, plotH=H2-MT-MB
+                  var MX=function(k){ return ML + k/(nmax-1)*plotW }
+                  var MY=function(v){ return MT + (1 - v/vmaxm)*plotH }
+                  c2.font='10px sans-serif'; c2.fillStyle='#666'; c2.textAlign='right'; c2.textBaseline='middle'
+                  for (var g=0;g<=4;g++){ var v=vmaxm*g/4, y=MY(v); c2.strokeStyle='#eee'; c2.lineWidth=1
+                        c2.beginPath(); c2.moveTo(ML,y); c2.lineTo(W2-4,y); c2.stroke(); c2.fillText(fmt_energy(v),ML-4,y) }
+                  for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.msd.length<2)continue
+                        var n=tr.msd.length, st=traj_stride(n)
+                        c2.strokeStyle=traj_palette[i%traj_palette.length]; c2.lineWidth=1.5; c2.beginPath()
+                        var first=true
+                        for (var k=0;k<n;k+=st){ var X=MX(k),Y=MY(tr.msd[k]); if(first){c2.moveTo(X,Y);first=false}else c2.lineTo(X,Y) }
+                        c2.lineTo(MX(n-1),MY(tr.msd[n-1]))        // dernier point
+                        c2.stroke()
+                  }
+            }
+      }
+
+}
+
 //===================================================================== Velocity Verlet
 
 /*
@@ -817,9 +921,6 @@ function compute_accelerations(){
             }
       }
       if (springs_ok){ for (var k in list_paired_harmonic){ accel_spring(k) } }   // ressorts
-      if (!gravity_ok){                                        // mode planaire : aucune accélération en z
-            for (var i in list_moving_objects){ list_moving_objects[i].acc.z = 0 }
-      }
 
 }
 
@@ -835,7 +936,6 @@ function verlet_positions(delta){
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
             if (!o.acc){ o.acc = new THREE.Vector3() }
-            if (!gravity_ok){ o.speed.z = 0; o.acc.z = 0 }     // mode planaire : pas de vitesse verticale résiduelle
             if (o.blocked){ continue }                         // objet statique/ancre : ne bouge pas
             if (!o._ppos){ o._ppos = new THREE.Vector3() }
             o._ppos.copy(o.position)                           // position AVANT le pas (détection continue mur)
@@ -872,14 +972,14 @@ function ground_bounce(){
       Contrainte du sol : rebond élastique quand le centre passe sous height/2.
       */
 
-      if (!gravity_ok){ return }                               // mode planaire : pas de sol (gravité coupée)
+      if (!gravity_ok){ return }                               // pas de gravité -> pas de "bas" -> pas de sol (tout est 3D libre)
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
             if (o.blocked){ continue }                         // objet statique : pas de rebond sol
-            var hz = o.height/2
+            var hz = (o.radius !== undefined) ? o.radius : o.height/2   // sphère : repose pile sur le sol (bas = centre - rayon) ; autres : height/2
             if (o.position.z < hz){
-                  o.position.z = hz
-                  o.speed.z = -o.speed.z
+                  o.position.z = hz                            // remonte TOUJOURS la bille au niveau du sol (dé-pénétration)
+                  if (o.speed.z < 0){ o.speed.z = -o.speed.z } // ne réfléchit QUE si elle descend, sinon on la piégeait sous le sol
             }
       }
 
@@ -900,6 +1000,8 @@ function interactions_and_movement(delta){
 
 }
 
+var MAX_PHYS_DELTA = 0.5    // pas de temps max : évite un pas géant après une pause (onglet en arrière-plan)
+
 function animate_physics(){
 
       /*
@@ -909,8 +1011,16 @@ function animate_physics(){
       if (scene_animation_ok){
             var time = performance.now();
             var delta = ( time - prevTime ) / 100;
-            interactions_and_movement(delta)
+            if (delta > MAX_PHYS_DELTA){ delta = MAX_PHYS_DELTA }  // requestAnimationFrame est gelé en arrière-plan
+            interactions_and_movement(delta)                       //  -> au retour, on borne le pas au lieu d'exploser
             prevTime = time;
         }
         else{ prevTime = performance.now() }
+}
+
+// Quand l'onglet redevient visible, repartir d'un delta ~0 (pas de saut au retour d'arrière-plan)
+if (typeof document !== 'undefined'){
+      document.addEventListener('visibilitychange', function(){
+            if (!document.hidden){ prevTime = performance.now() }
+      })
 }

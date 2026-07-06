@@ -85,7 +85,8 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
    - panneau **Object** → liste déroulante (wall, cube, sphere, box, string…) ;
    - **clavier** : `o` sphère · `e` chaîne · `n` mur · `w` boîte · `m` cube texturé · `t` piste (appui = on, 2ᵉ appui = off ; `b` coupe tout) ;
    - **voix** : « cube », « boule », « mur », « boîte », « chaîne », « piste », « pavé », « plan », « pas d'outil ».
-2. **Cliquer dans le plan** pour déposer l'objet (la **boîte** se dessine en 2 clics).
+2. **Cliquer dans le plan** pour déposer l'objet (la **boîte** se dessine en 2 clics). Les
+   boules sont déposées **coplanaires** (plan `z = 0`) et **roses** par défaut.
 
 `TrackballControls` : rotation / zoom de la vue à la souris.
 
@@ -100,16 +101,17 @@ par un ressort · flèches haut/bas pour monter/descendre.
 Le **clic droit** ouvre **seulement** le menu contextuel — il n'attrape pas l'objet (pas
 de déplacement).
 - **Clic droit sur un objet** → **menu contextuel** de ses attributs **éditables en
-  direct** : `mass`, `opacity`, **`color`**, `friction`, `radius_interact`, `magnet`,
-  `blocked`. Effet immédiat sur le moteur (ex. la masse influe sur la gravité
-  newtonienne, les collisions, les ressorts) et **sauvegardé** avec la scène.
-- **Couleur** : un **sélecteur de couleur** change la teinte de l'objet. La couleur est
-  propre à l'objet (le matériau est dupliqué au besoin, donc les autres objets ne
-  changent pas) et **persistée** avec la scène.
-- **Rayon des boules** : sur une **sphère**, le menu ajoute une **glissière `radius`**.
-  La case **« all »** applique le nouveau rayon à **toutes** les boules (sinon à la seule
-  cliquée). Le rayon met à jour le **visuel**, le **rayon de collision** (les boules se
-  touchent d'autant plus tôt) et le **rebond sol** ; il est **persisté** avec la scène.
+  direct** : `mass`, **`vx` / `vy` / `vz`** (composantes de vitesse), `opacity`,
+  **`color`**, `friction`, `radius_interact`, `radius` (sphères), `magnet`, `blocked`,
+  **`trajectory`**. Effet immédiat sur le moteur et **sauvegardé** avec la scène.
+- **Case « all »** (sphères) : quand elle est cochée, **chaque** modification d'attribut
+  (masse, vitesse, couleur, rayon…) s'applique à **toutes** les boules d'un coup ; sinon à
+  la seule boule cliquée.
+- **Couleur** : sélecteur de couleur ; la teinte est propre à l'objet (le matériau est
+  dupliqué au besoin, donc les autres ne changent pas) et **persistée**.
+- **Rayon des boules** (`radius`, sphères) : glissière qui met à jour le **visuel**, le
+  **rayon de collision** (contact = somme des rayons) et le **rebond sol** ; **persisté**.
+- **`trajectory`** : suit la trajectoire de cette boule (voir *Trajectoires & MSD*).
 - **Clic droit sur un élastique** → menu de sa **raideur (`stiffness`)**. Chaque élastique
   a sa **propre raideur** (repli sur `harmonic_const`), donc une boule reliée par deux
   élastiques peut avoir **deux raideurs différentes**.
@@ -129,11 +131,16 @@ Le moteur utilise un intégrateur **Velocity Verlet symplectique** (énergie bor
 de dérive) pour les forces lisses ; collisions, rebonds murs et sol sont des
 **impulsions** appliquées après le pas Verlet.
 
+Tout est **3D** en permanence (pas de « mode planaire » qui figerait `z`). La gravité est
+une **simple force optionnelle**. Un **nuage coplanaire reste coplanaire** tout seul (les
+normales de choc n'ont pas de composante `z`), donc un gaz 2D se comporte comme tel sans
+traitement spécial — et l'énergie est **réellement conservée**.
+
 Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets** :
 
 **Onglet « Interactions »**
-- **Gravity (z)** — gravité verticale. **Décochée = mode planaire** : `z` est figé, la
-  scène n'évolue qu'en x-y (utile pour les chaînes).
+- **Gravity (z)** — gravité verticale. **Décochée** = pas de force de gravité (ni de sol) ;
+  la scène évolue librement en 3D.
 - **Springs (chains)** — forces de ressort des chaînes (longueur au repos `lenght_spring`).
 - **Object interaction (1/r²)** — **gravité newtonienne** entre objets, **adoucie**
   (softening de Plummer) : `F = G·mᵢ·mⱼ · r / (r²+ε²)^{3/2}`. Les masses comptent (un
@@ -151,6 +158,9 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets**
 - **reinitialize all** — réattribue la vitesse de **toutes** les boules selon les
   paramètres ci-dessus, pour **relancer une simulation de zéro** à tout moment (Random
   décoché ⇒ toutes à l'arrêt). Ne touche pas aux positions.
+- **flatten z=0** — projette toutes les boules sur le plan `z = 0` et met `vz = 0`. Utile
+  pour **nettoyer** une scène dont les positions z auraient dérivé et retrouver un **gaz
+  parfaitement plan** (qui le reste ensuite, cf. ci-dessus).
 
 **Onglet « Monitoring »** — cases `energy graph` et `velocity histogram` (voir plus bas).
 
@@ -173,16 +183,20 @@ place : le **softening ε** (borne la force à courte distance) et la **dé-pén
 chocs. Avec `ε > 0`, la courbe d'énergie **totale** reste bien plus plate. Si elle dérive
 encore avec un `G` très fort, **augmenter ε** (ou réduire le pas de temps).
 
-### Murs & boîtes
-- **boîte** (`w` / « boîte ») → enceinte de **4 murs réfléchissants** (`wall_box`),
-  actifs automatiquement : les boules rebondissent dessus.
+### Murs, sol & boîtes
+- **boîte** (`w` / « boîte ») → enceinte de **4 murs latéraux réfléchissants** (`wall_box`,
+  normales en x-y). Pas de plafond/plancher : sans gravité, rien ne confine en `z` (une
+  scène plane le reste, mais un mouvement z volontaire n'est pas borné).
 - **Murs durs (anti-tunneling)** : détection **continue** (on teste si le centre a franchi
   le plan du mur pendant le pas) + **repositionnement** de la bille du bon côté à distance
   = son rayon, puis réflexion élastique. Une bille **ne peut jamais traverser** une paroi,
   même à grande vitesse.
+- **Sol** (uniquement si `Gravity` est cochée) : la bille **repose pile dessus** (seuil au
+  rayon) et n'est réfléchie **que si elle descend** — elle ne peut plus être piégée sous le
+  sol ni « s'enfoncer ».
 - **mur** (« mur ») isolé → panneau décoratif (ne réfléchit pas).
 - Un objet **bloqué** (`blocked`) devient une **ancre statique** (mur, ou point fixe
-  d'une chaîne de ressorts).
+  d'une chaîne de ressorts), et agit comme un obstacle immobile dans les chocs.
 
 ---
 
@@ -202,6 +216,21 @@ cinétique : ni statiques/ancres, ni ressorts/élastiques/pions). Axe X = `|v|` 
 courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Le **nombre
 total d'objets comptés** est affiché en haut à droite (`N = …`). Il se dessine **dès
 qu'on coche la case** puis se met à jour à chaque frame pendant l'animation.
+
+## Trajectoires & MSD
+
+`Dynamics → Monitoring → ☑ trajectories` ouvre une fenêtre (en haut à gauche) à **deux
+canvas** :
+- **Trajectories** : le **chemin x-y** de chaque boule suivie (échelle isotrope, point =
+  position courante) ;
+- **MSD** : le **déplacement quadratique moyen `|r−r₀|²`** en fonction du temps, une
+  courbe par trajectoire — signature du régime **balistique** (∝ t²) aux temps courts puis
+  **diffusif** (∝ t) aux temps longs (mouvement brownien).
+
+On choisit **quelles** boules suivre via la case **`trajectory`** de leur menu contextuel
+(clic droit). Le bouton **reset** (dans la fenêtre) réinitialise tous les tracés et refixe
+l'origine `r₀`. L'historique n'est pas plafonné (borne mémoire ~200 000 pts) et le tracé
+est **décimé** pour rester fluide.
 
 ---
 

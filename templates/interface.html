@@ -60,6 +60,16 @@ function bs_prompt(title, message, defaultValue, onOk){
   <canvas id="velocity_hist" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
+<!-- Trajectoires + MSD (toggle "trajectories" dans Monitoring ; suivi par objet via clic droit) -->
+<div id="trajectories_box" style="display:none; position:fixed; top:70px; left:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
+  <div style="margin-bottom:3px;"><b>Trajectories</b> <span style="color:#888">(x-y)</span>
+    <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
+  </div>
+  <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
+  <div style="margin:6px 0 3px;"><b>MSD</b> <span style="color:#888">|r−r₀|² vs temps</span></div>
+  <canvas id="msd_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
+</div>
+
 <!-- Menu contextuel (clic droit sur un objet VERT) : attributs éditables -->
 <div id="obj_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 10px; font-family:sans-serif; font-size:12px; min-width:200px;">
   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">
@@ -140,6 +150,11 @@ function bs_prompt(title, message, defaultValue, onOk){
               if ($all && $all.is(':checked')){ spheres().forEach(setter) } else { setter(obj) }
         }
         num_row($f, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })
+        if (obj.speed){                                        // vitesse (composantes) — objets mobiles
+              num_row($f, 'vx',        function(){ return obj.speed.x },          function(v){ applyAll(function(t){ t.speed.x = v }) })
+              num_row($f, 'vy',        function(){ return obj.speed.y },          function(v){ applyAll(function(t){ t.speed.y = v }) })
+              num_row($f, 'vz',        function(){ return obj.speed.z },          function(v){ applyAll(function(t){ t.speed.z = v }) })
+        }
         num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
         if (obj.material && obj.material.color){ color_row($f, obj, applyAll) }   // couleur de l'objet
         num_row($f, 'friction',        function(){ return obj.friction },         function(v){ applyAll(function(t){ t.friction = v }) })
@@ -147,7 +162,11 @@ function bs_prompt(title, message, defaultValue, onOk){
         if (obj.type === 'sphere'){ radius_row($f, obj, applyAll) }      // rayon réel
         bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
         bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ applyAll(function(t){ t.blocked = v }) })
-        var mw = 210, mh = 340
+        bool_row($f, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // suivi propre à cet objet
+              obj.track_trajectory = v
+              if (v && typeof reset_trajectory === 'function'){ reset_trajectory(obj) } else { obj.traj = null }
+        })
+        var mw = 210, mh = 430
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()

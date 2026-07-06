@@ -142,6 +142,24 @@ function reinitialize_speeds(){
 
 }
 
+function flatten_z(){
+
+      /*
+      Projette toutes les boules sur le plan z = 0 et annule leur vitesse en z.
+      Nettoie une scène dont les positions z ont dérivé : en 3D pur, un nuage
+      coplanaire reste coplanaire (normale de choc sans composante z), donc le gaz
+      redevient parfaitement plan sans aucun « mode » spécial.
+      */
+
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o.type !== 'sphere' || o.blocked){ continue }
+            o.position.z = 0
+            o.speed.z = 0
+      }
+
+}
+
 function make_new_sphere(){
 
       /*

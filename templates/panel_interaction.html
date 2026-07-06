@@ -69,6 +69,8 @@
 
             <div class="help">
               <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
+              &nbsp;
+              <button type="button" id="btn_flatten_z" style="font-family:inherit; cursor:pointer; padding:3px 10px" title="projette les boules sur z=0 (gaz plan)">flatten z=0</button>
             </div><br>
 
           </div>
@@ -82,6 +84,10 @@
 
             <div class="help">
               <label><input type="checkbox" id="chk_velocity_hist"> velocity histogram</label>
+            </div><br>
+
+            <div class="help">
+              <label><input type="checkbox" id="chk_trajectories"> trajectories</label>
             </div><br>
 
           </div>
@@ -154,6 +160,10 @@
         reinitialize_speeds()
         if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // rafraîchit l'histogramme si affiché
     })
+    $('#btn_flatten_z').on('click', function(){                 // aplatit les boules sur z=0 (nettoie la dérive z)
+        flatten_z()
+        if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste les positions aplaties
+    })
 
     // --- Monitoring : graphe d'énergie ---
     $('#chk_energy_graph').prop('checked', show_energy_graph)
@@ -177,6 +187,23 @@
         } else {
               $('#velocity_hist_box').hide()
         }
+    })
+
+    // --- Monitoring : trajectoires + MSD ---
+    $('#chk_trajectories').prop('checked', show_trajectories)
+    $('#chk_trajectories').change(function(){
+        show_trajectories = this.checked
+        if (show_trajectories){
+              reset_all_trajectories()                      // repart d'un tracé vierge
+              $('#trajectories_box').show()
+              draw_trajectories()
+        } else {
+              $('#trajectories_box').hide()
+        }
+    })
+    $('#btn_reset_traj').on('click', function(){            // réinitialise toutes les trajectoires (origine = position courante)
+        reset_all_trajectories()
+        draw_trajectories()
     })
 
     // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)
