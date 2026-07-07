@@ -90,6 +90,10 @@
               <label><input type="checkbox" id="chk_trajectories"> trajectories</label>
             </div><br>
 
+            <div class="help">
+              <label><input type="checkbox" id="chk_altitude_hist"> altitude histogram</label>
+            </div><br>
+
           </div>
 
     </div>
@@ -209,6 +213,18 @@
     $('#btn_reset_traj').on('click', function(){            // réinitialise toutes les trajectoires (origine = position courante)
         reset_all_trajectories()
         draw_trajectories()
+    })
+
+    // --- Monitoring : histogramme d'altitude (N vs z) ---
+    $('#chk_altitude_hist').prop('checked', show_altitude_hist)
+    $('#chk_altitude_hist').change(function(){
+        show_altitude_hist = this.checked
+        if (show_altitude_hist){
+              $('#altitude_hist_box').show()
+              draw_altitude_hist()                            // dessin immédiat
+        } else {
+              $('#altitude_hist_box').hide()
+        }
     })
 
     // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)

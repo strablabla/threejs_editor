@@ -578,6 +578,7 @@ function calculate_total_energy(){
       $('#curr_func').text( txt_max_elast + txt_max_kin + txt_grav + txt_tot )
       record_energy()                                        // graphe temporel (si activé)
       draw_velocity_hist()                                   // histogramme des vitesses (si activé)
+      draw_altitude_hist()                                   // histogramme d'altitude (si activé)
       record_trajectories()                                  // trajectoires + MSD (si activé)
 
 }
@@ -741,6 +742,83 @@ function draw_velocity_hist(){
       ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
       ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
       ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vmax), W - 6, MT + plotH + 3)
+
+}
+
+//===================================================================== Histogramme d'altitude
+
+var ALT_HIST_BINS = 24                                        // nombre de tranches d'altitude
+
+function collect_altitudes(){                                 // z des objets massifs mobiles (mêmes exclusions que l'énergie cinétique)
+      var zs = []
+      for (var i in list_moving_objects){
+            var obj = list_moving_objects[i]
+            if (obj.blocked){ continue }
+            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
+            zs.push(obj.position.z)
+      }
+      return zs
+}
+
+function draw_altitude_hist(){
+
+      /*
+      Nombre de particules en fonction de l'altitude (z).
+      Axe VERTICAL = altitude (haut = z max), barres horizontales = comptage par tranche.
+      */
+
+      if (!show_altitude_hist){ return }
+      var cv = document.getElementById('altitude_hist')
+      if (!cv){ return }
+      var ctx = cv.getContext('2d')
+      var W = cv.width, H = cv.height
+      ctx.clearRect(0, 0, W, H)
+      var zs = collect_altitudes()
+      var n = zs.length
+      ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'
+      ctx.textAlign = 'right'; ctx.textBaseline = 'top'
+      ctx.fillText('N = ' + n, W - 4, 2)
+      if (n === 0){ return }
+      //--- plage d'altitude
+      var zmin = Infinity, zmax = -Infinity
+      for (var k=0;k<n;k++){ if (zs[k]<zmin) zmin=zs[k]; if (zs[k]>zmax) zmax=zs[k] }
+      if (zmin === zmax){ zmax = zmin + 1; zmin = zmin - 1 }
+      //--- classes
+      var bins = new Array(ALT_HIST_BINS).fill(0)
+      for (var k=0;k<n;k++){
+            var b = Math.floor((zs[k]-zmin)/(zmax-zmin)*ALT_HIST_BINS)
+            if (b >= ALT_HIST_BINS){ b = ALT_HIST_BINS - 1 }
+            if (b < 0){ b = 0 }
+            bins[b]++
+      }
+      var cmax = 0
+      for (var b=0;b<ALT_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
+      if (cmax <= 0){ cmax = 1 }
+      //--- géométrie : altitude en Y (haut = zmax), comptage en X (barres horizontales)
+      var ML = 46, MT = 6, MB = 16, MR = 6
+      var plotW = W - ML - MR, plotH = H - MT - MB
+      //--- axe Y : graduations d'altitude (haut = zmax, bas = zmin)
+      ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+      for (var t=0; t<=4; t++){
+            var zval = zmax - (zmax - zmin) * t / 4
+            var y = MT + t / 4 * plotH
+            ctx.strokeStyle = '#eee'; ctx.lineWidth = 1
+            ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W - MR, y); ctx.stroke()
+            ctx.fillText(fmt_energy(zval), ML - 4, y)
+      }
+      //--- barres horizontales (classe 0 = altitude basse -> en bas)
+      var bh = plotH / ALT_HIST_BINS
+      ctx.fillStyle = '#3949ab'                                // indigo
+      for (var b=0;b<ALT_HIST_BINS;b++){
+            var w = bins[b] / cmax * plotW
+            var y = MT + plotH - (b + 1) * bh                  // b croissant -> vers le haut
+            ctx.fillRect(ML, y + 1, w, bh - 2)
+      }
+      //--- axe X : bornes 0 et cmax (comptage)
+      ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
+      ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
+      ctx.textAlign = 'right'; ctx.fillText(cmax, W - MR, MT + plotH + 3)
 
 }
 

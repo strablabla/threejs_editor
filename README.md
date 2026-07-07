@@ -228,9 +228,18 @@ canvas** :
   **diffusif** (∝ t) aux temps longs (mouvement brownien).
 
 On choisit **quelles** boules suivre via la case **`trajectory`** de leur menu contextuel
-(clic droit). Le bouton **reset** (dans la fenêtre) réinitialise tous les tracés et refixe
-l'origine `r₀`. L'historique n'est pas plafonné (borne mémoire ~200 000 pts) et le tracé
-est **décimé** pour rester fluide.
+(clic droit). Les tracés reprennent la **couleur de chaque boule**. Le bouton **reset**
+(dans la fenêtre) réinitialise tous les tracés et refixe l'origine `r₀`. L'historique n'est
+pas plafonné (borne mémoire ~200 000 pts) et le tracé est **décimé** pour rester fluide.
+
+## Profil d'altitude
+
+`Dynamics → Monitoring → ☑ altitude histogram` affiche (en haut à droite) le **nombre de
+particules en fonction de l'altitude `z`** : axe **vertical = altitude** (haut = z max,
+gradué), **barres horizontales = comptage** par tranche (24 tranches, échelle z auto), et
+`N = …` = total compté (mêmes exclusions que l'énergie cinétique). Surtout parlant avec
+**Gravity (z) activée** : on observe alors le **profil barométrique** — densité qui décroît
+avec l'altitude (`n(z) ∝ e^{−mgz/kT}`) une fois le gaz thermalisé.
 
 ---
 

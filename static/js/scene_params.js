@@ -81,6 +81,7 @@ tot_energy = 0      // total
 show_energy_graph = false   // affichage du graphe temporel d'énergie (panneau Tools)
 show_velocity_hist = false  // affichage de l'histogramme des normes de vitesse (panneau Tools)
 show_trajectories = false   // affichage de la fenêtre trajectoires + MSD (Monitoring)
+show_altitude_hist = false  // affichage de l'histogramme nombre de particules vs altitude (Monitoring)
 
 //------------
 
