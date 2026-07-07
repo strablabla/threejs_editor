@@ -748,7 +748,10 @@ function draw_velocity_hist(){
 
 var TRAJ_MAX = 200000                                       // échantillons max par trajectoire (borne mémoire, ~1h @60fps)
 var TRAJ_DRAW_MAX = 2000                                    // points max tracés par courbe (décimation -> rendu rapide)
-var traj_palette = ['#e53935','#1e88e5','#43a047','#f9a825','#8e24aa','#00acc1','#ff7043','#5e35b1']
+function traj_color(obj){                                   // couleur RÉELLE de la boule (currentHex = teinte hors surbrillance)
+      var hex = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
+      return '#' + ('000000' + hex.toString(16)).slice(-6)
+}
 
 function tracked_objects(){                                 // objets dont la trajectoire est suivie
       var a = []
@@ -805,7 +808,7 @@ function draw_trajectories(){
                   var PX=function(x){ return W/2 + (x-cxx)*S }
                   var PY=function(y){ return H/2 - (y-cyy)*S }
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.x.length<2)continue
-                        var n=tr.x.length, st=traj_stride(n), col=traj_palette[i%traj_palette.length]
+                        var n=tr.x.length, st=traj_stride(n), col=traj_color(t[i])
                         ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath()
                         var first=true
                         for (var k=0;k<n;k+=st){ var X=PX(tr.x[k]),Y=PY(tr.y[k]); if(first){ctx.moveTo(X,Y);first=false}else ctx.lineTo(X,Y) }
@@ -836,7 +839,7 @@ function draw_trajectories(){
                         c2.beginPath(); c2.moveTo(ML,y); c2.lineTo(W2-4,y); c2.stroke(); c2.fillText(fmt_energy(v),ML-4,y) }
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.msd.length<2)continue
                         var n=tr.msd.length, st=traj_stride(n)
-                        c2.strokeStyle=traj_palette[i%traj_palette.length]; c2.lineWidth=1.5; c2.beginPath()
+                        c2.strokeStyle=traj_color(t[i]); c2.lineWidth=1.5; c2.beginPath()
                         var first=true
                         for (var k=0;k<n;k+=st){ var X=MX(k),Y=MY(tr.msd[k]); if(first){c2.moveTo(X,Y);first=false}else c2.lineTo(X,Y) }
                         c2.lineTo(MX(n-1),MY(tr.msd[n-1]))        // dernier point
