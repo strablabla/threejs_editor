@@ -164,6 +164,29 @@
         $('#speed_intensity_val').text(random_speed_module)
     })
 
+    // Rafraîchit TOUS les contrôles du panneau depuis les variables globales
+    // (appelé au chargement d'une scène qui restaure les réglages Dynamics).
+    window.refresh_dynamics_panel = function(){
+        $('#chk_gravity').prop('checked', gravity_ok)
+        $('#chk_springs').prop('checked', springs_ok)
+        $('#chk_attract').prop('checked', one_over_r2)
+        $('#rad_attract').prop('checked', attract_strength_one_over_r2 >= 0)
+        $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
+        apply_strength(Math.abs(attract_strength_one_over_r2))
+        $('#softening_input').val(attract_softening)
+        $('#softening_val').text(attract_softening)
+        $('#chk_random_speed').prop('checked', random_initial_speed)
+        $('#chk_random_speed_z').prop('checked', random_speed_z)
+        $('#rng_speed_intensity').val(random_speed_module)
+        $('#speed_intensity_val').text(random_speed_module)
+        sync_deactivate_all()
+        // Monitoring : régler la case ET déclencher son handler (affiche/masque la fenêtre)
+        $('#chk_energy_graph').prop('checked', show_energy_graph).trigger('change')
+        $('#chk_velocity_hist').prop('checked', show_velocity_hist).trigger('change')
+        $('#chk_altitude_hist').prop('checked', show_altitude_hist).trigger('change')
+        $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
+    }
+
     // Réinitialise la vitesse de TOUTES les boules selon les params courants (relance une simu de zéro)
     $('#btn_reinit_speeds').on('click', function(){
         reinitialize_speeds()

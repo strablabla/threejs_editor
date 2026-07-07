@@ -220,6 +220,7 @@ function load_scene(msg){
               load_object(name, msg)                           // load the objects wall..
           } // end for
       load_chains(msg)                                         // reconstruit les ressorts des chaînes
+      if (msg['_dynamics']){ restore_dynamics(msg['_dynamics']) }   // restitue les réglages du panneau Dynamics
       if (msg['scene_name'] && msg['scene_name'] != 'None'){   // restitue le nom de la scène
             scene.name = msg['scene_name']
             $('#scene_name').val(scene.name)
@@ -227,6 +228,29 @@ function load_scene(msg){
       if (typeof update_scene_name_display === 'function'){ update_scene_name_display() }
 
 } // end load_scene..
+
+function restore_dynamics(d){
+
+      /*
+      Restaure les réglages du panneau Dynamics sauvegardés avec la scène,
+      puis rafraîchit les contrôles du panneau (si présent).
+      */
+
+      if (d.gravity_ok !== undefined){ gravity_ok = d.gravity_ok }
+      if (d.springs_ok !== undefined){ springs_ok = d.springs_ok }
+      if (d.one_over_r2 !== undefined){ one_over_r2 = d.one_over_r2 }
+      if (d.attract_strength !== undefined){ attract_strength_one_over_r2 = d.attract_strength }
+      if (d.attract_softening !== undefined){ attract_softening = d.attract_softening }
+      if (d.random_initial_speed !== undefined){ random_initial_speed = d.random_initial_speed }
+      if (d.random_speed_module !== undefined){ random_speed_module = d.random_speed_module }
+      if (d.random_speed_z !== undefined){ random_speed_z = d.random_speed_z }
+      if (d.show_energy_graph !== undefined){ show_energy_graph = d.show_energy_graph }
+      if (d.show_velocity_hist !== undefined){ show_velocity_hist = d.show_velocity_hist }
+      if (d.show_altitude_hist !== undefined){ show_altitude_hist = d.show_altitude_hist }
+      if (d.show_trajectories !== undefined){ show_trajectories = d.show_trajectories }
+      if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // met à jour les cases/curseurs
+
+}
 
 
 function set_controls(controls){
@@ -326,6 +350,21 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
           }    // end for
     if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (noms des boules + raideur propre)
           listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring] })
+    }
+    listpos['_dynamics'] = {                           // réglages du panneau Dynamics (sauvegardés avec la scène)
+          gravity_ok: gravity_ok,
+          springs_ok: springs_ok,
+          one_over_r2: one_over_r2,
+          attract_strength: attract_strength_one_over_r2,
+          attract_softening: attract_softening,
+          random_initial_speed: random_initial_speed,
+          random_speed_module: random_speed_module,
+          random_speed_z: random_speed_z,
+          // toggles d'affichage (Monitoring)
+          show_energy_graph: show_energy_graph,
+          show_velocity_hist: show_velocity_hist,
+          show_altitude_hist: show_altitude_hist,
+          show_trajectories: show_trajectories
     }
     return listpos
 }

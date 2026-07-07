@@ -264,6 +264,15 @@ Panneau **Scene** :
 Sphères, **chaînes de ressorts** (liaisons reconstruites) et **boîtes** (`wall_box`)
 sont persistées. Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
 
+**Réglages Dynamics sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
+embarque sa **configuration physique** — `Gravity`, `Springs`, `Object interaction (1/r²)`
+avec sa **Strength** (signe compris) et son **softening ε**, ainsi que les paramètres
+d'**Initial speeds** (`Random`, `Strength`, `z component`) — **et** les toggles
+d'affichage de **Monitoring** (`energy graph`, `velocity histogram`, `altitude histogram`,
+`trajectories`). Au chargement, ces valeurs sont **restaurées** et le panneau + les
+fenêtres de monitoring se **remettent à jour** automatiquement. Recharger une scène
+restitue donc exactement l'expérience telle qu'elle avait été réglée.
+
 ### Undo / redo (Ctrl+Z / Ctrl+Y)
 Chaque changement validé (relâchement de souris) enregistre un **snapshot** de la scène.
 **Ctrl+Z** revient en arrière, **Ctrl+Y** (ou **Ctrl+Maj+Z**) avance. L'historique est
