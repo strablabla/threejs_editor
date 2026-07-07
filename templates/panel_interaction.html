@@ -36,7 +36,7 @@
 
             <div class="help indent_dyn"> <span> Strength: </span>
               <input type="range" id="attract_strength_input" min="0" max="100000" step="1000" style="vertical-align:middle; width:120px">
-              <span id="attract_strength_val"></span>
+              <input type="number" id="attract_strength_num" min="0" step="1000" style="width:90px" title="valeur libre (étend le curseur au-delà de son max)">
             </div><br>
 
             <div class="help indent_dyn"> <span> Softening ε: </span>
@@ -102,8 +102,17 @@
     $('#chk_attract').prop('checked', one_over_r2)
     $('#rad_attract').prop('checked', attract_strength_one_over_r2 >= 0)
     $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
-    $('#attract_strength_input').val(Math.abs(attract_strength_one_over_r2))
-    $('#attract_strength_val').text(Math.abs(attract_strength_one_over_r2))
+    // Applique une intensité (module) : synchronise curseur + champ, étend le max du curseur si dépassé
+    function apply_strength(mag){
+        mag = Math.abs(mag); if (isNaN(mag)){ mag = 0 }
+        var $sl = $('#attract_strength_input')
+        if (mag > parseFloat($sl.attr('max'))){ $sl.attr('max', mag) }   // le curseur peut aller au-delà de 100000
+        $sl.val(mag)
+        $('#attract_strength_num').val(mag)
+        var sign = $('#rad_repulse').is(':checked') ? -1 : 1             // répulsion = signe négatif
+        attract_strength_one_over_r2 = sign * mag
+    }
+    apply_strength(Math.abs(attract_strength_one_over_r2))
 
     // La case "deactivate" est cochée quand AUCUNE interaction n'est active
     function sync_deactivate_all(){
@@ -125,15 +134,11 @@
         $('#chk_attract').prop('checked', on)
     })
 
-    function update_attract_strength(){
-        var mag  = Math.abs(parseFloat($('#attract_strength_input').val()) || 0)
-        var sign = $('#rad_repulse').is(':checked') ? -1 : 1   // répulsion = signe négatif
-        attract_strength_one_over_r2 = sign * mag
-        $('#attract_strength_val').text(mag)
-    }
-    $('#rad_attract').change(update_attract_strength)
-    $('#rad_repulse').change(update_attract_strength)
-    $('#attract_strength_input').on('input change', update_attract_strength)
+    $('#rad_attract').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })  // recalcule le signe
+    $('#rad_repulse').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })
+    $('#attract_strength_input').on('input change', function(){ apply_strength(this.value) })       // curseur
+    $('#attract_strength_num').on('input change', function(){ apply_strength(this.value) })          // saisie libre
+    $('#attract_strength_num').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
     // --- Softening ε de la gravité (F = G·m·m/(r²+ε²)) : ε=0 -> 1/r² pur ---
     $('#softening_input').val(attract_softening)
