@@ -280,6 +280,8 @@ function make_the_four_edges(pos, side){
   var w4 = wall_for_box(pos4, {'width':side1,'height':150,'thickness':2}, side1_orient)
   w3.rotation.z = Math.PI/2
   w4.rotation.z = Math.PI/2
+  var bid = ++box_id_counter                       // les 4 parois partagent le même identifiant de boîte
+  w1.box_id = w2.box_id = w3.box_id = w4.box_id = bid
 
 
 }

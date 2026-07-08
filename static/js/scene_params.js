@@ -104,6 +104,8 @@ new_select_ok = false;             // select multiple objects.
 list_dotted_area = []
 size_elem_dotted_line = 15					// size of each element of the dotted line delimiting the selection area
 list_obj_inside = [];  					// list of the objects inside the area
+box_id_counter = 0                          // identifiant unique par boîte (regroupe ses 4 parois)
+list_lids = []                              // couvercles actifs : { box_id, mesh, bounds:{xmin,xmax,ymin,ymax}, z }
 
 //---------------------- Track
 

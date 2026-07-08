@@ -115,6 +115,10 @@ de déplacement).
 - **Clic droit sur un élastique** → menu de sa **raideur (`stiffness`)**. Chaque élastique
   a sa **propre raideur** (repli sur `harmonic_const`), donc une boule reliée par deux
   élastiques peut avoir **deux raideurs différentes**.
+- **Clic droit sur une paroi de boîte** → menu **« box wall »** : `opacity` (de la paroi),
+  **box height** (hauteur de la boîte, redimensionne les 4 parois), **add balls** (ajoute N
+  boules aléatoires **dans** la boîte, N réglable), **add lid / remove lid** (couvercle).
+- **Clic droit sur un couvercle** → menu **« lid »** : `opacity` du couvercle.
 
 Le menu se ferme par sa **×** ou en cliquant ailleurs. Les couleurs des objets sont
 **préservées pendant l'animation** (pas de recoloration automatique).
@@ -194,6 +198,11 @@ encore avec un `G` très fort, **augmenter ε** (ou réduire le pas de temps).
 - **Sol** (uniquement si `Gravity` est cochée) : la bille **repose pile dessus** (seuil au
   rayon) et n'est réfléchie **que si elle descend** — elle ne peut plus être piégée sous le
   sol ni « s'enfoncer ».
+- **Couvercle (lid)** : ajouté par **clic droit sur une paroi → add lid**, c'est un panneau
+  horizontal au **sommet de la boîte** qui **contraint les boules à ne pas dépasser** (rebond
+  élastique, symétrique du sol). La boîte devient ainsi une **enceinte fermée en haut**. Les
+  4 parois d'une boîte partagent un `box_id` ; le menu de paroi permet aussi de régler la
+  **hauteur** de la boîte et d'y **ajouter des boules**. Persisté avec la scène (clé `_lids`).
 - **mur** (« mur ») isolé → panneau décoratif (ne réfléchit pas).
 - Un objet **bloqué** (`blocked`) devient une **ancre statique** (mur, ou point fixe
   d'une chaîne de ressorts), et agit comme un obstacle immobile dans les chocs.
@@ -261,8 +270,9 @@ Panneau **Scene** :
 - **Clear** (tooltip *clear the scene*) → vide l'éditeur.
 - **Quit** est désormais l'icône **⏻** dans la navbar (et non plus dans ce panneau).
 
-Sphères, **chaînes de ressorts** (liaisons reconstruites) et **boîtes** (`wall_box`)
-sont persistées. Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
+Sphères, **chaînes de ressorts** (liaisons reconstruites), **boîtes** (`wall_box`, avec
+leur `box_id`) et **couvercles** (clé `_lids`, recréés depuis leur boîte) sont persistés.
+Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
 
 **Réglages Dynamics sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
 embarque sa **configuration physique** — `Gravity`, `Springs`, `Object interaction (1/r²)`
@@ -364,6 +374,7 @@ animate()                              boucle de rendu (requestAnimationFrame)
     ├── verlet_velocities()            v(t+dt)
     ├── interactions_between_objects()  collisions + rebonds murs (impulsions)
     ├── ground_bounce()                rebond sur le sol (impulsion)
+    ├── lid_bounce()                   rebond sur les couvercles de boîte (plafonds)
     └── energy_calculation()           cinétique + potentielle → graphe d'énergie
 ```
 
@@ -384,6 +395,7 @@ animate()                              boucle de rendu (requestAnimationFrame)
 | `static/js/scene_params.js` | Paramètres globaux (constantes physiques, flags) |
 | `static/js/basic_objects.js`, `objects_from_basic.js`, `make_objects.js` | Fabriques d'objets 3D |
 | `static/js/*_interact.js` | Interactions souris/clavier (sélection, magnétisme, pistes, groupes, vues…) |
+| `static/js/box_interact.js` | Boîtes : regroupement des parois (`box_id`), ajout de boules, couvercle, hauteur |
 | `static/js/keys.js`, `keys_interactions1.js` | Raccourcis clavier |
 | `static/js/interaction_voice.js` | Commandes vocales (Artyom) |
 | `static/css/create_3d.css` | Styles (panneaux, icônes, graphe…) |

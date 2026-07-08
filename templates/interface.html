@@ -188,6 +188,53 @@ function bs_prompt(title, message, defaultValue, onOk){
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
   }
+  function opacity_row($f, obj){                                // glissière d'opacité de l'élément cliqué
+        var $row = $('<div style="margin:6px 0">')
+        var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
+        var $val = $('<span style="min-width:34px; text-align:right">').text(Number(obj.material.opacity).toFixed(2))
+        $top.append($('<span>').text('opacity')).append($val)
+        var $rng = $('<input type="range" min="0" max="1" step="0.05" style="width:100%">').val(obj.material.opacity)
+        $rng.on('input change', function(){
+              var v = parseFloat($rng.val()); $val.text(v.toFixed(2))
+              obj.material.transparent = true; obj.material.opacity = v; obj.material.needsUpdate = true
+        })
+        $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+        $row.append($top).append($rng); $f.append($row)
+  }
+  function position_ctx(x, y, mw, mh){
+        if (x + mw > $(window).width()){ x = $(window).width() - mw }
+        if (y + mh > $(window).height()){ y = $(window).height() - mh }
+        $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
+  }
+  window.show_wall_context_menu = function(wall, x, y){         // clic droit sur une paroi de boîte
+        $('#ctx_obj_title').text('box wall — ' + (wall.name || ''))
+        var $f = $('#ctx_obj_fields').empty()
+        opacity_row($f, wall)
+        if (wall.box_id !== undefined){                          // actions sur la boîte entière
+              num_row($f, 'box height', function(){ return Math.round(wall.height) }, function(v){ if (v > 0){ set_box_height(wall, v) } })
+              var $rowb = $('<div style="margin:6px 0; display:flex; gap:6px; align-items:center">')
+              var $btn = $('<button type="button" style="cursor:pointer">add balls</button>')
+              var $cnt = $('<input type="number" min="1" value="30" style="width:56px">')
+              $cnt.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+              $btn.on('click', function(){ add_balls_in_box(wall, parseInt($cnt.val(), 10) || 0) })
+              $rowb.append($btn).append($cnt); $f.append($rowb)
+              var $rowl = $('<div style="margin:6px 0">')
+              var has = (box_lid_index(wall.box_id) >= 0)
+              var $lbtn = $('<button type="button" style="cursor:pointer">' + (has ? 'remove lid' : 'add lid') + '</button>')
+              $lbtn.on('click', function(){
+                    if (box_lid_index(wall.box_id) >= 0){ remove_lid(wall.box_id) } else { add_lid(wall) }
+                    show_wall_context_menu(wall, x, y)           // rafraîchit le libellé du bouton
+              })
+              $rowl.append($lbtn); $f.append($rowl)
+        }
+        position_ctx(x, y, 220, 230)
+  }
+  window.show_lid_context_menu = function(lid, x, y){           // clic droit sur un couvercle
+        $('#ctx_obj_title').text('lid (couvercle)')
+        var $f = $('#ctx_obj_fields').empty()
+        opacity_row($f, lid)
+        position_ctx(x, y, 220, 90)
+  }
   function hide_ctx(){ $('#obj_context_menu').hide() }
   $('#ctx_obj_close').on('click', hide_ctx)
 
@@ -204,6 +251,12 @@ function bs_prompt(title, message, defaultValue, onOk){
                                 return
                           }
                     }
+              }
+              if (obj.type === 'wall_box'){                      // clic droit sur une paroi -> menu boîte
+                    show_wall_context_menu(obj, event.clientX, event.clientY); return
+              }
+              if (obj.type === 'lid'){                           // clic droit sur un couvercle -> opacité
+                    show_lid_context_menu(obj, event.clientX, event.clientY); return
               }
               if (obj.material && obj.material.color && obj.material.color.getHex &&
                   obj.material.color.getHex() === color_intersected_green){

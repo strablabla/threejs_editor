@@ -165,6 +165,10 @@ function load_wall_box(name, msg){
       var obj = simple_parallelepiped( name, msg[name]['pos'], msg[name]['rot'], listmat[name], dim, 'wall_box' )
       var ori = msg[name]['orientation']
       if (ori){ obj.orientation = new THREE.Vector3(ori.x, ori.y, ori.z) }
+      if (msg[name]['box_id'] !== undefined){    // regroupement des 4 parois d'une même boîte
+            obj.box_id = msg[name]['box_id']
+            if (obj.box_id > box_id_counter){ box_id_counter = obj.box_id }   // évite les collisions d'id
+      }
       listorig[name] = obj
       load_params(name, msg, curr_tex_addr)
       obj.blocked = true                         // mur statique
@@ -220,6 +224,7 @@ function load_scene(msg){
               load_object(name, msg)                           // load the objects wall..
           } // end for
       load_chains(msg)                                         // reconstruit les ressorts des chaînes
+      if (typeof restore_lids === 'function'){ restore_lids(msg) }   // recrée les couvercles des boîtes
       if (msg['_dynamics']){ restore_dynamics(msg['_dynamics']) }   // restitue les réglages du panneau Dynamics
       if (msg['scene_name'] && msg['scene_name'] != 'None'){   // restitue le nom de la scène
             scene.name = msg['scene_name']
@@ -299,6 +304,7 @@ function condition_emit(i){
                             objects[i].type != null &
                             objects[i].type != 'elastic' &   // recréés à partir des paires de chaîne (_chains)
                             objects[i].type != 'spring' &
+                            objects[i].type != 'lid' &       // couvercles : non persistés (recréés à la volée)
                             !objects[i].del
 
       return emit_conditions
@@ -313,7 +319,7 @@ function make_infos_obj(i){
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
                           'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
-                          'width', 'height', 'thickness', 'orientation']  // utiles pour recréer sphères/boîtes
+                          'width', 'height', 'thickness', 'orientation', 'box_id']  // utiles pour recréer sphères/boîtes
       var x = objects[i].rotation.x
       var y = objects[i].rotation.y
       var z = objects[i].rotation.z
@@ -350,6 +356,9 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
           }    // end for
     if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (noms des boules + raideur propre)
           listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring] })
+    }
+    if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // couvercles (recréés depuis leur box_id au chargement)
+          listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity } })
     }
     listpos['_dynamics'] = {                           // réglages du panneau Dynamics (sauvegardés avec la scène)
           gravity_ok: gravity_ok,

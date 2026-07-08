@@ -1066,6 +1066,30 @@ function ground_bounce(){
 
 }
 
+function lid_bounce(){
+
+      /*
+      Contrainte de couvercle (plafond) : les boules dans l'emprise x-y d'une boîte munie
+      d'un couvercle ne peuvent pas dépasser le haut. Réflexion élastique (seulement si
+      la boule monte), symétrique du rebond au sol.
+      */
+
+      if (typeof list_lids === 'undefined'){ return }
+      for (var l=0; l<list_lids.length; l++){
+            var lid = list_lids[l], b = lid.bounds, zc = lid.z
+            for (var i in list_moving_objects){
+                  var o = list_moving_objects[i]
+                  if (o.blocked || o.type !== 'sphere'){ continue }
+                  if (o.position.x < b.xmin || o.position.x > b.xmax || o.position.y < b.ymin || o.position.y > b.ymax){ continue }
+                  var rad = (o.radius !== undefined) ? o.radius : 0
+                  if (o.position.z + rad > zc){
+                        o.position.z = zc - rad
+                        if (o.speed.z > 0){ o.speed.z = -o.speed.z }   // ne réfléchit que si elle monte
+                  }
+            }
+      }
+}
+
 function interactions_and_movement(delta){
 
       /*
@@ -1077,6 +1101,7 @@ function interactions_and_movement(delta){
       verlet_velocities(delta)           // ½ coup de vitesse restant (avec a_{n+1})
       interactions_between_objects()     // collisions + rebonds murs (impulsions) + couleurs
       ground_bounce()                    // rebond sur le sol
+      lid_bounce()                       // rebond sur les couvercles (plafonds de boîte)
       calculate_total_energy()
 
 }
