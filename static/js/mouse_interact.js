@@ -54,10 +54,7 @@ function onDocumentMouseDown( event ) {
       Mouse down
       */
 
-      if ( event.button === 2 ){            // clic droit -> menu contextuel seulement
-          if ( INTERSECTED ){ INTERSECTED.material.color.setHex( color_intersected_green ) }  // vert (requis par le menu), SANS attraper l'objet
-          return
-      }
+      if ( event.button === 2 ){ return }   // clic droit -> menu contextuel seulement (pas de sélection/attrape)
 
       var raycaster = make_raycaster(event)
       var intersects = raycaster.intersectObjects( objects );

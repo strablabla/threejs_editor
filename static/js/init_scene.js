@@ -224,8 +224,10 @@ function load_scene(msg){
               load_object(name, msg)                           // load the objects wall..
           } // end for
       load_chains(msg)                                         // reconstruit les ressorts des chaînes
-      if (typeof restore_lids === 'function'){ restore_lids(msg) }   // recrée les couvercles des boîtes
-      if (msg['_dynamics']){ restore_dynamics(msg['_dynamics']) }   // restitue les réglages du panneau Dynamics
+      try { if (typeof restore_lids === 'function'){ restore_lids(msg) } }             // couvercles (non bloquant)
+      catch(e){ console.warn('restore_lids a échoué :', e) }
+      try { if (msg['_dynamics']){ restore_dynamics(msg['_dynamics']) } }              // réglages Dynamics (non bloquant)
+      catch(e){ console.warn('restore_dynamics a échoué :', e) }
       if (msg['scene_name'] && msg['scene_name'] != 'None'){   // restitue le nom de la scène
             scene.name = msg['scene_name']
             $('#scene_name').val(scene.name)

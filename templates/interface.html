@@ -258,8 +258,7 @@ function bs_prompt(title, message, defaultValue, onOk){
               if (obj.type === 'lid'){                           // clic droit sur un couvercle -> opacité
                     show_lid_context_menu(obj, event.clientX, event.clientY); return
               }
-              if (obj.material && obj.material.color && obj.material.color.getHex &&
-                  obj.material.color.getHex() === color_intersected_green){
+              if (obj.material && obj.material.color){            // objet ordinaire (boule, cube…) -> menu attributs
                     show_object_context_menu(obj, event.clientX, event.clientY)
                     return
               }
