@@ -748,6 +748,31 @@ function draw_velocity_hist(){
 //===================================================================== Histogramme d'altitude
 
 var ALT_HIST_BINS = 24                                        // nombre de tranches d'altitude
+var altitude_fit = null                                      // courbe d'ajustement { z:[], y:[] } (overlay), évaluée en Python
+var altitude_fit_expr = ''                                   // expression Python de l'ajustement (sauvegardée avec la scène)
+var alt_zmin = 0, alt_zmax = 1                               // plage d'altitude courante (pour la requête d'ajustement)
+
+function request_altitude_fit(expr){
+
+      /*
+      Envoie une expression Python de z au serveur (/eval_fit) et superpose la courbe
+      obtenue à l'histogramme d'altitude. Expression vide -> retire l'ajustement.
+      */
+
+      expr = (expr || '').trim()
+      altitude_fit_expr = expr                               // mémorisé (persisté avec la scène)
+      $('#altitude_fit_err').text('')
+      if (!expr){ altitude_fit = null; draw_altitude_hist(); return }
+      $.ajax({ url:'/eval_fit', method:'POST', contentType:'application/json',
+               data: JSON.stringify({ expr:expr, zmin:alt_zmin, zmax:alt_zmax, n:120 }) })
+       .done(function(resp){
+             var r = (typeof resp === 'string') ? JSON.parse(resp) : resp
+             if (r && r.ok){ altitude_fit = { z:r.z, y:r.y } }
+             else { altitude_fit = null; $('#altitude_fit_err').text((r && r.error) || 'erreur') }
+             draw_altitude_hist()
+       })
+       .fail(function(){ $('#altitude_fit_err').text('serveur injoignable') })
+}
 
 function collect_altitudes(){                                 // z des objets massifs mobiles (mêmes exclusions que l'énergie cinétique)
       var zs = []
@@ -783,6 +808,7 @@ function draw_altitude_hist(){
       var zmin = Infinity, zmax = -Infinity
       for (var k=0;k<n;k++){ if (zs[k]<zmin) zmin=zs[k]; if (zs[k]>zmax) zmax=zs[k] }
       if (zmin === zmax){ zmax = zmin + 1; zmin = zmin - 1 }
+      alt_zmin = zmin; alt_zmax = zmax                        // mémorisé pour la requête d'ajustement Python
       //--- classes
       var bins = new Array(ALT_HIST_BINS).fill(0)
       for (var k=0;k<n;k++){
@@ -814,6 +840,17 @@ function draw_altitude_hist(){
             var w = bins[b] / cmax * plotW
             var y = MT + plotH - (b + 1) * bh                  // b croissant -> vers le haut
             ctx.fillRect(ML, y + 1, w, bh - 2)
+      }
+      //--- courbe d'ajustement Python (overlay N(z), en rouge)
+      if (altitude_fit && altitude_fit.z && altitude_fit.z.length > 1){
+            ctx.strokeStyle = '#c62828'; ctx.lineWidth = 1.8; ctx.beginPath()
+            for (var k=0;k<altitude_fit.z.length;k++){
+                  var zz = altitude_fit.z[k], yy = altitude_fit.y[k]
+                  var X = ML + Math.max(0, Math.min(1, yy / cmax)) * plotW    // comptage -> X (comme les barres)
+                  var Y = MT + (1 - (zz - zmin) / (zmax - zmin)) * plotH      // altitude -> Y (haut = zmax)
+                  if (k === 0){ ctx.moveTo(X, Y) } else { ctx.lineTo(X, Y) }
+            }
+            ctx.stroke()
       }
       //--- axe X : bornes 0 et cmax (comptage)
       ctx.fillStyle = '#666'; ctx.textBaseline = 'top'

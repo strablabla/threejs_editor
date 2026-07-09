@@ -181,6 +181,7 @@
         $('#speed_intensity_val').text(random_speed_module)
         sync_deactivate_all()
         // Monitoring : régler la case ET déclencher son handler (affiche/masque la fenêtre)
+        if (typeof altitude_fit_expr !== 'undefined'){ $('#altitude_fit_expr').val(altitude_fit_expr || '') }
         $('#chk_energy_graph').prop('checked', show_energy_graph).trigger('change')
         $('#chk_velocity_hist').prop('checked', show_velocity_hist).trigger('change')
         $('#chk_altitude_hist').prop('checked', show_altitude_hist).trigger('change')
@@ -244,11 +245,30 @@
         show_altitude_hist = this.checked
         if (show_altitude_hist){
               $('#altitude_hist_box').show()
-              draw_altitude_hist()                            // dessin immédiat
+              draw_altitude_hist()                            // dessin immédiat (fixe la plage z)
+              if (typeof altitude_fit_expr !== 'undefined' && altitude_fit_expr){
+                    request_altitude_fit(altitude_fit_expr)   // ré-évalue l'ajustement sauvegardé sur la plage courante
+              }
         } else {
               $('#altitude_hist_box').hide()
         }
     })
+    // Ajustement Python de N(z) : bouton "fit" ou Entrée dans le champ
+    // Après validation, on DÉFOCALISE le champ -> le clavier repart à la scène.
+    $('#altitude_fit_btn').on('click', function(){
+        if (typeof request_altitude_fit === 'function'){ request_altitude_fit($('#altitude_fit_expr').val()) }
+        $('#altitude_fit_expr').blur()
+        if (renderer && renderer.domElement && renderer.domElement.focus){ renderer.domElement.focus() }
+    })
+    $('#altitude_fit_expr').on('keydown', function(e){
+        if ((e.which === 13 || e.which === 27) && typeof request_altitude_fit === 'function'){   // Entrée ou Échap
+              if (e.which === 13){ request_altitude_fit(this.value) }
+              this.blur()
+              e.preventDefault()
+        }
+    })
+    // Ne pas laisser les touches/clics du champ déclencher les raccourcis de scène TANT qu'il a le focus
+    $('#altitude_fit_expr').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
     // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)
     // Délégué + scopé au panneau courant pour ne pas interférer entre panneaux.

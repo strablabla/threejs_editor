@@ -14,7 +14,7 @@ ATTENTION !!!! pour faire connection avec pyserial faire "sudo $HOME/anaconda/bi
 import eventlet
 eventlet.monkey_patch()
 #################
-import os, sys, time, json, glob
+import os, sys, time, json, glob, math
 opd, opb = os.path.dirname, os.path.basename
 import shutil as sh
 import webbrowser, subprocess
@@ -140,6 +140,40 @@ def list_scenes():
         if name.strip():                   # skip the empty-named archive
             names.append(name)
     return flask.jsonify(sorted(names))
+
+@app.route('/eval_fit', methods=['POST'])
+def eval_fit():
+    '''
+    Evalue une expression Python de z (ajustement manuel de la distribution d'altitude).
+    Renvoie la courbe echantillonnee sur [zmin, zmax]. Namespace restreint (math + z),
+    pas de builtins -> usage local scientifique.
+    '''
+    data = request.get_json(force=True, silent=True) or {}
+    expr = str(data.get('expr', '')).strip()
+    try:
+        zmin = float(data.get('zmin', 0.0)); zmax = float(data.get('zmax', 1.0))
+        n = int(data.get('n', 120))
+    except (TypeError, ValueError):
+        return flask.jsonify({'ok': False, 'error': 'bornes invalides'})
+    if not expr:
+        return flask.jsonify({'ok': False, 'error': 'expression vide'})
+    if n < 2:
+        n = 2
+    allowed = dict((k, getattr(math, k)) for k in
+                   ['exp','sqrt','log','log10','log2','sin','cos','tan','tanh','sinh','cosh',
+                    'atan','asin','acos','pow','fabs','floor','ceil','pi','e','erf'])
+    allowed['abs'] = abs
+    step = (zmax - zmin) / (n - 1)
+    zs, ys = [], []
+    try:
+        for i in range(n):
+            z = zmin + i * step
+            ns = dict(allowed); ns['z'] = z
+            y = eval(expr, {'__builtins__': {}}, ns)     # namespace restreint
+            zs.append(z); ys.append(float(y))
+    except Exception as ex:
+        return flask.jsonify({'ok': False, 'error': str(ex)})
+    return flask.jsonify({'ok': True, 'z': zs, 'y': ys})
 
 @app.route('/scene/<path:name>')
 def load_named_scene(name):

@@ -255,6 +255,7 @@ function restore_dynamics(d){
       if (d.show_velocity_hist !== undefined){ show_velocity_hist = d.show_velocity_hist }
       if (d.show_altitude_hist !== undefined){ show_altitude_hist = d.show_altitude_hist }
       if (d.show_trajectories !== undefined){ show_trajectories = d.show_trajectories }
+      if (d.altitude_fit_expr !== undefined){ altitude_fit_expr = d.altitude_fit_expr }
       if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // met à jour les cases/curseurs
 
 }
@@ -375,7 +376,8 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
           show_energy_graph: show_energy_graph,
           show_velocity_hist: show_velocity_hist,
           show_altitude_hist: show_altitude_hist,
-          show_trajectories: show_trajectories
+          show_trajectories: show_trajectories,
+          altitude_fit_expr: (typeof altitude_fit_expr !== 'undefined') ? altitude_fit_expr : ''
     }
     return listpos
 }
