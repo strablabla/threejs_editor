@@ -72,6 +72,7 @@ function onDocumentMouseUp( event ) {
 
       event.preventDefault();
       controls.enabled = true;
+      if (dragging_box){ box_drag_end() }       // fin de déplacement d'une boîte -> persiste
       if (nearest_elem){ magnet_between_objects(nearest_elem) }  // attraction between walls.. by the sides..
       restore_yellow()                          // rend sa vraie couleur au dernier objet en jaune
       nearest_elem = null

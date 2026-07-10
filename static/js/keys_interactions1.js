@@ -67,8 +67,10 @@ function color_group(){
       */
 
       for (var i in list_obj_inside) {
-           if (select_move_group){ var col = color_group_medium_blue }    // color group
-           else{ var col = color_object_inside_pink}                      // color ungroup
+           var col
+           if (list_obj_inside[i].group_id !== undefined){ col = color_group_persistent_violet }  // groupe persistant -> violet (prioritaire)
+           else if (select_move_group){ col = color_group_medium_blue }          // déplacement de groupe temporaire -> bleu
+           else { col = color_object_inside_pink }                               // simplement sélectionné -> rose
            list_obj_inside[i].material.color.setHex(col)
        }
 

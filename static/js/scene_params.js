@@ -106,6 +106,14 @@ size_elem_dotted_line = 15					// size of each element of the dotted line delimi
 list_obj_inside = [];  					// list of the objects inside the area
 box_id_counter = 0                          // identifiant unique par boîte (regroupe ses 4 parois)
 list_lids = []                              // couvercles actifs : { box_id, mesh, bounds:{xmin,xmax,ymin,ymax}, z }
+dragging_box = false                        // déplacement d'une boîte "movable" en cours
+box_drag_parts = []                         // parois + couvercle déplacés en bloc
+box_drag_orig = []                          // leurs positions au moment de la prise
+box_drag_anchor = {x:0, y:0}                // point du plan au moment de la prise (drag relatif)
+group_id_counter = 0                         // identifiant de groupe persistant (déplacement souris en bloc)
+dotted_relat = []                            // offsets des pointillés relativement à SELECTED (suivent le groupe)
+list_sel_corners = []                        // marques noires aux coins de la zone (retirées au Ctrl+S)
+corners_relat = []                           // offsets des coins relativement à SELECTED (suivent le groupe)
 
 //---------------------- Track
 
@@ -138,6 +146,7 @@ color_mark_pale_rose = 0xffcccc;
 color_mark_quite_red = 0xff1a1a;
 color_mark_quite_grey = 0xa6a6a6;
 color_group_medium_blue = 0x99ccff;
+color_group_persistent_violet = 0xcc99ff;   // groupe PERSISTANT (Ctrl+Maj+G) — distinct du bleu temporaire
 color_track_green = 0x99ff99;
 color_track_blue = 0xcceeff;
 color_no_interaction_pink = 0xffcccc;

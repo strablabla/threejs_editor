@@ -116,6 +116,11 @@ function make_limits_mouse(){
       Graphical limits moved with the mouse..
       */
 
+      for (var i in list_sel_corners){                   // repartir de coins propres (pas d'accumulation)
+            scene.remove(list_sel_corners[i])
+            var oi = objects.indexOf(list_sel_corners[i]); if (oi >= 0){ objects.splice(oi, 1) }
+      }
+      list_sel_corners = []
       col = color_corner()
       var corner0 = corner(col)
       var corner1 = corner(col)
@@ -264,6 +269,30 @@ function refresh_dotted_area(){
 
 }
 
+function reshape_selection(){
+
+      /*
+      Ré-édite une zone existante en glissant un de ses coins noirs :
+      redessine les pointillés entre les 2 coins et recalcule les objets à l'intérieur.
+      */
+
+      if (list_sel_corners.length !== 2){ return }
+      selpos = list_sel_corners.slice()                  // global : les 2 coins (utilisé par make_dotted_area)
+      for (var k in list_dotted_area){ scene.remove(list_dotted_area[k]) }
+      list_dotted_area = []
+      make_dotted_area(selpos)
+      for (var i in list_obj_inside){                    // restaure la couleur des objets qui sortent (sauf groupés)
+            var o = list_obj_inside[i]
+            if (o.group_id !== undefined){ continue }
+            if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(o.currentHex) }
+      }
+      list_obj_inside = []
+      find_objects_in_area()                             // repeuple selon la nouvelle zone (rose)
+      if (typeof color_group === 'function'){ color_group() }  // ré-applique bleu/violet si groupé
+      selpos = []                                        // libère selpos -> le mouseup relâche le coin
+
+}
+
 function minimaxi(selpos){
 
       /*
@@ -300,8 +329,13 @@ function find_objects_in_area(){
 
       list_mm = minimaxi(selpos)
       for (i in objects){     // if object is inside the area..
+          if (list_sel_corners.indexOf(objects[i]) >= 0){ continue }   // ne pas sélectionner les coins
+          if (list_dotted_area.indexOf(objects[i]) >= 0){ continue }   // ni les pointillés
           if ( is_inside(objects[i], list_mm) ){
                   list_obj_inside.push(objects[i])            // put the object in the list list_obj_inside
+                  if (objects[i].material && objects[i].material.color && objects[i].currentHex === undefined){
+                        objects[i].currentHex = objects[i].material.color.getHex()   // mémorise la vraie couleur (pour restaurer)
+                  }
                   objects[i].material.color.setHex(color_object_inside_pink)  // light pink color
               } // end if is inside
       } // end for

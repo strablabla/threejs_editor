@@ -218,6 +218,7 @@ function bs_prompt(title, message, defaultValue, onOk){
         var $f = $('#ctx_obj_fields').empty()
         opacity_row($f, wall)
         if (wall.box_id !== undefined){                          // actions sur la boîte entière
+              bool_row($f, 'movable (déplaçable)', function(){ return !!wall.movable }, function(v){ set_box_movable(wall, v) })
               num_row($f, 'box height', function(){ return Math.round(wall.height) }, function(v){ if (v > 0){ set_box_height(wall, v) } })
               var $rowb = $('<div style="margin:6px 0; display:flex; gap:6px; align-items:center">')
               var $btn = $('<button type="button" style="cursor:pointer">add balls</button>')

@@ -157,7 +157,10 @@ function corner(col){
 
       var [newname, interptsub] = random_name_mousepos()
       var creobj = make_mark( newname, interptsub, {"x":0, "y":0, "z":0}, col )
+      var s = size_elem_dotted_line / 30                 // make_mark fait un cube de 30 -> ramené à la taille d'un pointillé
+      creobj.scale.set(s, s, s)
       selpos.push(creobj)
+      list_sel_corners.push(creobj)                      // suivi pour le nettoyage (Ctrl+S)
 
       return creobj
 
@@ -169,8 +172,7 @@ function color_corner(){
       Color of the marks
       */
 
-      if (new_select_ok){ col = color_mark_quite_grey }
-      else{ col = color_mark_pale_rose }
+      col = color_dotted_line_black                       // coins = marques noires (comme les pointillés)
 
       return col
 

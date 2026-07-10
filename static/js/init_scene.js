@@ -92,10 +92,13 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact',
-                          'magnet', 'friction']
+                          'magnet', 'friction', 'group_id']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
-          listorig[name][attr] = msg[name][attr]
+          if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> ne pas écraser)
+    }
+    if (listorig[name].group_id !== undefined && listorig[name].group_id > group_id_counter){
+          group_id_counter = listorig[name].group_id             // évite les collisions d'id de groupe
     }
     if (msg[name]['color'] !== undefined && listorig[name].material && listorig[name].material.color){
           listorig[name].material.color.setHex(msg[name]['color'])   // couleur sauvegardée
@@ -169,6 +172,7 @@ function load_wall_box(name, msg){
             obj.box_id = msg[name]['box_id']
             if (obj.box_id > box_id_counter){ box_id_counter = obj.box_id }   // évite les collisions d'id
       }
+      if (msg[name]['movable'] !== undefined){ obj.movable = msg[name]['movable'] }   // boîte déplaçable
       listorig[name] = obj
       load_params(name, msg, curr_tex_addr)
       obj.blocked = true                         // mur statique
@@ -322,7 +326,7 @@ function make_infos_obj(i){
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
                           'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
-                          'width', 'height', 'thickness', 'orientation', 'box_id']  // utiles pour recréer sphères/boîtes
+                          'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id']  // utiles pour recréer sphères/boîtes
       var x = objects[i].rotation.x
       var y = objects[i].rotation.y
       var z = objects[i].rotation.z

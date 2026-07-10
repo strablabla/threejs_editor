@@ -107,11 +107,20 @@ function keyDownTextField1(event){
 
       //--------------------- Change variables
 
-      link_toggle(event, 'g', 'select_move_group')          // move group
+      // --- Sélection / groupes (avec Ctrl, pour ne pas gêner la frappe) ---
+      if (event.ctrlKey && keyev('s', event)){                // Ctrl+S : zone de sélection (toggle ; efface une sélection existante)
+            event.preventDefault(); toggle_area_selection(); return
+      }
+      if (event.ctrlKey && event.shiftKey && keyev('g', event)){   // Ctrl+Maj+G : groupe PERSISTANT (toggle)
+            event.preventDefault(); toggle_persistent_group(); return
+      }
+      if (event.ctrlKey && keyev('g', event)){                // Ctrl+G : déplacer le groupe (toggle ; ré-appui = dégroupe)
+            event.preventDefault(); toggle_group_move(); return
+      }
+
       link_toggle(event, 'i', 'show_obj_infos_ok')           // infos about the object selected
       link_toggle(event, 'k', 'select_poscam')              // create new wall
       link_toggle(event, 'm', 'new_cube_texture_ok')        // create new cube with texture
-      link_toggle(event, 's', 'new_select_ok')                 // select object in area
       link_toggle(event, 't', 'new_track_ok')               // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
       link_toggle(event, 'x', 'scene_animation_ok')         //

@@ -15,6 +15,7 @@ function mouse_down_case_intersections(intersects,raycaster){
       SELECTED = intersects[ 0 ].object;
       intersects = raycaster.intersectObject( plane );
       container.style.cursor = 'move';
+      if (typeof box_drag_begin === 'function' && intersects.length){ box_drag_begin(intersects[0].point) }  // boîte movable ?
 
       return intersects
 }
@@ -25,7 +26,7 @@ function MouseDown_actions(){
       Mouse down actions
       */
 
-      if ( INTERSECTED ) INTERSECTED.material.color.setHex( color_intersected_green );   // changing color in green when selected
+      if ( INTERSECTED && list_obj_inside.indexOf(INTERSECTED) < 0 ){ INTERSECTED.material.color.setHex( color_intersected_green ); }   // vert au clic, sauf pour un objet déjà sélectionné (garde son rose/couleur)
       if (select_picking){ picking_action() }                             // adding the object to the list of the picked elements..
       if (select_move_group){ keep_relative_positions() }                 // save the relative positions inside the group
       if (new_track_ok){

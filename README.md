@@ -92,10 +92,29 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
 
 ### Autres raccourcis clavier
 `a` lancer l'animation · `x` play/pause · `c` cloner · `d` supprimer · `r` rotation ·
-`s` sélectionner une zone · `p` sélection multiple · `g` déplacer un groupe ·
-`h` plan horizontal · `i` infos objet · `k` position caméra · `u` relier deux objets
-par un ressort · flèches haut/bas pour monter/descendre.
+`p` sélection multiple · `h` plan horizontal · `i` infos objet · `k` position caméra ·
+`u` relier deux objets par un ressort · flèches haut/bas pour monter/descendre.
 **Ctrl+Z** annuler · **Ctrl+Y** (ou **Ctrl+Maj+Z**) rétablir.
+
+### Sélection & groupes (Ctrl+S / Ctrl+G / Ctrl+Maj+G)
+- **Ctrl+S** — **zone de sélection** : clique-glisse un rectangle (coins = **marques noires**,
+  bords en **pointillés**) ; les objets dedans passent en **rose**. Activer une sélection
+  **coupe les outils de création** (on trace la zone au lieu de créer). **Ré-appui Ctrl+S**
+  → **efface** la sélection (pointillés, coins, couleurs).
+  - **Redimensionner** : **glisser un coin noir** redessine la zone et **recalcule** les
+    objets sélectionnés (entrants en rose, sortants restaurés).
+- **Ctrl+G** — **déplacer le groupe** : la sélection passe en **bleu** ; glisser un objet du
+  groupe déplace **tout le groupe** — les **pointillés et les coins suivent** aussi.
+  **Ré-appui** → dégroupe (retour au rose).
+- **Ctrl+Maj+G** — **groupe PERSISTANT** : les objets sélectionnés reçoivent un `group_id`
+  partagé (marqués en **violet**, qui **reste** même après avoir effacé la sélection).
+  Ensuite, **glisser un membre déplace tout le groupe en bloc**, à tout moment. Mais dans la
+  **physique ils restent indépendants** (collisions, gravité… ne tiennent pas compte du
+  groupe). **Ré-appui** (sur une re-sélection du groupe) → dégroupe et restaure les couleurs.
+  Le `group_id` est **sauvegardé** avec la scène.
+
+Convention de couleur : **rose** = sélectionné · **bleu** = groupe temporaire (Ctrl+G) ·
+**violet** = groupe persistant (Ctrl+Maj+G) · couleur d'origine sinon.
 
 ### Éditer un objet / un élastique (clic droit)
 Le **clic droit** ouvre **seulement** le menu contextuel — il n'attrape pas l'objet (pas
@@ -116,8 +135,11 @@ de déplacement).
   a sa **propre raideur** (repli sur `harmonic_const`), donc une boule reliée par deux
   élastiques peut avoir **deux raideurs différentes**.
 - **Clic droit sur une paroi de boîte** → menu **« box wall »** : `opacity` (de la paroi),
-  **box height** (hauteur de la boîte, redimensionne les 4 parois), **add balls** (ajoute N
-  boules aléatoires **dans** la boîte, N réglable), **add lid / remove lid** (couvercle).
+  **movable** (autorise/bloque le déplacement de la boîte), **box height** (hauteur de la
+  boîte, redimensionne les 4 parois), **add balls** (ajoute N boules aléatoires **dans** la
+  boîte, N réglable), **add lid / remove lid** (couvercle). Si **movable** est coché, on
+  **glisse la boîte** (parois **+ couvercle**) en bloc à la souris ; l'option et les
+  positions sont **persistées**.
 - **Clic droit sur un couvercle** → menu **« lid »** : `opacity` du couvercle.
 
 Le menu se ferme par sa **×** ou en cliquant ailleurs. Les couleurs des objets sont
@@ -250,6 +272,13 @@ gradué), **barres horizontales = comptage** par tranche (24 tranches, échelle 
 **Gravity (z) activée** : on observe alors le **profil barométrique** — densité qui décroît
 avec l'altitude (`n(z) ∝ e^{−mgz/kT}`) une fois le gaz thermalisé.
 
+**Ajustement Python** : sous le graphe, le champ **« N(z) ≈ »** accepte une **expression
+Python de `z`** (ex. `50*exp(-z/300)`). Un clic sur **fit** (ou Entrée) l'évalue **côté
+serveur** (route `/eval_fit`, module `math`, namespace restreint) et **superpose la courbe
+en rouge** — pratique pour ajuster à la main une loi barométrique. L'expression est
+**sauvegardée avec la scène** et ré-évaluée au chargement. Fonctions dispo : `exp, sqrt,
+log, sin, cos, tan, tanh, pow, abs, pi, e, erf…`.
+
 ---
 
 ## Scènes (sauvegarde / chargement)
@@ -271,8 +300,10 @@ Panneau **Scene** :
 - **Quit** est désormais l'icône **⏻** dans la navbar (et non plus dans ce panneau).
 
 Sphères, **chaînes de ressorts** (liaisons reconstruites), **boîtes** (`wall_box`, avec
-leur `box_id`) et **couvercles** (clé `_lids`, recréés depuis leur boîte) sont persistés.
-Une copie horodatée de l'ancien `pos.json` est gardée dans `static/old/`.
+leur `box_id` et l'option `movable`) et **couvercles** (clé `_lids`, recréés depuis leur
+boîte) sont persistés. Les **groupes persistants** (`group_id`) et l'**ajustement Python**
+d'altitude (dans `_dynamics`) le sont aussi. Une copie horodatée de l'ancien `pos.json` est
+gardée dans `static/old/`.
 
 **Réglages Dynamics sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
 embarque sa **configuration physique** — `Gravity`, `Springs`, `Object interaction (1/r²)`
@@ -316,6 +347,7 @@ Panneau **Views** :
 | `/scenes` | liste des scènes nommées |
 | `/scene/<nom>` | charge une scène (et la copie dans `pos.json`) |
 | `/scene_delete/<nom>` | supprime une scène |
+| `/eval_fit` | évalue une expression Python de `z` (ajustement du profil d'altitude) |
 | `/shutdown` | arrête le serveur |
 | socket `message` / `begin` | sauvegarde / restitution de l'état |
 

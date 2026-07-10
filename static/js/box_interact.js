@@ -127,6 +127,82 @@ function remove_lid(box_id){
       list_lids.splice(idx, 1)
 }
 
+function set_box_movable(wall, val){
+
+      /*
+      Autorise (ou bloque) le déplacement d'une boîte : marque toutes ses parois.
+      */
+
+      var walls = get_box_walls(wall)
+      for (var i=0;i<walls.length;i++){ walls[i].movable = val }
+      if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+}
+
+function box_parts(wall){
+
+      /*
+      Éléments déplacés en bloc : les parois de la boîte + son couvercle éventuel.
+      */
+
+      var parts = get_box_walls(wall).slice()
+      var li = box_lid_index(wall.box_id)
+      if (li >= 0){ parts.push(list_lids[li].mesh) }
+      return parts
+}
+
+function box_drag_begin(planePoint){
+
+      /*
+      Démarre le déplacement d'une boîte si la paroi attrapée (SELECTED) est "movable".
+      Mémorise les positions d'origine et le point de prise (déplacement relatif -> pas de saut).
+      */
+
+      dragging_box = false
+      var parts = null
+      if (SELECTED && SELECTED.type === 'wall_box' && SELECTED.movable){
+            parts = box_parts(SELECTED)                                // boîte movable : parois + couvercle
+      } else if (SELECTED && SELECTED.group_id !== undefined && typeof group_members === 'function'){
+            parts = group_members(SELECTED.group_id)                   // groupe persistant (Ctrl+Maj+G)
+      }
+      if (parts && parts.length > 1){
+            box_drag_parts = parts
+            box_drag_orig = []
+            for (var i=0;i<box_drag_parts.length;i++){
+                  var p = box_drag_parts[i].position
+                  box_drag_orig.push({ x:p.x, y:p.y, z:p.z })
+            }
+            box_drag_anchor = { x: planePoint.x, y: planePoint.y }
+            nearest_elem = null
+            dragging_box = true
+      }
+}
+
+function box_drag_move(planePoint){
+
+      /*
+      Déplace toutes les parties de la boîte du même vecteur (souris − prise).
+      */
+
+      var dx = planePoint.x - box_drag_anchor.x, dy = planePoint.y - box_drag_anchor.y
+      for (var i=0;i<box_drag_parts.length;i++){
+            box_drag_parts[i].position.x = box_drag_orig[i].x + dx
+            box_drag_parts[i].position.y = box_drag_orig[i].y + dy   // z inchangé (déplacement dans le plan)
+      }
+      if (SELECTED && SELECTED.box_id !== undefined){                 // maj de l'emprise du couvercle après déplacement
+            var li = box_lid_index(SELECTED.box_id)
+            if (li >= 0){ list_lids[li].bounds = get_box_bounds(get_box_walls(SELECTED)) }
+      }
+}
+
+function box_drag_end(){
+
+      if (dragging_box){
+            dragging_box = false
+            box_drag_parts = []
+            if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste les nouvelles positions
+      }
+}
+
 function restore_lids(msg){
 
       /*
