@@ -179,6 +179,11 @@ function bs_prompt(title, message, defaultValue, onOk){
               obj.track_trajectory = v
               if (v && typeof reset_trajectory === 'function'){ reset_trajectory(obj) } else { obj.traj = null }
         })
+        if (obj.group_id !== undefined){                 // membre d'un groupe persistant : voir/masquer sa coloration
+              bool_row($f, 'coloration groupe',
+                    function(){ return !!group_highlighted[obj.group_id] },
+                    function(v){ if (typeof highlight_group === 'function'){ highlight_group(obj.group_id, v) } })
+        }
         var mw = 210, mh = 430
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }

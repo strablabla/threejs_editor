@@ -107,11 +107,13 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
   groupe déplace **tout le groupe** — les **pointillés et les coins suivent** aussi.
   **Ré-appui** → dégroupe (retour au rose).
 - **Ctrl+Maj+G** — **groupe PERSISTANT** : les objets sélectionnés reçoivent un `group_id`
-  partagé (marqués en **violet**, qui **reste** même après avoir effacé la sélection).
-  Ensuite, **glisser un membre déplace tout le groupe en bloc**, à tout moment. Mais dans la
-  **physique ils restent indépendants** (collisions, gravité… ne tiennent pas compte du
-  groupe). **Ré-appui** (sur une re-sélection du groupe) → dégroupe et restaure les couleurs.
-  Le `group_id` est **sauvegardé** avec la scène.
+  partagé (marqués en **violet** comme retour visuel). **À la désélection, les couleurs
+  d'origine reviennent** (le violet n'est pas permanent). Ensuite, **glisser un membre
+  déplace tout le groupe en bloc**, à tout moment. Mais dans la **physique ils restent
+  indépendants** (collisions, gravité… ne tiennent pas compte du groupe). **Ré-appui** (sur
+  une re-sélection du groupe) → dégroupe. Le `group_id` est **sauvegardé** avec la scène.
+  - **Voir le groupe** : clic droit sur un membre → bascule **« coloration groupe »** pour
+    (dés)activer le violet et repérer d'un coup d'œil qui appartient au groupe.
 
 Convention de couleur : **rose** = sélectionné · **bleu** = groupe temporaire (Ctrl+G) ·
 **violet** = groupe persistant (Ctrl+Maj+G) · couleur d'origine sinon.

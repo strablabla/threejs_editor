@@ -133,6 +133,7 @@ function nearest_object(currobj){
       var mindist = 200, mini = -1
       for ( var i in objects ){
           if (objects[i] === currobj){ continue }
+          if (list_obj_inside.indexOf(objects[i]) >= 0){ continue }   // ignore les membres de la sélection/groupe (évite de corrompre leur couleur)
           var dist = getDistance(currobj, objects[i])
           if ( dist < mindist ){ mindist = dist; mini = i }
       }

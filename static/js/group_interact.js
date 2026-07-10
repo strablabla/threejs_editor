@@ -84,10 +84,14 @@ function clear_area_selection(){
           var oi = objects.indexOf(c); if (oi >= 0){ objects.splice(oi, 1) }
       }
       list_sel_corners = []
-      for (var i in list_obj_inside){                    // restaure la vraie couleur (rose -> currentHex)
+      for (var i in list_obj_inside){                    // restaure la couleur (rose/violet -> couleur d'origine)
           var o = list_obj_inside[i]
-          if (o.group_id !== undefined){ continue }      // membre d'un groupe persistant -> reste bleu
-          if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(o.currentHex) }
+          if (!o.material || !o.material.color){ continue }
+          if (o.group_id !== undefined && group_highlighted[o.group_id]){
+                o.material.color.setHex(color_group_persistent_violet)   // groupe surligné (menu contextuel) -> reste violet
+          } else if (o.currentHex !== undefined){
+                o.material.color.setHex(o.currentHex)                    // sinon -> couleur d'origine
+          }
       }
       list_obj_inside = []
       selpos = []
@@ -149,13 +153,15 @@ function toggle_persistent_group(){
       var allSame = (gid !== undefined)
       for (var i in sel){ if (sel[i].group_id !== gid){ allSame = false } }
       if (allSame){                                      // déjà groupés -> DÉGROUPER (restaure la couleur)
+            delete group_highlighted[gid]                // fin de la surbrillance de ce groupe
             for (var i in sel){
                   var o = sel[i]
                   delete o.group_id
                   if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(o.currentHex) }
             }
-      } else {                                           // GROUPER -> marquer en bleu
+      } else {                                           // GROUPER -> violet (retour visuel, non surligné par défaut)
             var ng = ++group_id_counter
+            group_highlighted[ng] = false                // à la désélection : retour aux couleurs d'origine
             for (var i in sel){
                   var o = sel[i]
                   o.group_id = ng
@@ -166,4 +172,25 @@ function toggle_persistent_group(){
             }
       }
       if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+}
+
+function highlight_group(gid, on){
+
+      /*
+      Active/désactive la coloration violette d'un groupe persistant (menu contextuel)
+      pour voir d'un coup d'œil qui appartient au groupe et qui n'y appartient pas.
+      */
+
+      group_highlighted[gid] = on
+      var m = group_members(gid)
+      for (var i = 0; i < m.length; i++){
+            var o = m[i]
+            if (!o.material || !o.material.color){ continue }
+            if (on){
+                  if (o.currentHex === undefined){ o.currentHex = o.material.color.getHex() }  // mémorise la vraie couleur
+                  o.material.color.setHex(color_group_persistent_violet)
+            } else if (o.currentHex !== undefined){
+                  o.material.color.setHex(o.currentHex)                                        // couleur d'origine
+            }
+      }
 }

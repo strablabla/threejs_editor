@@ -111,6 +111,7 @@ box_drag_parts = []                         // parois + couvercle déplacés en 
 box_drag_orig = []                          // leurs positions au moment de la prise
 box_drag_anchor = {x:0, y:0}                // point du plan au moment de la prise (drag relatif)
 group_id_counter = 0                         // identifiant de groupe persistant (déplacement souris en bloc)
+group_highlighted = {}                       // { group_id: bool } — coloration violette du groupe activée ou non
 dotted_relat = []                            // offsets des pointillés relativement à SELECTED (suivent le groupe)
 list_sel_corners = []                        // marques noires aux coins de la zone (retirées au Ctrl+S)
 corners_relat = []                           // offsets des coins relativement à SELECTED (suivent le groupe)
