@@ -103,8 +103,9 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
   → **efface** la sélection (pointillés, coins, couleurs).
   - **Redimensionner** : **glisser un coin noir** redessine la zone et **recalcule** les
     objets sélectionnés (entrants en rose, sortants restaurés).
-- **Ctrl+G** — **déplacer le groupe** : la sélection passe en **bleu** ; glisser un objet du
-  groupe déplace **tout le groupe** — les **pointillés et les coins suivent** aussi.
+- **Ctrl+G** — **déplacer le groupe** : la sélection passe en **bleu** ; glisser **n'importe
+  quel membre** — y compris une **paroi de boîte** (pourtant fixe hors sélection) — déplace
+  **tout le groupe**, et les **pointillés et les coins suivent** aussi.
   **Ré-appui** → dégroupe (retour au rose).
 - **Ctrl+Maj+G** — **groupe PERSISTANT** : les objets sélectionnés reçoivent un `group_id`
   partagé (marqués en **violet** comme retour visuel). **À la désélection, les couleurs
@@ -112,8 +113,11 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
   déplace tout le groupe en bloc**, à tout moment. Mais dans la **physique ils restent
   indépendants** (collisions, gravité… ne tiennent pas compte du groupe). **Ré-appui** (sur
   une re-sélection du groupe) → dégroupe. Le `group_id` est **sauvegardé** avec la scène.
-  - **Voir le groupe** : clic droit sur un membre → bascule **« coloration groupe »** pour
-    (dés)activer le violet et repérer d'un coup d'œil qui appartient au groupe.
+  Tant que la zone de sélection est présente, elle **suit le groupe** (pointillés + coins se
+  déplacent avec lui, comme pour le groupe temporaire).
+  - **Voir le groupe** : clic droit sur un membre — **boule, cube ou paroi de boîte** —
+    → bascule **« coloration groupe »** pour (dés)activer le violet et repérer d'un coup
+    d'œil qui appartient au groupe.
 
 Convention de couleur : **rose** = sélectionné · **bleu** = groupe temporaire (Ctrl+G) ·
 **violet** = groupe persistant (Ctrl+Maj+G) · couleur d'origine sinon.

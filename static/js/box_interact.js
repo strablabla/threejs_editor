@@ -172,6 +172,13 @@ function box_drag_begin(planePoint){
                   box_drag_orig.push({ x:p.x, y:p.y, z:p.z })
             }
             box_drag_anchor = { x: planePoint.x, y: planePoint.y }
+            box_drag_sel = (SELECTED.group_id !== undefined)           // groupe persistant : la zone de sélection suit
+            box_drag_dotted_orig = []
+            box_drag_corners_orig = []
+            if (box_drag_sel){
+                  for (var i=0;i<list_dotted_area.length;i++){ var pd = list_dotted_area[i].position; box_drag_dotted_orig.push({ x:pd.x, y:pd.y }) }
+                  for (var i=0;i<list_sel_corners.length;i++){ var pc = list_sel_corners[i].position; box_drag_corners_orig.push({ x:pc.x, y:pc.y }) }
+            }
             nearest_elem = null
             dragging_box = true
       }
@@ -188,6 +195,14 @@ function box_drag_move(planePoint){
             box_drag_parts[i].position.x = box_drag_orig[i].x + dx
             box_drag_parts[i].position.y = box_drag_orig[i].y + dy   // z inchangé (déplacement dans le plan)
       }
+      if (box_drag_sel){                                              // la zone de sélection suit le groupe persistant
+            for (var i=0;i<list_dotted_area.length;i++){
+                  if (box_drag_dotted_orig[i]){ list_dotted_area[i].position.x = box_drag_dotted_orig[i].x + dx; list_dotted_area[i].position.y = box_drag_dotted_orig[i].y + dy }
+            }
+            for (var i=0;i<list_sel_corners.length;i++){
+                  if (box_drag_corners_orig[i]){ list_sel_corners[i].position.x = box_drag_corners_orig[i].x + dx; list_sel_corners[i].position.y = box_drag_corners_orig[i].y + dy }
+            }
+      }
       if (SELECTED && SELECTED.box_id !== undefined){                 // maj de l'emprise du couvercle après déplacement
             var li = box_lid_index(SELECTED.box_id)
             if (li >= 0){ list_lids[li].bounds = get_box_bounds(get_box_walls(SELECTED)) }
@@ -198,6 +213,7 @@ function box_drag_end(){
 
       if (dragging_box){
             dragging_box = false
+            box_drag_sel = false
             box_drag_parts = []
             if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste les nouvelles positions
       }

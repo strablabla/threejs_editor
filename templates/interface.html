@@ -240,7 +240,12 @@ function bs_prompt(title, message, defaultValue, onOk){
               })
               $rowl.append($lbtn); $f.append($rowl)
         }
-        position_ctx(x, y, 220, 230)
+        if (wall.group_id !== undefined){                        // paroi membre d'un groupe persistant : voir/masquer sa coloration
+              bool_row($f, 'coloration groupe',
+                    function(){ return !!group_highlighted[wall.group_id] },
+                    function(v){ if (typeof highlight_group === 'function'){ highlight_group(wall.group_id, v) } })
+        }
+        position_ctx(x, y, 220, 260)
   }
   window.show_lid_context_menu = function(lid, x, y){           // clic droit sur un couvercle
         $('#ctx_obj_title').text('lid (couvercle)')

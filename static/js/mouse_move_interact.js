@@ -18,7 +18,8 @@ function action_on_selected_when_moving(raycaster){
       }
       var interptsub = intersects[ 0 ].point.sub( offset )
       interptsub.z = SELECTED.position.z
-      if ( !SELECTED.blocked ){
+      var group_drag = (select_move_group && list_obj_inside.indexOf(SELECTED) >= 0)  // déplacement de groupe : on tire même une paroi bloquée
+      if ( !SELECTED.blocked || group_drag ){
               SELECTED.position.copy( interptsub )  // move SELECTED at mouse position..
               if (new_track_ok & perpendicular_track){
                     track_in_mouse_moving()
