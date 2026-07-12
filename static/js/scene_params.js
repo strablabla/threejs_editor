@@ -70,6 +70,7 @@ lenght_spring = 150;   // longueur au repos des ressorts (> diamètre des boules
 one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (gravité newtonienne F = G·m_i·m_j/r²) — à ajuster via le panneau Interaction
 attract_softening = 40;                // ε : adoucissement de Plummer F = G·m·m/(r²+ε²) — supprime la singularité 1/r² (conservation d'énergie)
+use_cell_lists = false                 // collisions courte portée en O(n) (grille spatiale) au lieu de la double boucle O(n²) — résultat physiquement identique
 
 //-------------------- Energies
 

@@ -457,13 +457,99 @@ function interactions_between_objects(){
 
       list_interact = []
       if (list_moving_objects.length > 0){
-          for (var i=0; i< list_moving_objects.length; i++){
-                for (var j=i+1; j <  list_moving_objects.length; j++){
-                      if ( allow_interaction_ij(i,j) ) { interaction_between_ij(i,j) } // i j interaction
-                  } // end for j
-            } // end for i
+          if (use_cell_lists){ interactions_between_objects_grid() }   // O(n) : grille spatiale
+          else {
+              for (var i=0; i< list_moving_objects.length; i++){       // O(n²) : toutes les paires (référence exacte)
+                    for (var j=i+1; j <  list_moving_objects.length; j++){
+                          if ( allow_interaction_ij(i,j) ) { interaction_between_ij(i,j) } // i j interaction
+                      } // end for j
+                } // end for i
+          }
       } // end if in moving_objects
       // (plus de recoloration rose/rouge : on préserve les couleurs des objets)
+
+}
+
+// Stencil « demi-voisinage » 3D : la cellule courante + 13 cellules « en avant ».
+// Balayer ces 14 offsets pour chaque cellule visite chaque paire de cellules adjacentes
+// exactement une fois (l'offset inverse n'est jamais dans la liste) -> pas de doublon de paire.
+var HALF_NEIGHBORS = [
+      [0,0,0],
+      [1,0,0],
+      [-1,1,0],[0,1,0],[1,1,0],
+      [-1,-1,1],[0,-1,1],[1,-1,1],
+      [-1,0,1],[0,0,1],[1,0,1],
+      [-1,1,1],[0,1,1],[1,1,1]
+]
+
+function interactions_between_objects_grid(){
+
+      /*
+      Version O(n) des interactions impulsives par « cell lists » (grille spatiale).
+      Physiquement IDENTIQUE à la double boucle : on appelle les MÊMES fonctions
+      (interaction_center_center / interaction_between_ij), seul le filtrage des
+      paires change — deux billes ne sont testées que si un contact est géométriquement
+      possible (même cellule ou cellule voisine).
+
+        * billes ↔ billes : filtrées par la grille (contact = R_i + R_j) ;
+        * murs (wall_box) : trop grands pour une grille uniforme -> boucle objets × murs.
+      */
+
+      var objs = list_moving_objects
+      var n = objs.length
+
+      // 1) sépare murs / non-murs et calcule le rayon de collision max (dimensionne la cellule)
+      var wall_idx = [], cell_idx = [], rmax = 0
+      for (var i=0; i<n; i++){
+            if (objs[i].type === 'wall_box'){ wall_idx.push(i) }
+            else {
+                  cell_idx.push(i)
+                  var r = collision_radius(objs[i])
+                  if (r > rmax){ rmax = r }
+            }
+      }
+
+      // 2) range les non-murs dans la grille. Cellule = 2·rmax : garantit que tout couple
+      //    en contact (dist < R_i+R_j <= 2·rmax) tombe dans des cellules au plus voisines.
+      var cell = (rmax > 0) ? 2*rmax : dist_min_center_center
+      var inv = 1 / cell
+      var grid = new Map()
+      for (var k=0; k<cell_idx.length; k++){
+            var o = objs[cell_idx[k]]
+            o._cx = Math.floor(o.position.x*inv)
+            o._cy = Math.floor(o.position.y*inv)
+            o._cz = Math.floor(o.position.z*inv)
+            var key = o._cx + ',' + o._cy + ',' + o._cz
+            var bucket = grid.get(key)
+            if (!bucket){ bucket = []; grid.set(key, bucket) }
+            bucket.push(cell_idx[k])
+      }
+
+      // 3) paires bille ↔ bille : cellule courante + 13 voisines « en avant »
+      for (var k=0; k<cell_idx.length; k++){
+            var ia = cell_idx[k], o = objs[ia]
+            for (var s=0; s<HALF_NEIGHBORS.length; s++){
+                  var off = HALF_NEIGHBORS[s]
+                  var bucket = grid.get((o._cx+off[0]) + ',' + (o._cy+off[1]) + ',' + (o._cz+off[2]))
+                  if (!bucket){ continue }
+                  var same_cell = (off[0]===0 && off[1]===0 && off[2]===0)
+                  for (var b=0; b<bucket.length; b++){
+                        var ib = bucket[b]
+                        if (same_cell){ if (ib <= ia){ continue } }   // même cellule : chaque paire une seule fois
+                        var i = (ia < ib) ? ia : ib, j = (ia < ib) ? ib : ia
+                        if ( allow_interaction_ij(i,j) ){ interaction_center_center(i,j) }  // les deux non-murs -> centre-centre
+                  }
+            }
+      }
+
+      // 4) murs : peu nombreux -> boucle directe murs × billes (rebonds bille-mur)
+      for (var w=0; w<wall_idx.length; w++){
+            for (var k=0; k<cell_idx.length; k++){
+                  var i = (wall_idx[w] < cell_idx[k]) ? wall_idx[w] : cell_idx[k]
+                  var j = (wall_idx[w] < cell_idx[k]) ? cell_idx[k] : wall_idx[w]
+                  if ( allow_interaction_ij(i,j) ){ interaction_between_ij(i,j) }
+            }
+      }
 
 }
 
@@ -488,6 +574,10 @@ function attraction_potential_energy(){
       Énergie potentielle de gravité newtonienne ADOUCIE (cohérente avec accel_attraction) :
       U = - Σ G·m_i·m_j / √(r² + ε²)   (softening de Plummer, ε = attract_softening).
       */
+
+      // Court-circuit : cette somme est en O(n²) et ne sert QU'au graphe d'énergie.
+      // Graphe masqué -> aucune raison de la calculer (U=0, n'affecte que #curr_func, caché).
+      if (!show_energy_graph){ return 0 }
 
       var U = 0
       if (one_over_r2 && list_moving_objects.length > 1){

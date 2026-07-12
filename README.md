@@ -181,6 +181,10 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets**
   supprime la singularité à courte distance et **stabilise l'énergie** (voir *Collisions*).
 - **deactivate the interactions** — case maîtresse : désactive/réactive **toutes** les
   interactions ci-dessus d'un coup (cochée automatiquement si aucune n'est active).
+- **Fast collisions (cell lists, O(n))** — accélère les collisions via une **grille
+  spatiale** au lieu de tester toutes les paires (voir *Performance* ci-dessous). Le
+  résultat est **physiquement identique** — c'est un simple filtrage des paires, sans
+  approximation. Utile surtout au-delà de quelques centaines de billes.
 
 **Onglet « Initial speeds »**
 - **Random** + **Strength** — vitesse de départ aléatoire **symétrique** (centrée sur 0,
@@ -215,6 +219,24 @@ place : le **softening ε** (borne la force à courte distance) et la **dé-pén
 chocs. Avec `ε > 0`, la courbe d'énergie **totale** reste bien plus plate. Si elle dérive
 encore avec un `G` très fort, **augmenter ε** (ou réduire le pas de temps).
 
+### Performance (grand nombre d'objets)
+Le coût par frame est dominé par les boucles sur les **paires** d'objets, naturellement
+en **O(n²)**. Deux optimisations réduisent ce coût **sans changer la physique** :
+
+- **Collisions — cell lists** (case *Fast collisions*, onglet Interactions) : les billes
+  sont rangées dans une **grille spatiale** (cellule = 2× le plus grand rayon), et chaque
+  bille n'est testée qu'avec sa cellule et ses **voisines immédiates** — les seules où un
+  contact est géométriquement possible. On passe de **O(n²)** à **O(n)**. Les murs
+  (`wall_box`), trop grands pour une grille uniforme, restent traités à part (boucle
+  objets × murs). Décochée, le moteur repart sur la double boucle exacte de référence :
+  les deux voies donnent **exactement le même résultat**, on peut basculer pour comparer.
+- **Énergie potentielle — court-circuit** : la somme `−Σ G·mᵢ·mⱼ/√(r²+ε²)` est elle aussi
+  en O(n²) et ne sert **qu'au graphe d'énergie**. Quand le graphe est masqué, elle n'est
+  **pas calculée du tout** (voir *Diagnostic d'énergie*).
+
+L'attraction newtonienne 1/r² (`accel_attraction`) reste, elle, en O(n²) : étant à
+**longue portée**, toutes les paires y contribuent réellement.
+
 ### Murs, sol & boîtes
 - **boîte** (`w` / « boîte ») → enceinte de **4 murs latéraux réfléchissants** (`wall_box`,
   normales en x-y). Pas de plafond/plancher : sans gravité, rien ne confine en `z` (une
@@ -244,6 +266,10 @@ encore avec un `G` très fort, **augmenter ε** (ou réduire le pas de temps).
 inclut la **gravité uniforme (z) + la gravité newtonienne (−G·mᵢ·mⱼ/r)** et l'élastique
 `½·k·(L−L₀)²`. Avec Verlet, la courbe **totale doit rester quasi constante** — c'est le
 diagnostic de conservation.
+
+> **Coût** : la part newtonienne de l'énergie potentielle est une somme sur toutes les
+> paires (O(n²)). Elle n'est calculée **que lorsque le graphe est affiché** ; case
+> décochée, ce calcul est **entièrement sauté** à chaque frame.
 
 ## Distribution des vitesses
 
@@ -313,7 +339,8 @@ gardée dans `static/old/`.
 
 **Réglages Dynamics sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
 embarque sa **configuration physique** — `Gravity`, `Springs`, `Object interaction (1/r²)`
-avec sa **Strength** (signe compris) et son **softening ε**, ainsi que les paramètres
+avec sa **Strength** (signe compris), son **softening ε** et l'option **Fast collisions**
+(cell lists), ainsi que les paramètres
 d'**Initial speeds** (`Random`, `Strength`, `z component`) — **et** les toggles
 d'affichage de **Monitoring** (`energy graph`, `velocity histogram`, `altitude histogram`,
 `trajectories`). Au chargement, ces valeurs sont **restaurées** et le panneau + les
@@ -410,10 +437,10 @@ animate()                              boucle de rendu (requestAnimationFrame)
     ├── verlet_positions()             x(t+dt)  ← Velocity Verlet
     ├── compute_accelerations()        a(t+dt)
     ├── verlet_velocities()            v(t+dt)
-    ├── interactions_between_objects()  collisions + rebonds murs (impulsions)
+    ├── interactions_between_objects()  collisions + rebonds murs (double boucle, ou grille si Fast collisions)
     ├── ground_bounce()                rebond sur le sol (impulsion)
     ├── lid_bounce()                   rebond sur les couvercles de boîte (plafonds)
-    └── energy_calculation()           cinétique + potentielle → graphe d'énergie
+    └── energy_calculation()           cinétique + potentielle → graphe d'énergie (PE sautée si graphe masqué)
 ```
 
 ---
@@ -450,4 +477,5 @@ animate()                              boucle de rendu (requestAnimationFrame)
 - `library/game.js` et `templates/tests/` sont des modules/assets **hérités, non utilisés**.
 - Réglages physiques principaux dans `static/js/scene_params.js` :
   `gravity_ok`, `springs_ok`, `one_over_r2`, `attract_strength_one_over_r2` (G),
-  `harmonic_const`, `lenght_spring`, `random_initial_speed`, `random_speed_module`.
+  `harmonic_const`, `lenght_spring`, `random_initial_speed`, `random_speed_module`,
+  `use_cell_lists` (collisions O(n) par grille spatiale).

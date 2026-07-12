@@ -49,6 +49,10 @@
               <label><input type="checkbox" id="chk_deactivate_all"> deactivate the interactions</label>
             </div><br>
 
+            <div class="help">
+              <label><input type="checkbox" id="chk_cell_lists" title="collisions filtrées par grille spatiale : O(n) au lieu de O(n²), résultat identique"> Fast collisions (cell lists, O(n))</label>
+            </div><br>
+
           </div>
 
           <!-- ===== Page : Initial speeds ===== -->
@@ -138,6 +142,10 @@
         $('#chk_attract').prop('checked', on)
     })
 
+    // Collisions accélérées (grille spatiale O(n)) : bascule exact <-> optimisé
+    $('#chk_cell_lists').prop('checked', use_cell_lists)
+    $('#chk_cell_lists').change(function(){ use_cell_lists = this.checked })
+
     $('#rad_attract').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })  // recalcule le signe
     $('#rad_repulse').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })
     $('#attract_strength_input').on('input change', function(){ apply_strength(this.value) })       // curseur
@@ -173,6 +181,7 @@
         $('#rad_attract').prop('checked', attract_strength_one_over_r2 >= 0)
         $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
         apply_strength(Math.abs(attract_strength_one_over_r2))
+        $('#chk_cell_lists').prop('checked', use_cell_lists)
         $('#softening_input').val(attract_softening)
         $('#softening_val').text(attract_softening)
         $('#chk_random_speed').prop('checked', random_initial_speed)
