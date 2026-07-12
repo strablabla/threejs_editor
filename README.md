@@ -233,9 +233,13 @@ en **O(n²)**. Deux optimisations réduisent ce coût **sans changer la physique
 - **Énergie potentielle — court-circuit** : la somme `−Σ G·mᵢ·mⱼ/√(r²+ε²)` est elle aussi
   en O(n²) et ne sert **qu'au graphe d'énergie**. Quand le graphe est masqué, elle n'est
   **pas calculée du tout** (voir *Diagnostic d'énergie*).
+- **Attraction 1/r² — court-circuit** : la double boucle qui calcule la force d'attraction
+  (`compute_accelerations`) est **entièrement sautée** quand **Object interaction (1/r²)**
+  est décochée — inutile de parcourir les n² paires si aucune force n'en résulte.
 
-L'attraction newtonienne 1/r² (`accel_attraction`) reste, elle, en O(n²) : étant à
-**longue portée**, toutes les paires y contribuent réellement.
+Quand l'attraction 1/r² **est** active, sa double boucle reste, elle, en O(n²) : étant une
+force à **longue portée**, toutes les paires y contribuent réellement (c'est le calcul
+qu'un futur schéma type **Barnes-Hut** ramènerait à O(n log n)).
 
 ### Murs, sol & boîtes
 - **boîte** (`w` / « boîte ») → enceinte de **4 murs latéraux réfléchissants** (`wall_box`,

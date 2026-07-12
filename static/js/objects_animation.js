@@ -1120,11 +1120,13 @@ function compute_accelerations(){
             if (o.blocked || !gravity_ok){ o.acc.set(0, 0, 0) }  // statique/ancre ou gravité coupée
             else { o.acc.set(0, 0, -9.81*0.1) }
       }
-      for (var i=0; i< list_moving_objects.length; i++){       // attraction de paires (hors murs)
-            for (var j=i+1; j< list_moving_objects.length; j++){
-                  if ( allow_interaction_ij(i,j) ){
-                        var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
-                        if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // pas une paire mur-objet
+      if (one_over_r2){                                        // sinon inutile de parcourir les n² paires
+            for (var i=0; i< list_moving_objects.length; i++){ // attraction de paires (hors murs)
+                  for (var j=i+1; j< list_moving_objects.length; j++){
+                        if ( allow_interaction_ij(i,j) ){
+                              var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
+                              if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // pas une paire mur-objet
+                        }
                   }
             }
       }
