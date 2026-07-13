@@ -290,6 +290,14 @@ en **O(n²)**. Deux optimisations réduisent ce coût **sans changer la physique
   4 parois d'une boîte partagent un `box_id` ; le menu de paroi permet aussi de régler la
   **hauteur** de la boîte et d'y **ajouter des boules**. Persisté avec la scène (clé `_lids`).
 - **mur** (« mur ») isolé → panneau décoratif (ne réfléchit pas).
+- **cubes & pavés pleins** (`simple_cube`, `cube_mult_tex`, `pavement`) → **obstacles
+  solides** : les billes **rebondissent sur leurs 6 faces** (collision sphère-boîte dans le
+  repère local du cube, donc **rotation prise en compte**) : dé-pénétration à la surface +
+  réflexion élastique de la vitesse normale. Les cubes restent **statiques et déplaçables à
+  la souris** (ils ne sont pas dans la boucle physique — gravité/attraction ne les
+  concernent pas) ; une passe dédiée `bounce_balls_on_cubes()` gère le rebond, en O(billes ×
+  cubes). Une bille rapide pourrait théoriquement traverser un cube très fin (détection
+  discrète, pas de continu comme les murs de boîte).
 - Un objet **bloqué** (`blocked`) devient une **ancre statique** (mur, ou point fixe
   d'une chaîne de ressorts), et agit comme un obstacle immobile dans les chocs.
 

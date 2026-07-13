@@ -246,6 +246,72 @@ function conditions_interaction_obj_plane(i,j){
 
 }
 
+// ---- Rebond des billes sur les boîtes pleines (cubes/pavés) : collision sphère-boîte ----
+
+var SOLID_BOX_TYPES = ['simple_cube', 'pavement', 'cube_mult_tex']   // boîtes pleines -> rebond sur les 6 faces
+function is_solid_box(o){ return o && SOLID_BOX_TYPES.indexOf(o.type) >= 0 }
+
+function interaction_obj_cube(ball, cube){
+
+      /*
+      Rebond d'une bille sur une boîte pleine (cube/pavé). On travaille dans le repère
+      LOCAL du cube (gère sa rotation) : on trouve le point de la boîte le plus proche du
+      centre de la bille ; s'il est à moins d'un rayon, on dé-pénètre la bille le long de
+      la normale de la face et on réfléchit la composante normale de sa vitesse (paroi
+      immobile, rebond élastique — comme le sol/les murs).
+      */
+
+      if (!ball || ball.type !== 'sphere' || ball.blocked){ return }
+      var R = (ball.radius !== undefined) ? ball.radius : collision_radius(ball)
+      var hx = cube.thickness/2, hy = cube.width/2, hz = cube.height/2   // CubeGeometry(thickness, width, height)
+
+      cube.updateMatrixWorld()                                    // matrice à jour (le cube est déplaçable à la souris)
+      var local = cube.worldToLocal(ball.position.clone())        // centre de la bille en repère cube
+      var cx = Math.max(-hx, Math.min(hx, local.x))               // point le plus proche sur la boîte (clamp)
+      var cy = Math.max(-hy, Math.min(hy, local.y))
+      var cz = Math.max(-hz, Math.min(hz, local.z))
+      var dx = local.x - cx, dy = local.y - cy, dz = local.z - cz
+      var d2 = dx*dx + dy*dy + dz*dz
+      if (d2 >= R*R){ return }                                    // pas de contact
+
+      var nlx, nly, nlz, push
+      if (d2 > 1e-9){                                             // centre HORS de la boîte : normale = vers la bille
+            var d = Math.sqrt(d2)
+            nlx = dx/d; nly = dy/d; nlz = dz/d
+            push = R - d
+      } else {                                                   // centre DANS la boîte : ressortir par la face la plus proche
+            var px = hx - Math.abs(local.x), py = hy - Math.abs(local.y), pz = hz - Math.abs(local.z)
+            if (px <= py && px <= pz){ nlx = (local.x < 0 ? -1 : 1); nly = 0; nlz = 0; push = px + R }
+            else if (py <= pz){        nlx = 0; nly = (local.y < 0 ? -1 : 1); nlz = 0; push = py + R }
+            else {                     nlx = 0; nly = 0; nlz = (local.z < 0 ? -1 : 1); push = pz + R }
+      }
+      var n = new THREE.Vector3(nlx, nly, nlz).applyQuaternion(cube.quaternion).normalize()  // normale LOCAL -> MONDE
+      ball.position.addScaledVector(n, push)                     // dé-pénétration : bille ramenée à la surface
+      var vn = ball.speed.dot(n)
+      if (vn < 0){ ball.speed.addScaledVector(n, -2*vn) }        // réflexion élastique si la bille rentre (v' = v - 2(v·n)n)
+      check_change_color(ball, 0xff0000)
+
+}
+
+function bounce_balls_on_cubes(){
+
+      /*
+      Fait rebondir toutes les billes sur toutes les boîtes pleines (cubes/pavés).
+      Les cubes ne sont PAS dans list_moving_objects (ils restent statiques et déplaçables
+      à la souris) : on les parcourt depuis `objects`. O(billes × cubes) — cubes peu nombreux.
+      */
+
+      var cubes = []
+      for (var k in objects){ if (is_solid_box(objects[k]) && !objects[k].del){ cubes.push(objects[k]) } }
+      if (!cubes.length){ return }
+      for (var i in list_moving_objects){
+            var ball = list_moving_objects[i]
+            if (ball.type !== 'sphere' || ball.blocked){ continue }
+            for (var c = 0; c < cubes.length; c++){ interaction_obj_cube(ball, cubes[c]) }
+      }
+
+}
+
 
 function attraction(i,j,dist){
 
@@ -1400,6 +1466,7 @@ function interactions_and_movement(delta){
       compute_accelerations()            // a_{n+1} aux nouvelles positions
       verlet_velocities(delta)           // ½ coup de vitesse restant (avec a_{n+1})
       interactions_between_objects()     // collisions + rebonds murs (impulsions) + couleurs
+      bounce_balls_on_cubes()            // rebond des billes sur les cubes/pavés pleins (6 faces)
       ground_bounce()                    // rebond sur le sol
       lid_bounce()                       // rebond sur les couvercles (plafonds de boîte)
       calculate_total_energy()
