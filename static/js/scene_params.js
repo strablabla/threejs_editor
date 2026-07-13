@@ -71,6 +71,8 @@ one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (gravité newtonienne F = G·m_i·m_j/r²) — à ajuster via le panneau Interaction
 attract_softening = 40;                // ε : adoucissement de Plummer F = G·m·m/(r²+ε²) — supprime la singularité 1/r² (conservation d'énergie)
 use_cell_lists = false                 // collisions courte portée en O(n) (grille spatiale) au lieu de la double boucle O(n²) — résultat physiquement identique
+use_barnes_hut = false                 // attraction 1/r² approchée par octree en O(n log n) au lieu de O(n²) — APPROXIMATION (voir barnes_hut_theta)
+barnes_hut_theta = 0.5                  // seuil d'ouverture Barnes-Hut : 0 = exact (lent), plus grand = plus rapide mais plus approché (~0.5 usuel)
 
 //-------------------- Energies
 

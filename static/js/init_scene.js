@@ -253,6 +253,8 @@ function restore_dynamics(d){
       if (d.attract_strength !== undefined){ attract_strength_one_over_r2 = d.attract_strength }
       if (d.attract_softening !== undefined){ attract_softening = d.attract_softening }
       if (d.use_cell_lists !== undefined){ use_cell_lists = d.use_cell_lists }
+      if (d.use_barnes_hut !== undefined){ use_barnes_hut = d.use_barnes_hut }
+      if (d.barnes_hut_theta !== undefined){ barnes_hut_theta = d.barnes_hut_theta }
       if (d.random_initial_speed !== undefined){ random_initial_speed = d.random_initial_speed }
       if (d.random_speed_module !== undefined){ random_speed_module = d.random_speed_module }
       if (d.random_speed_z !== undefined){ random_speed_z = d.random_speed_z }
@@ -375,6 +377,8 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
           attract_strength: attract_strength_one_over_r2,
           attract_softening: attract_softening,
           use_cell_lists: use_cell_lists,
+          use_barnes_hut: use_barnes_hut,
+          barnes_hut_theta: barnes_hut_theta,
           random_initial_speed: random_initial_speed,
           random_speed_module: random_speed_module,
           random_speed_z: random_speed_z,

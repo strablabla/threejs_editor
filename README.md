@@ -185,6 +185,9 @@ Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets**
   spatiale** au lieu de tester toutes les paires (voir *Performance* ci-dessous). Le
   résultat est **physiquement identique** — c'est un simple filtrage des paires, sans
   approximation. Utile surtout au-delà de quelques centaines de billes.
+- **Fast attraction (Barnes-Hut, O(n log n))** + glissière **θ** — accélère l'attraction
+  1/r² par **octree** (voir *Performance*). **Approximation** réglée par θ (défaut 0.5) ;
+  repli automatique sur l'exact en dessous de 64 corps.
 
 **Onglet « Initial speeds »**
 - **Random** + **Strength** — vitesse de départ aléatoire **symétrique** (centrée sur 0,
@@ -233,13 +236,23 @@ en **O(n²)**. Deux optimisations réduisent ce coût **sans changer la physique
 - **Énergie potentielle — court-circuit** : la somme `−Σ G·mᵢ·mⱼ/√(r²+ε²)` est elle aussi
   en O(n²) et ne sert **qu'au graphe d'énergie**. Quand le graphe est masqué, elle n'est
   **pas calculée du tout** (voir *Diagnostic d'énergie*).
-- **Attraction 1/r² — court-circuit** : la double boucle qui calcule la force d'attraction
+- **Attraction 1/r² — court-circuit** : la boucle qui calcule la force d'attraction
   (`compute_accelerations`) est **entièrement sautée** quand **Object interaction (1/r²)**
-  est décochée — inutile de parcourir les n² paires si aucune force n'en résulte.
+  est décochée — inutile de parcourir les paires si aucune force n'en résulte.
+- **Attraction 1/r² — Barnes-Hut** (case *Fast attraction*, onglet Interactions) : quand
+  l'attraction **est** active, elle est à **longue portée** — toutes les paires comptent, donc
+  pas de filtrage exact possible. Barnes-Hut range les corps dans un **octree** et approxime
+  un **amas lointain** par **une seule masse à son centre de masse** (critère d'ouverture
+  `s/d < θ`), ramenant le coût de **O(n²)** à **O(n log n)**. Écarte les murs de la gravité.
+  C'est une **APPROXIMATION**, réglée par **θ** (glissière) :
+  - `θ = 0` → exact (descend jusqu'aux feuilles), mais O(n²) ;
+  - `θ ≈ 0.5` (défaut) → erreur ~0.7 % sur les forces, très rapide ;
+  - `θ` grand → plus rapide, moins précis.
 
-Quand l'attraction 1/r² **est** active, sa double boucle reste, elle, en O(n²) : étant une
-force à **longue portée**, toutes les paires y contribuent réellement (c'est le calcul
-qu'un futur schéma type **Barnes-Hut** ramènerait à O(n log n)).
+  Contrairement aux cell lists (exactes), les forces Barnes-Hut ne sont **pas exactement
+  antisymétriques** → la courbe d'énergie **dérive légèrement**. En dessous de **64 corps**,
+  le moteur repasse automatiquement sur la double boucle **exacte** (plus rapide à cette
+  taille). Décochée, on retrouve le calcul exact O(n²) — on peut basculer pour comparer.
 
 ### Murs, sol & boîtes
 - **boîte** (`w` / « boîte ») → enceinte de **4 murs latéraux réfléchissants** (`wall_box`,
@@ -329,8 +342,13 @@ Panneau **Scene** :
   nommées ne sont écrites QUE sur sauvegarde explicite** (pas par l'auto-save), donc
   recharger une scène nommée rend **exactement l'état sauvegardé**.
 - **💾 Save as** *(nom)* archive ; **⤓ Load** recharge la scène **sélectionnée dans la
-  liste déroulante** (état figé) ; **❌ remove** la supprime — boutons à **icônes + tooltips**.
-  À l'ouverture du panneau, la liste se **positionne sur la scène courante**.
+  liste déroulante** (état figé) ; **✏️ Rename** la renomme ; **❌ remove** la supprime —
+  boutons à **icônes + tooltips**. À l'ouverture du panneau, la liste se **positionne sur
+  la scène courante**.
+- **✏️ Rename** demande un **nouveau nom** pour la scène sélectionnée et renomme le fichier
+  côté serveur (refus si le nom **existe déjà**, pour ne pas écraser une autre scène).
+  L'**historique undo/redo** (indexé par nom) est **migré** vers le nouveau nom, et si c'est
+  la **scène courante** qui est renommée, le nom est mis à jour partout (champ, navbar, liste).
 - **New scene** → archive la scène courante (si nommée) puis repart à vide.
 - **Clear** (tooltip *clear the scene*) → vide l'éditeur.
 - **Quit** est désormais l'icône **⏻** dans la navbar (et non plus dans ce panneau).
@@ -343,8 +361,8 @@ gardée dans `static/old/`.
 
 **Réglages Dynamics sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
 embarque sa **configuration physique** — `Gravity`, `Springs`, `Object interaction (1/r²)`
-avec sa **Strength** (signe compris), son **softening ε** et l'option **Fast collisions**
-(cell lists), ainsi que les paramètres
+avec sa **Strength** (signe compris), son **softening ε**, l'option **Fast collisions**
+(cell lists) et l'option **Fast attraction** (Barnes-Hut + son **θ**), ainsi que les paramètres
 d'**Initial speeds** (`Random`, `Strength`, `z component`) — **et** les toggles
 d'affichage de **Monitoring** (`energy graph`, `velocity histogram`, `altitude histogram`,
 `trajectories`). Au chargement, ces valeurs sont **restaurées** et le panneau + les
@@ -384,6 +402,7 @@ Panneau **Views** :
 | `/scenes` | liste des scènes nommées |
 | `/scene/<nom>` | charge une scène (et la copie dans `pos.json`) |
 | `/scene_delete/<nom>` | supprime une scène |
+| `/scene_rename/<nom>?new=<nouveau>` | renomme une scène (refus si `<nouveau>` existe déjà) |
 | `/eval_fit` | évalue une expression Python de `z` (ajustement du profil d'altitude) |
 | `/shutdown` | arrête le serveur |
 | socket `message` / `begin` | sauvegarde / restitution de l'état |
@@ -436,7 +455,7 @@ animate()                              boucle de rendu (requestAnimationFrame)
 └── si animation active :
     ├── compute_accelerations()        a = F/m pour chaque objet mobile
     │   ├── gravité (z constant, ou 0 en mode planaire)
-    │   ├── accel_attraction()         gravité newtonienne  G·mᵢ·mⱼ / r²
+    │   ├── accel_attraction()         gravité newtonienne  G·mᵢ·mⱼ / r²  (ou Barnes-Hut O(n log n) si Fast attraction)
     │   └── accel_spring()             ressorts  −k·(L−L₀)   (k = raideur propre, repli global)
     ├── verlet_positions()             x(t+dt)  ← Velocity Verlet
     ├── compute_accelerations()        a(t+dt)
@@ -482,4 +501,5 @@ animate()                              boucle de rendu (requestAnimationFrame)
 - Réglages physiques principaux dans `static/js/scene_params.js` :
   `gravity_ok`, `springs_ok`, `one_over_r2`, `attract_strength_one_over_r2` (G),
   `harmonic_const`, `lenght_spring`, `random_initial_speed`, `random_speed_module`,
-  `use_cell_lists` (collisions O(n) par grille spatiale).
+  `use_cell_lists` (collisions O(n) par grille spatiale), `use_barnes_hut` +
+  `barnes_hut_theta` (attraction 1/r² O(n log n) par octree).

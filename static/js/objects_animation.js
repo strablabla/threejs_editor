@@ -1107,6 +1107,178 @@ function accel_spring(k){
 
 }
 
+// ===================================================================== Barnes-Hut
+// Attraction newtonienne 1/r² approchée en O(n log n) : un amas lointain est traité
+// comme UNE seule masse à son centre de masse (critère d'ouverture s/d < θ). Derrière
+// la case "Fast attraction". C'est une APPROXIMATION (θ règle précision/vitesse) : les
+// forces ne sont plus exactement antisymétriques -> légère dérive du graphe d'énergie.
+
+var BH_MIN_N     = 64    // en dessous, la double boucle exacte est plus rapide ET exacte -> repli
+var BH_MAX_DEPTH = 24    // garde-fou anti-subdivision infinie (billes quasi superposées)
+
+function bh_new_node(cx, cy, cz, half){
+      return { cx:cx, cy:cy, cz:cz, half:half,        // centre + demi-côté du cube
+               mass:0, comx:0, comy:0, comz:0,         // masse totale + centre de masse (agrégés)
+               body:-1, bucket:null, children:null }   // feuille (1 corps) / feuille saturée / noeud interne
+}
+
+function bh_child_index(node, x, y, z){                // dans quel octant tombe (x,y,z) ?
+      var idx = 0
+      if (x >= node.cx){ idx |= 1 }
+      if (y >= node.cy){ idx |= 2 }
+      if (z >= node.cz){ idx |= 4 }
+      return idx
+}
+
+function bh_ensure_children(node){                     // découpe le cube en 8 sous-cubes
+      if (node.children){ return }
+      var q = node.half/2
+      node.children = new Array(8)
+      for (var i=0; i<8; i++){
+            var ccx = node.cx + ((i&1) ? q : -q)
+            var ccy = node.cy + ((i&2) ? q : -q)
+            var ccz = node.cz + ((i&4) ? q : -q)
+            node.children[i] = bh_new_node(ccx, ccy, ccz, q)
+      }
+}
+
+function bh_insert(node, idx, x, y, z, depth){
+      if (node.children){                              // noeud interne -> descendre
+            bh_insert(node.children[bh_child_index(node, x,y,z)], idx, x,y,z, depth+1)
+            return
+      }
+      if (node.bucket){ node.bucket.push(idx); return } // feuille saturée (profondeur max) -> empiler
+      if (node.body === -1){ node.body = idx; return }  // feuille vide -> y poser le corps
+      // feuille déjà occupée : subdiviser (ou bucketiser si trop profond = positions ~identiques)
+      if (depth >= BH_MAX_DEPTH){ node.bucket = [node.body, idx]; node.body = -1; return }
+      var old = node.body, oo = list_moving_objects[old]
+      node.body = -1
+      bh_ensure_children(node)
+      bh_insert(node.children[bh_child_index(node, oo.position.x,oo.position.y,oo.position.z)], old, oo.position.x,oo.position.y,oo.position.z, depth+1)
+      bh_insert(node.children[bh_child_index(node, x,y,z)], idx, x,y,z, depth+1)
+}
+
+function bh_compute_mass(node){                        // post-ordre : masse + centre de masse
+      if (node.children){
+            var m=0, sx=0, sy=0, sz=0
+            for (var i=0; i<8; i++){
+                  var c = node.children[i]
+                  bh_compute_mass(c)
+                  if (c.mass > 0){ m += c.mass; sx += c.comx*c.mass; sy += c.comy*c.mass; sz += c.comz*c.mass }
+            }
+            node.mass = m
+            if (m > 0){ node.comx=sx/m; node.comy=sy/m; node.comz=sz/m }
+            return
+      }
+      if (node.bucket){
+            var m=0, sx=0, sy=0, sz=0
+            for (var b=0; b<node.bucket.length; b++){
+                  var o = list_moving_objects[node.bucket[b]]
+                  m += o.mass; sx += o.position.x*o.mass; sy += o.position.y*o.mass; sz += o.position.z*o.mass
+            }
+            node.mass = m
+            if (m > 0){ node.comx=sx/m; node.comy=sy/m; node.comz=sz/m }
+            return
+      }
+      if (node.body !== -1){                           // feuille à 1 corps
+            var o = list_moving_objects[node.body]
+            node.mass = o.mass
+            node.comx = o.position.x; node.comy = o.position.y; node.comz = o.position.z
+      }
+      // feuille vide : mass reste 0
+}
+
+function bh_add_direct(o, src, eps2, G){               // force exacte (softened) d'un corps source sur o
+      var dx = src.position.x - o.position.x
+      var dy = src.position.y - o.position.y
+      var dz = src.position.z - o.position.z
+      var soft2 = dx*dx + dy*dy + dz*dz + eps2          // r² + ε²
+      var f = G * src.mass / (soft2 * Math.sqrt(soft2)) // G·m / (r²+ε²)^{3/2}
+      o.acc.x += f*dx; o.acc.y += f*dy; o.acc.z += f*dz
+}
+
+function bh_accel_on(node, o, ti, theta2, eps2, G){
+      if (node.mass <= 0){ return }                    // sous-arbre vide
+      if (node.children === null && node.bucket === null){  // feuille à 1 corps
+            if (node.body !== -1 && node.body !== ti){ bh_add_direct(o, list_moving_objects[node.body], eps2, G) }  // jamais sur soi-même
+            return
+      }
+      if (node.bucket){                                // feuille saturée : corps un à un
+            for (var b=0; b<node.bucket.length; b++){
+                  if (node.bucket[b] !== ti){ bh_add_direct(o, list_moving_objects[node.bucket[b]], eps2, G) }
+            }
+            return
+      }
+      var dx = node.comx - o.position.x                // noeud interne : test d'ouverture s/d < θ
+      var dy = node.comy - o.position.y
+      var dz = node.comz - o.position.z
+      var d2 = dx*dx + dy*dy + dz*dz
+      var s  = 2*node.half                             // côté du cube
+      if (s*s < theta2 * d2){                          // assez loin -> approxime par le centre de masse
+            var soft2 = d2 + eps2
+            var f = G * node.mass / (soft2 * Math.sqrt(soft2))
+            o.acc.x += f*dx; o.acc.y += f*dy; o.acc.z += f*dz
+            return
+      }
+      for (var i=0; i<8; i++){ bh_accel_on(node.children[i], o, ti, theta2, eps2, G) }  // trop proche -> descendre
+}
+
+function bh_eligible_indices(){
+      // Mêmes exclusions que la double boucle exacte, restreintes au groupe "toutes paires"
+      // propre : objets NON-murs et NON-interdits (spring/elastic/pawn). Les murs n'attirent
+      // que d'autres murs dans l'exact (cas négligeable, bloqués) : on les écarte de la gravité.
+      var elig = []
+      for (var i=0; i<list_moving_objects.length; i++){
+            if (list_moving_objects[i].type === 'wall_box'){ continue }
+            if (!permitted_interaction(i)){ continue }
+            elig.push(i)
+      }
+      return elig
+}
+
+function barnes_hut_attraction(eligible){
+      var n = eligible.length
+      if (n === 0){ return }
+      // 1) cube englobant de tous les corps éligibles
+      var minx=Infinity,miny=Infinity,minz=Infinity,maxx=-Infinity,maxy=-Infinity,maxz=-Infinity
+      for (var k=0;k<n;k++){
+            var p = list_moving_objects[eligible[k]].position
+            if (p.x<minx)minx=p.x; if (p.x>maxx)maxx=p.x
+            if (p.y<miny)miny=p.y; if (p.y>maxy)maxy=p.y
+            if (p.z<minz)minz=p.z; if (p.z>maxz)maxz=p.z
+      }
+      var cx=(minx+maxx)/2, cy=(miny+maxy)/2, cz=(minz+maxz)/2
+      var half = Math.max(maxx-minx, maxy-miny, maxz-minz)/2
+      if (!(half > 0)){ half = 1 }                     // tous au même point / n=1
+      half *= 1.0001                                   // marge pour inclure les bornes
+      var root = bh_new_node(cx,cy,cz,half)
+      // 2) insertion + agrégation masse/centre de masse
+      for (var k=0;k<n;k++){
+            var p = list_moving_objects[eligible[k]].position
+            bh_insert(root, eligible[k], p.x,p.y,p.z, 0)
+      }
+      bh_compute_mass(root)
+      // 3) force sur chaque corps par parcours de l'arbre
+      var theta2 = barnes_hut_theta*barnes_hut_theta
+      var eps2   = attract_softening*attract_softening
+      var G      = attract_strength_one_over_r2
+      for (var k=0;k<n;k++){
+            var ti = eligible[k]
+            bh_accel_on(root, list_moving_objects[ti], ti, theta2, eps2, G)
+      }
+}
+
+function accel_attraction_bruteforce(){                // double boucle O(n²) exacte (référence)
+      for (var i=0; i< list_moving_objects.length; i++){
+            for (var j=i+1; j< list_moving_objects.length; j++){
+                  if ( allow_interaction_ij(i,j) ){
+                        var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
+                        if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // pas une paire mur-objet
+                  }
+            }
+      }
+}
+
 function compute_accelerations(){
 
       /*
@@ -1120,14 +1292,13 @@ function compute_accelerations(){
             if (o.blocked || !gravity_ok){ o.acc.set(0, 0, 0) }  // statique/ancre ou gravité coupée
             else { o.acc.set(0, 0, -9.81*0.1) }
       }
-      if (one_over_r2){                                        // sinon inutile de parcourir les n² paires
-            for (var i=0; i< list_moving_objects.length; i++){ // attraction de paires (hors murs)
-                  for (var j=i+1; j< list_moving_objects.length; j++){
-                        if ( allow_interaction_ij(i,j) ){
-                              var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
-                              if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // pas une paire mur-objet
-                        }
-                  }
+      if (one_over_r2){                                        // sinon inutile de parcourir les paires
+            if (use_barnes_hut){
+                  var eligible = bh_eligible_indices()
+                  if (eligible.length >= BH_MIN_N){ barnes_hut_attraction(eligible) }  // O(n log n) approché
+                  else { accel_attraction_bruteforce() }         // trop peu de corps -> exact (et plus rapide)
+            } else {
+                  accel_attraction_bruteforce()                  // O(n²) exact (référence)
             }
       }
       if (springs_ok){ for (var k in list_paired_harmonic){ accel_spring(k) } }   // ressorts

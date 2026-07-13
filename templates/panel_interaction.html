@@ -53,6 +53,15 @@
               <label><input type="checkbox" id="chk_cell_lists" title="collisions filtrées par grille spatiale : O(n) au lieu de O(n²), résultat identique"> Fast collisions (cell lists, O(n))</label>
             </div><br>
 
+            <div class="help">
+              <label><input type="checkbox" id="chk_barnes_hut" title="attraction 1/r² approchée par octree : O(n log n) au lieu de O(n²) — APPROXIMATION réglée par θ"> Fast attraction (Barnes-Hut, O(n log n))</label>
+            </div><br>
+
+            <div class="help indent_dyn"> <span> θ (precision): </span>
+              <input type="range" id="bh_theta_input" min="0" max="1.5" step="0.05" style="vertical-align:middle; width:120px" title="0 = exact (lent) · plus grand = plus rapide mais plus approché">
+              <span id="bh_theta_val"></span>
+            </div><br>
+
           </div>
 
           <!-- ===== Page : Initial speeds ===== -->
@@ -146,6 +155,16 @@
     $('#chk_cell_lists').prop('checked', use_cell_lists)
     $('#chk_cell_lists').change(function(){ use_cell_lists = this.checked })
 
+    // Attraction accélérée (Barnes-Hut O(n log n)) + précision θ
+    $('#chk_barnes_hut').prop('checked', use_barnes_hut)
+    $('#chk_barnes_hut').change(function(){ use_barnes_hut = this.checked })
+    $('#bh_theta_input').val(barnes_hut_theta)
+    $('#bh_theta_val').text(barnes_hut_theta)
+    $('#bh_theta_input').on('input change', function(){
+        barnes_hut_theta = parseFloat(this.value)
+        $('#bh_theta_val').text(barnes_hut_theta)
+    })
+
     $('#rad_attract').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })  // recalcule le signe
     $('#rad_repulse').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })
     $('#attract_strength_input').on('input change', function(){ apply_strength(this.value) })       // curseur
@@ -182,6 +201,9 @@
         $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
         apply_strength(Math.abs(attract_strength_one_over_r2))
         $('#chk_cell_lists').prop('checked', use_cell_lists)
+        $('#chk_barnes_hut').prop('checked', use_barnes_hut)
+        $('#bh_theta_input').val(barnes_hut_theta)
+        $('#bh_theta_val').text(barnes_hut_theta)
         $('#softening_input').val(attract_softening)
         $('#softening_val').text(attract_softening)
         $('#chk_random_speed').prop('checked', random_initial_speed)

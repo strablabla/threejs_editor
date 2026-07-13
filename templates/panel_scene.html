@@ -31,6 +31,7 @@
                     <ul class="dropdown-menu" id="scene_dropdown_menu" aria-labelledby="scene_dropdown_btn"></ul>
                   </div>
                   <button id="load_scene"   type="button" class="btn btn-warning" data-toggle="tooltip" title="Load">⤓</button>
+                  <button id="rename_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="Rename">✏️</button>
                   <button id="delete_scene" type="button" class="btn btn-default" style="background:#ffc0cb" data-toggle="tooltip" title="Remove">❌</button>
           </div> <br>
           <center> <button id="clear_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="clear the scene"> Clear </button> </center> <br>
@@ -146,6 +147,37 @@
     $('#load_scene').click(function(){           // Load = recharge la scène sélectionnée (état sauvegardé, figé)
          if (!selected_scene){ return }
          load_named_scene(selected_scene)
+    })
+
+    $('#rename_scene').click(function(){          // renomme la scène sélectionnée (fichier serveur)
+         if (!selected_scene){ return }
+         var old = selected_scene
+         bs_prompt('Rename', 'New name for "' + old + '":', old, function(newname){
+               newname = (newname || '').trim()
+               if (!newname || newname === old){ return }
+               $.ajax({ url: '/scene_rename/' + encodeURIComponent(old) + '?new=' + encodeURIComponent(newname), dataType: 'json' })
+                .done(function(res){
+                      if (!res || !res.ok){ return }
+                      // migre l'historique undo/redo (clé = scene_history::<nom>) pour ne pas le perdre
+                      try {
+                            var hk = localStorage.getItem('scene_history::' + old)
+                            if (hk !== null){ localStorage.setItem('scene_history::' + newname, hk); localStorage.removeItem('scene_history::' + old) }
+                      } catch(e){}
+                      // si on renomme la scène ACTUELLEMENT chargée, refléter le nouveau nom partout
+                      if (scene.name === old){
+                            scene.name = newname
+                            $('#scene_name').val(newname)
+                            update_scene_name_display()
+                      }
+                      selected_scene = newname
+                      $('#scene_dropdown_label').text(newname)
+                      populate_scene_list()          // rafraîchit la liste déroulante
+                })
+                .fail(function(xhr){
+                      var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'rename failed'
+                      alert('Rename: ' + msg)         // ex. « name already exists »
+                })
+         })
     })
 
     $('#delete_scene').click(function(){          // supprime la scène sélectionnée (fichier serveur)

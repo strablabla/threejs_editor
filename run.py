@@ -201,6 +201,27 @@ def delete_named_scene(name):
         return flask.jsonify({'ok': True})
     return flask.jsonify({'error': 'scene not found'}), 404
 
+@app.route('/scene_rename/<path:name>', methods=['GET', 'POST'])
+def rename_named_scene(name):
+    '''
+    Rename a named scene file : static/scenes/<name>.json -> static/scenes/<new>.json.
+    The target name is passed as query/form parameter 'new'. Refuse to overwrite an
+    existing scene (409) so a rename never clobbers another scene silently.
+    '''
+    new = (flask.request.values.get('new') or '').strip()
+    if not new:
+        return flask.jsonify({'error': 'empty new name'}), 400
+    src = os.path.join('static', 'scenes', name + '.json')
+    dst = os.path.join('static', 'scenes', new + '.json')
+    if not os.path.exists(src):
+        return flask.jsonify({'error': 'scene not found'}), 404
+    if os.path.abspath(dst) == os.path.abspath(src):
+        return flask.jsonify({'ok': True, 'name': new})        # renommage vers le même nom : no-op
+    if os.path.exists(dst):
+        return flask.jsonify({'error': 'name already exists'}), 409
+    os.rename(src, dst)
+    return flask.jsonify({'ok': True, 'name': new})
+
 @app.route('/shutdown', methods=['GET', 'POST'])
 def shutdown():
     '''
