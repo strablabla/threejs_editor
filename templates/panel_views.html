@@ -1,24 +1,5 @@
-<!-- Views -->
-
-<div class="panel_views  input_interface" hidden >
-
-  <div class="titlepanel" > Views </div>
-
-      <br><br><br>
-
-      <center><button id="show_view_dirs" type="button" class="btn btn-default btn-sm"> 3D directions </button></center>
-      <hr>
-      <div  class="help" id="mouse_keys_nav" > mouse keys navigation </div>
-
-
-</div>
-
-<!-- Menu contextuel (Maj+D) : afficher / masquer les flèches de vue -->
-<div id="ground_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 12px; font-family:sans-serif; font-size:12px;">
-  <label style="cursor:pointer; white-space:nowrap; margin:0">
-    <input type="checkbox" id="ground_show_arrows"> Show view arrows
-  </label>
-</div>
+<!-- Flèches 3D des directions de vue : afficher/masquer via la touche V.
+     (L'ancien panneau "Views" a été retiré ; seule la logique des flèches subsiste ici.) -->
 
 <script>
 
@@ -61,7 +42,6 @@
     function hide_view_arrows(){
          if (view_arrows){ scene.remove(view_arrows); view_arrows = null }
          restore_objects_opacity()
-         $('#show_view_dirs').text('3D directions')
     }
 
     function show_view_arrows(){
@@ -85,13 +65,11 @@
          }
          scene.add(view_arrows)
          dim_objects()
-         $('#show_view_dirs').text('Hide directions')
     }
 
     function toggle_view_arrows(){
          if (view_arrows){ hide_view_arrows() } else { show_view_arrows() }
     }
-    $('#show_view_dirs').click(toggle_view_arrows)
 
     // ---- Clic sur une flèche : change la vue + restaure l'opacité ----
     function on_arrow_click(event){
@@ -115,34 +93,15 @@
     }
     renderer.domElement.addEventListener('click', on_arrow_click, false)
 
-    // ---- Maj+D : menu contextuel pour afficher / masquer les flèches de vue ----
-    function hide_ground_menu(){ $('#ground_context_menu').hide() }
-
-    var _gm_mx = 0, _gm_my = 0                                     // dernière position souris (pour placer le menu)
-    document.addEventListener('mousemove', function(e){ _gm_mx = e.clientX; _gm_my = e.clientY })
-
+    // ---- Touche V : afficher / masquer les flèches de vue ----
     document.addEventListener('keydown', function(event){
          var t = event.target || event.srcElement                 // ne pas déclencher si on tape dans un champ
          if (t){ var tag = (t.tagName || '').toLowerCase()
                  if (tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable){ return } }
-         if (event.shiftKey && event.keyCode === 68){             // Maj + D
+         if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && event.keyCode === 86){   // V : (dé)afficher les flèches 3D (Ctrl+V reste "coller")
                event.preventDefault()
-               if ($('#ground_context_menu').is(':visible')){ hide_ground_menu(); return }   // 2e appui = ferme
-               $('#ground_show_arrows').prop('checked', view_arrows != null)   // reflète l'état courant
-               var x = _gm_mx, y = _gm_my
-               if (x + 200 > $(window).width()){  x = $(window).width()  - 200 }
-               if (y + 60  > $(window).height()){ y = $(window).height() - 60  }
-               $('#ground_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
+               toggle_view_arrows()
          }
-    })
-
-    $('#ground_show_arrows').change(function(){                    // (dé)cocher = afficher / masquer les flèches
-         if ($(this).is(':checked')){ if (!view_arrows){ show_view_arrows() } }
-         else                       { if ( view_arrows){ hide_view_arrows() } }
-    })
-
-    $(document).on('mousedown', function(e){                       // fermer le menu en cliquant ailleurs
-         if (!$(e.target).closest('#ground_context_menu').length){ hide_ground_menu() }
     })
 
 </script>

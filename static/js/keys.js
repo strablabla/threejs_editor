@@ -99,9 +99,12 @@ function keyDownTextField1(event){
 
       if (event.keyCode == 38 ){ apply_to_one_obj_or_group(move_obj_up, false)  }  // Up
       if (event.keyCode == 40 ){ apply_to_one_obj_or_group(move_obj_down, false) } // Down
+      // Copier / coller (Ctrl+C / Ctrl+V) — remplace l'ancien clone sur « c » seul
+      if (event.ctrlKey && (event.keyCode === 67 || event.key === 'c' || event.key === 'C')){ event.preventDefault(); do_copy(); return }
+      if (event.ctrlKey && (event.keyCode === 86 || event.key === 'v' || event.key === 'V')){ event.preventDefault(); do_paste(); return }
+
       if ( keyev('a', event) ){ scene_animation_ok = true; apply_to_one_obj_or_group(apply_movement, false) } // démarre l'animation (+ enregistre l'objet survolé)
-      if ( keyev('c', event) ){ if (INTERSECTED){ clone_object() } }   						 // Clone the selected object
-      if ( keyev('d', event) && !event.shiftKey ){ delete_object() }   				  // Delete object selected (Maj+D réservé au menu vues)
+      if ( keyev('d', event) && !event.shiftKey ){ delete_object() }   				  // Delete object selected (seul « d » supprime ; Maj+D ne fait rien)
       //if ( keyev('b', event) ){ delete_area() }               // Delete selection area
       if ( keyev('r', event) ){ apply_to_one_obj_or_group(rotate_obj, true) } 						// Rotation
 

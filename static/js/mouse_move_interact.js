@@ -25,8 +25,8 @@ function action_on_selected_when_moving(raycaster){
                     track_in_mouse_moving()
               }
          }  // move the object selected if not blocked..
-      if (!new_select_ok && list_sel_corners.length === 2 && list_sel_corners.indexOf(SELECTED) >= 0){   // hors tracé : glisser un coin -> ré-édite la zone
-              reshape_selection()
+      if (!new_select_ok && selpos.length === 0 && list_sel_corners.length === 2 && list_sel_corners.indexOf(SELECTED) >= 0){   // hors tracé (aucune zone EN COURS : selpos vide) : glisser un coin -> ré-édite la zone
+              reshape_selection()                              // NB : sans le test selpos===0, ce garde se déclenchait pendant le tracé d'une BOÎTE/plan/vue (new_select_ok=false) -> sélection au lieu de boîte
               return
       }
       nearest_elem = nearest_object(SELECTED)                           // change the color of the nearest objects in yellow..

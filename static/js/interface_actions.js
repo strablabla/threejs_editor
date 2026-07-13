@@ -108,7 +108,7 @@ function actions_with_block_unblock(obj){
 //------------------------   dicths, panels
 
 dicths = {}
-list_panels = ['objects', 'views', 'scene', 'tools', 'interaction', 'help']
+list_panels = ['objects', 'scene', 'tools', 'interaction', 'help']   // 'views' retiré : flèches 3D via la touche V
 
 function one_element_dicths(name_panel){
     dicths[name_panel] = function(){ generic_action_panel("#" + name_panel, '.panel_' + name_panel) }}
@@ -130,7 +130,8 @@ function hide_show_keys(){
                   {k:['t'], d:'track'},                {k:['u'], d:'link two objects (spring)'},
                   {k:['b'], d:'no tool / cancel'} ]},
             { title:'Edit', rows:[
-                  {k:['c'], d:'clone'},   {k:['d'], d:'delete'},  {k:['r'], d:'rotate'},
+                  {k:['Ctrl','C'], d:'copy'}, {k:['Ctrl','V'], d:'paste'},
+                  {k:['d'], d:'delete'},  {k:['r'], d:'rotate'},
                   {k:['h'], d:'horizontal plane'}, {k:['i'], d:'object info'},
                   {k:['↑'], d:'move up'}, {k:['↓'], d:'move down'} ]},
             { title:'Select', rows:[
@@ -139,7 +140,8 @@ function hide_show_keys(){
             { title:'Animation', rows:[
                   {k:['a'], d:'start animation'}, {k:['x'], d:'play / pause'} ]},
             { title:'View', rows:[
-                  {k:['k'], d:'set camera position'}, {k:['Shift','D'], d:'show / hide view arrows'} ]},
+                  {k:['k'], d:'set camera position'},
+                  {k:['V'], d:'show / hide view arrows'} ]},
             { title:'History', rows:[
                   {k:['Ctrl','Z'], d:'undo'}, {k:['Ctrl','Y'], d:'redo'} ]},
             { title:'Mouse', rows:[
@@ -284,7 +286,6 @@ function init_interf_actions(){
 
       hide_show_keys()        //---------------------- Keys
       dicths.objects()        //---------------------- Objects..
-      dicths.views()          //---------------------- Views..
       dicths.scene()          //---------------------- scene
       dicths.tools()          //---------------------- scene
       dicths.interaction()    //---------------------- Interaction (physique)

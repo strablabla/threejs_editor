@@ -68,7 +68,6 @@ son icône** (avec une flèche et une ombre), **un seul à la fois**, et se ferm
 |---|---|---|
 | 🎬 | **Scene** | nommer / sauvegarder / charger / effacer des scènes |
 | 📦 | **Object** | sélecteur d'outil de création + paramètres par défaut |
-| 👁 | **Views** | vues prédéfinies (flèches 3D) |
 | 🔧 | **Tools** | distance, propriétés de groupe, stats de zone |
 | 🧲 | **Dynamics** | pilotage de la physique en direct — onglets **Interactions / Initial speeds / Monitoring** |
 | ? | **Help** | aide / raccourcis |
@@ -91,10 +90,26 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
 `TrackballControls` : rotation / zoom de la vue à la souris.
 
 ### Autres raccourcis clavier
-`a` lancer l'animation · `x` play/pause · `c` cloner · `d` supprimer · `r` rotation ·
+`a` lancer l'animation · `x` play/pause · `d` supprimer · `r` rotation ·
 `p` sélection multiple · `h` plan horizontal · `i` infos objet · `k` position caméra ·
 `u` relier deux objets par un ressort · flèches haut/bas pour monter/descendre.
 **Ctrl+Z** annuler · **Ctrl+Y** (ou **Ctrl+Maj+Z**) rétablir.
+**Ctrl+C** copier · **Ctrl+V** coller (voir *Copier / coller* ci-dessous).
+
+### Copier / coller (Ctrl+C / Ctrl+V)
+**Ctrl+C** copie, **Ctrl+V** colle **sous la souris** (le barycentre des copiés est recollé
+à la position du curseur, disposition relative conservée ; l'altitude `z` est préservée).
+La cible copiée est choisie ainsi, par priorité :
+1. **Souris dans une zone de sélection** → **tous les objets sélectionnés** de la zone.
+2. Sinon, **objet survolé** : s'il appartient à un **groupe persistant**, c'est **tout le
+   groupe** qui est copié ; sinon, l'objet **seul**.
+
+Les copies reçoivent de **nouveaux noms** ; si l'original était un groupe persistant, la
+copie forme un **nouveau groupe indépendant** (nouveau `group_id`). De même, une **boîte
+copiée devient une boîte neuve et indépendante** (nouveau `box_id` partagé par ses 4 parois),
+sans lien avec la boîte d'origine. Types copiables : sphères, cubes, pavés, murs, boîtes (ni
+ressorts, ni pions, ni couvercles). Le collage est **persisté** avec la scène. *(Remplace
+l'ancien clone rapide sur « c ».)*
 
 ### Sélection & groupes (Ctrl+S / Ctrl+G / Ctrl+Maj+G)
 - **Ctrl+S** — **zone de sélection** : clique-glisse un rectangle (coins = **marques noires**,
@@ -126,9 +141,13 @@ Convention de couleur : **rose** = sélectionné · **bleu** = groupe temporaire
 Le **clic droit** ouvre **seulement** le menu contextuel — il n'attrape pas l'objet (pas
 de déplacement).
 - **Clic droit sur un objet** → **menu contextuel** de ses attributs **éditables en
-  direct** : `mass`, **`vx` / `vy` / `vz`** (composantes de vitesse), `opacity`,
-  **`color`**, `friction`, `radius_interact`, `radius` (sphères), `magnet`, `blocked`,
-  **`trajectory`**. Effet immédiat sur le moteur et **sauvegardé** avec la scène.
+  direct**, organisé en **trois onglets** :
+  - **Attributes** : `mass`, `opacity`, **`color`**, `radius` (sphères) ;
+  - **Dynamics** : **`vx` / `vy` / `vz`** (composantes de vitesse), `friction`, `radius_interact` ;
+  - **Miscellaneous** : `magnet`, `blocked`, **`trajectory`** (+ *coloration groupe* si l'objet
+    appartient à un groupe persistant).
+
+  Effet immédiat sur le moteur et **sauvegardé** avec la scène.
 - **Case « all »** (sphères) : quand elle est cochée, **chaque** modification d'attribut
   (masse, vitesse, couleur, rayon…) s'applique à **toutes** les boules d'un coup ; sinon à
   la seule boule cliquée.
@@ -383,13 +402,10 @@ au rafraîchissement** de la page. Une simple rotation caméra ne crée pas d'en
 
 ## Vues
 
-Panneau **Views** :
-- **3D directions** → affiche 5 **flèches 3D** (une par vue), atténue les objets à 0,5 ;
-  **cliquer une flèche** applique la vue correspondante et restaure l'opacité.
-- **Maj+D** → ouvre un **menu contextuel** (à la souris) avec la case **« Show view
-  arrows »** pour afficher / masquer ces flèches sans passer par le panneau (2ᵉ appui =
-  ferme). *(`d` seul reste la suppression d'objet ; Maj+D ne supprime pas.)*
-- « mouse keys navigation ».
+Les **flèches 3D** de direction (il n'y a plus de panneau *Views*) :
+- **Touche `V`** → affiche / masque **5 flèches 3D** (une par vue), atténue les objets à 0,5 ;
+  **cliquer une flèche** applique la vue correspondante et restaure l'opacité. **Ré-appui `V`**
+  → masque. *(`Ctrl+V` reste « coller » ; `V` seul pilote les flèches.)*
 
 ---
 
@@ -425,7 +441,8 @@ threejs_editor/
 │   ├── main_menus.html             navbar : 🎬 📦 👁 🔧 🧲  …  ?  ⏻
 │   ├── secondary_menus.html
 │   ├── interface.html              dialogue maison + menus contextuels (objet / élastique)
-│   └── panel_*.html                scene · object · views · tools · interaction · one_object
+│   └── panel_*.html                scene · object · tools · interaction · one_object
+│                                    (panel_views.html : plus de panneau, garde la logique des flèches 3D + touche V)
 │
 ├── static/
 │   ├── js/                         (variables GLOBALES partagées entre fichiers)
@@ -436,7 +453,7 @@ threejs_editor/
 │   │   ├── basic_objects.js  ┐
 │   │   ├── objects_from_basic.js ├ fabriques d'objets 3D (sphère, mur, cube, élastique…)
 │   │   ├── make_objects.js   ┘
-│   │   ├── *_interact.js           souris/clavier : sélection, magnétisme, pistes, groupes, vues
+│   │   ├── *_interact.js           souris/clavier : sélection, magnétisme, pistes, groupes, vues, copier/coller
 │   │   ├── keys.js / keys_interactions1.js   raccourcis clavier
 │   │   └── interaction_voice.js    commandes vocales (Artyom)
 │   ├── pos.json                    état de travail (auto-save à chaque relâchement souris)
@@ -484,6 +501,7 @@ animate()                              boucle de rendu (requestAnimationFrame)
 | `static/js/basic_objects.js`, `objects_from_basic.js`, `make_objects.js` | Fabriques d'objets 3D |
 | `static/js/*_interact.js` | Interactions souris/clavier (sélection, magnétisme, pistes, groupes, vues…) |
 | `static/js/box_interact.js` | Boîtes : regroupement des parois (`box_id`), ajout de boules, couvercle, hauteur |
+| `static/js/copy_paste_interact.js` | Copier/coller d'objets (Ctrl+C / Ctrl+V) : objet survolé, groupe, ou sélection |
 | `static/js/keys.js`, `keys_interactions1.js` | Raccourcis clavier |
 | `static/js/interaction_voice.js` | Commandes vocales (Artyom) |
 | `static/css/create_3d.css` | Styles (panneaux, icônes, graphe…) |

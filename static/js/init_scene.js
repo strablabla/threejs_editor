@@ -321,32 +321,35 @@ function condition_emit(i){
 
 }
 
-function make_infos_obj(i){
+function make_infos_obj(i){ return make_infos_obj_of(objects[i]) }   // sérialise objects[i]
+
+function make_infos_obj_of(obj){
 
       /*
-      Infos about object i
+      Dictionnaire de recréation d'un objet (même format que load_object) : position,
+      rotation, opacité, attributs et couleur. Réutilisé par le copier/coller.
       */
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
                           'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
                           'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id']  // utiles pour recréer sphères/boîtes
-      var x = objects[i].rotation.x
-      var y = objects[i].rotation.y
-      var z = objects[i].rotation.z
-      var mat = objects[i].material
+      var x = obj.rotation.x
+      var y = obj.rotation.y
+      var z = obj.rotation.z
+      var mat = obj.material
       var opacity = (mat && mat._origOpacity !== undefined) ? mat._origOpacity : (mat ? mat.opacity : 1)  // opacité d'origine si objets atténués par les flèches
       var infos_obj = {
-                       "pos": objects[i].position,
+                       "pos": obj.position,
                        "rot": {x,y,z},
                        'opacity' : opacity
                       };
       for (var j in list_attr_emit){
             var key = list_attr_emit[j]
-            infos_obj[key] = objects[i][key]
+            infos_obj[key] = obj[key]
       }
       // couleur "réelle" (currentHex si l'objet est sélectionné/vert, sinon la couleur du matériau)
       if (mat && mat.color){
-            infos_obj['color'] = (objects[i].currentHex !== undefined) ? objects[i].currentHex : mat.color.getHex()
+            infos_obj['color'] = (obj.currentHex !== undefined) ? obj.currentHex : mat.color.getHex()
       }
 
       return infos_obj

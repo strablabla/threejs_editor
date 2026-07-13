@@ -147,10 +147,36 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top).append($rng); $f.append($row)
   }
+  function ctx_tab_bar($f, tabs){                              // barre d'onglets + panneaux, scopée à ce menu
+        var $bar = $('<div style="display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid #ddd">')
+        var pane = {}
+        tabs.forEach(function(t, idx){
+              var $btn = $('<button type="button" class="ctx_tab_btn">').text(t[1]).attr('data-ctxtab', t[0])
+                    .css({ flex:'1', cursor:'pointer', border:'none', background:'transparent',
+                           padding:'4px 2px', 'font-family':'inherit', 'font-size':'11px',
+                           'border-bottom':(idx===0?'2px solid #2e7d32':'2px solid transparent'),
+                           'font-weight':(idx===0?'bold':'normal'), color:(idx===0?'#2e7d32':'#555') })
+              $bar.append($btn)
+              pane[t[0]] = $('<div class="ctx_tab_pane">').attr('data-ctxtab', t[0]).css('display', idx===0?'block':'none')
+        })
+        $bar.find('.ctx_tab_btn').on('click', function(){
+              var tab = $(this).attr('data-ctxtab')
+              $bar.find('.ctx_tab_btn').each(function(){
+                    var on = ($(this).attr('data-ctxtab') === tab)
+                    $(this).css({ 'border-bottom':on?'2px solid #2e7d32':'2px solid transparent',
+                                  'font-weight':on?'bold':'normal', color:on?'#2e7d32':'#555' })
+              })
+              $f.find('.ctx_tab_pane').hide()
+              $f.find('.ctx_tab_pane[data-ctxtab="'+tab+'"]').show()
+        })
+        $f.append($bar)
+        tabs.forEach(function(t){ $f.append(pane[t[0]]) })
+        return pane
+  }
   window.show_object_context_menu = function(obj, x, y){
         $('#ctx_obj_title').text((obj.type || 'object') + ' — ' + (obj.name || ''))
         var $f = $('#ctx_obj_fields').empty()
-        // Case maîtresse "all" (sphères) : applique CHAQUE changement d'attribut à toutes les boules
+        // Case maîtresse "all" (sphères) : applique CHAQUE changement d'attribut à toutes les boules — au-dessus des onglets
         var $all = null
         if (obj.type === 'sphere'){
               var $arow = $('<div style="margin:2px 0 8px; padding-bottom:6px; border-bottom:1px solid #ddd">')
@@ -162,32 +188,38 @@ function bs_prompt(title, message, defaultValue, onOk){
         function applyAll(setter){                             // setter(cible) : cet objet, ou toutes les boules si "all" coché
               if ($all && $all.is(':checked')){ spheres().forEach(setter) } else { setter(obj) }
         }
-        num_row($f, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })
+        // Onglets : Attributes / Dynamics / Miscellaneous
+        var pane = ctx_tab_bar($f, [['attributes','Attributes'], ['dynamics','Dynamics'], ['misc','Miscellaneous']])
+        var $A = pane['attributes'], $D = pane['dynamics'], $M = pane['misc']
+
+        // --- Attributes : mass, opacity, color, radius ---
+        num_row($A, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })
+        num_row($A, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
+        if (obj.material && obj.material.color){ color_row($A, obj, applyAll) }   // couleur de l'objet
+        if (obj.type === 'sphere'){ radius_row($A, obj, applyAll) }               // rayon réel
+
+        // --- Dynamics : vitesse (vx/vy/vz), friction, radius_interact ---
         if (obj.speed){                                        // vitesse (composantes) — objets mobiles
-              num_row($f, 'vx',        function(){ return obj.speed.x },          function(v){ applyAll(function(t){ t.speed.x = v }) })
-              num_row($f, 'vy',        function(){ return obj.speed.y },          function(v){ applyAll(function(t){ t.speed.y = v }) })
-              num_row($f, 'vz',        function(){ return obj.speed.z },          function(v){ applyAll(function(t){ t.speed.z = v }) })
+              num_row($D, 'vx',        function(){ return obj.speed.x },          function(v){ applyAll(function(t){ t.speed.x = v }) })
+              num_row($D, 'vy',        function(){ return obj.speed.y },          function(v){ applyAll(function(t){ t.speed.y = v }) })
+              num_row($D, 'vz',        function(){ return obj.speed.z },          function(v){ applyAll(function(t){ t.speed.z = v }) })
         }
-        num_row($f, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
-        if (obj.material && obj.material.color){ color_row($f, obj, applyAll) }   // couleur de l'objet
-        num_row($f, 'friction',        function(){ return obj.friction },         function(v){ applyAll(function(t){ t.friction = v }) })
-        num_row($f, 'radius_interact', function(){ return obj.radius_interact },  function(v){ applyAll(function(t){ t.radius_interact = v }) })
-        if (obj.type === 'sphere'){ radius_row($f, obj, applyAll) }      // rayon réel
-        bool_row($f, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
-        bool_row($f, 'blocked', function(){ return obj.blocked }, function(v){ applyAll(function(t){ t.blocked = v }) })
-        bool_row($f, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // suivi propre à cet objet
+        num_row($D, 'friction',        function(){ return obj.friction },         function(v){ applyAll(function(t){ t.friction = v }) })
+        num_row($D, 'radius_interact', function(){ return obj.radius_interact },  function(v){ applyAll(function(t){ t.radius_interact = v }) })
+
+        // --- Miscellaneous : magnet, blocked, trajectory (+ coloration groupe) ---
+        bool_row($M, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
+        bool_row($M, 'blocked', function(){ return obj.blocked }, function(v){ applyAll(function(t){ t.blocked = v }) })
+        bool_row($M, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // suivi propre à cet objet
               obj.track_trajectory = v
               if (v && typeof reset_trajectory === 'function'){ reset_trajectory(obj) } else { obj.traj = null }
         })
         if (obj.group_id !== undefined){                 // membre d'un groupe persistant : voir/masquer sa coloration
-              bool_row($f, 'coloration groupe',
+              bool_row($M, 'coloration groupe',
                     function(){ return !!group_highlighted[obj.group_id] },
                     function(v){ if (typeof highlight_group === 'function'){ highlight_group(obj.group_id, v) } })
         }
-        var mw = 210, mh = 430
-        if (x + mw > $(window).width()){ x = $(window).width() - mw }
-        if (y + mh > $(window).height()){ y = $(window).height() - mh }
-        $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
+        position_ctx(x, y, 220, 300)
   }
   window.show_elastic_context_menu = function(pair, x, y){       // clic droit sur un élastique : sa raideur propre
         $('#ctx_obj_title').text('elastic — ' + (((pair[0] && pair[0].name) || '?') + ' ↔ ' + ((pair[1] && pair[1].name) || '?')))
