@@ -140,8 +140,9 @@ function hide_show_keys(){
             { title:'Animation', rows:[
                   {k:['a'], d:'start animation'}, {k:['x'], d:'play / pause'} ]},
             { title:'View', rows:[
-                  {k:['k'], d:'set camera position'},
-                  {k:['V'], d:'show / hide view arrows'} ]},
+                  {k:['k'], d:'set camera view (drag: A → look-at)'},
+                  {k:['V'], d:'show / hide view arrows'},
+                  {k:['Ctrl','K'], d:'show / hide this shortcuts card'} ]},
             { title:'History', rows:[
                   {k:['Ctrl','Z'], d:'undo'}, {k:['Ctrl','Y'], d:'redo'} ]},
             { title:'Mouse', rows:[

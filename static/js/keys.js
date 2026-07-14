@@ -120,6 +120,10 @@ function keyDownTextField1(event){
       if (event.ctrlKey && keyev('g', event)){                // Ctrl+G : déplacer le groupe (toggle ; ré-appui = dégroupe)
             event.preventDefault(); toggle_group_move(); return
       }
+      // Ctrl+K : affiche/masque la carte des raccourcis clavier (intercepté AVANT « k » seul = position caméra)
+      if (event.ctrlKey && (event.keyCode === 75 || event.key === 'k' || event.key === 'K')){
+            event.preventDefault(); $('.panel_keys').toggle(); return
+      }
 
       link_toggle(event, 'i', 'show_obj_infos_ok')           // infos about the object selected
       link_toggle(event, 'k', 'select_poscam')              // create new wall

@@ -34,6 +34,12 @@ function reinit_params_ok(){
 //---------------------- Camera
 
 select_poscam = false; 			    // change camera position with mouse
+// Positionnement caméra par glisser (touche k) : A au clic, flèche + pointillés vers la souris jusqu'au relâcher
+poscam_dragging = false             // un glisser de positionnement est en cours
+poscam_A = null                     // point A (future position caméra), Vector3 sur le plan du sol
+poscam_marker = null                // repère visuel de A
+poscam_arrow = null                 // THREE.ArrowHelper orientée de A vers la souris
+poscam_line = null                  // ligne pointillée A -> souris
 
 //---------------------- Infos
 

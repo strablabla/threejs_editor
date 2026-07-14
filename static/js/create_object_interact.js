@@ -224,7 +224,7 @@ function mouse_create_object_or_action(){
       link(new_select_ok, limits_and_action, null)
       link(new_track_ok, make_marks_and_track, null)
       link(new_plane_ok, limits_and_action, make_horizontal_area)
-      link(select_poscam, limits_and_action, newview)
+      // select_poscam (touche k) : désormais géré par glisser (poscam_begin/update/end dans mouse_interact.js)
       link(new_box_ok, limits_and_action, make_new_box)
       link(paire_harmonic, select_two_obj_and_action, null)
 
