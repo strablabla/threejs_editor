@@ -901,6 +901,131 @@ function draw_velocity_hist(){
 
 }
 
+//===================================================================== Aperçus (onglet Initial speeds)
+
+var PANEL_ANGLE_BINS = 24                                    // secteurs de la rose angulaire (x-y)
+
+function collect_velocities(){
+
+      /*
+      Vitesses (Vector3) des objets massifs mobiles, mêmes exclusions que collect_speeds().
+      Renvoie la liste des vecteurs vitesse pour dériver module ET direction.
+      */
+
+      var vels = []
+      for (var i in list_moving_objects){
+            var obj = list_moving_objects[i]
+            if (obj.blocked){ continue }
+            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
+            vels.push(obj.speed)
+      }
+      return vels
+
+}
+
+function draw_panel_speed_hist(){
+
+      /*
+      Petit histogramme des normes de vitesse embarqué dans l'onglet "Initial speeds".
+      Même donnée que la fenêtre Monitoring mais indépendant de son toggle.
+      */
+
+      var cv = document.getElementById('panel_speed_hist')
+      if (!cv){ return }
+      var ctx = cv.getContext('2d')
+      var W = cv.width, H = cv.height
+      ctx.clearRect(0, 0, W, H)
+      var speeds = collect_speeds()
+      var n = speeds.length
+      ctx.font = '10px sans-serif'; ctx.fillStyle = '#333'
+      ctx.textAlign = 'right'; ctx.textBaseline = 'top'
+      ctx.fillText('N = ' + n, W - 3, 2)
+      if (n === 0){ return }
+      var vmax = 0
+      for (var k=0;k<n;k++){ if (speeds[k] > vmax) vmax = speeds[k] }
+      if (vmax <= 0){ vmax = 1 }
+      var bins = new Array(VELO_HIST_BINS).fill(0)
+      for (var k=0;k<n;k++){
+            var b = Math.floor(speeds[k] / vmax * VELO_HIST_BINS)
+            if (b >= VELO_HIST_BINS){ b = VELO_HIST_BINS - 1 }
+            bins[b]++
+      }
+      var cmax = 0
+      for (var b=0;b<VELO_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
+      if (cmax <= 0){ cmax = 1 }
+      var MT = 4, MB = 12, ML = 4, MR = 4
+      var plotW = W - ML - MR, plotH = H - MT - MB
+      var bw = plotW / VELO_HIST_BINS
+      ctx.fillStyle = '#43a047'
+      for (var b=0;b<VELO_HIST_BINS;b++){
+            var h = bins[b] / cmax * plotH
+            ctx.fillRect(ML + b * bw + 1, MT + plotH - h, bw - 1, h)
+      }
+      ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
+      ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 2)
+      ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vmax), W - MR, MT + plotH + 2)
+
+}
+
+function draw_panel_angle_hist(){
+
+      /*
+      Rose de dispersion angulaire des vitesses dans le plan x-y (angle = atan2(vy, vx)).
+      Chaque secteur a un rayon proportionnel au nombre d'objets dont la vitesse pointe
+      dans cette direction : révèle l'anisotropie (ex : jet dirigé vs gaz isotrope).
+      */
+
+      var cv = document.getElementById('panel_angle_hist')
+      if (!cv){ return }
+      var ctx = cv.getContext('2d')
+      var W = cv.width, H = cv.height
+      ctx.clearRect(0, 0, W, H)
+      var cx = W / 2, cy = H / 2
+      var R = Math.min(W, H) / 2 - 8
+      var vels = collect_velocities()
+      //--- répartition des directions (on ignore les vitesses ~nulles : pas de direction définie)
+      var bins = new Array(PANEL_ANGLE_BINS).fill(0)
+      var counted = 0
+      for (var i=0;i<vels.length;i++){
+            var vx = vels[i].x, vy = vels[i].y
+            if (vx*vx + vy*vy < 1e-9){ continue }
+            var a = Math.atan2(vy, vx)                          // -π .. π
+            if (a < 0){ a += 2 * Math.PI }
+            var b = Math.floor(a / (2 * Math.PI) * PANEL_ANGLE_BINS)
+            if (b >= PANEL_ANGLE_BINS){ b = PANEL_ANGLE_BINS - 1 }
+            bins[b]++; counted++
+      }
+      //--- cercle de référence
+      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy)
+      ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke()
+      if (counted === 0){ return }
+      var cmax = 0
+      for (var b=0;b<PANEL_ANGLE_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
+      if (cmax <= 0){ cmax = 1 }
+      //--- secteurs (rose) ; y à l'écran vers le bas -> on inverse l'angle pour un repère mathématique
+      var dA = 2 * Math.PI / PANEL_ANGLE_BINS
+      ctx.fillStyle = 'rgba(67,160,71,0.55)'
+      ctx.strokeStyle = '#2e7d32'; ctx.lineWidth = 0.5
+      for (var b=0;b<PANEL_ANGLE_BINS;b++){
+            if (bins[b] === 0){ continue }
+            var r = bins[b] / cmax * R
+            var a0 = b * dA, a1 = (b + 1) * dA
+            ctx.beginPath()
+            ctx.moveTo(cx, cy)
+            ctx.arc(cx, cy, r, -a0, -a1, true)               // -angle : sens trigo à l'écran
+            ctx.closePath()
+            ctx.fill(); ctx.stroke()
+      }
+
+}
+
+function draw_speed_panels(){                                 // les deux aperçus de l'onglet Initial speeds
+      draw_panel_speed_hist()
+      draw_panel_angle_hist()
+}
+
 //===================================================================== Histogramme d'altitude
 
 var ALT_HIST_BINS = 24                                        // nombre de tranches d'altitude

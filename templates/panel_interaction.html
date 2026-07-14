@@ -16,51 +16,67 @@
           <!-- ===== Page : Interactions ===== -->
           <div id="tab_interactions" class="dyn_tab">
 
-            <div class="help">
-              <label><input type="checkbox" id="chk_gravity"> Gravity (z)</label>
-            </div><br>
+            <!-- Sous-onglets : réglages physiques vs optimisations de calcul -->
+            <div class="dyn_subtabs">
+              <button type="button" class="dyn_subtab_btn active" data-subtab="sub_basic">Basic settings</button>
+              <button type="button" class="dyn_subtab_btn" data-subtab="sub_optim">Optimisation</button>
+            </div>
 
-            <div class="help">
-              <label><input type="checkbox" id="chk_springs"> Springs (chains)</label>
-            </div><br>
+            <!-- ----- Sous-page : Basic settings ----- -->
+            <div id="sub_basic" class="dyn_subtab">
 
-            <div class="help">
-              <label><input type="checkbox" id="chk_attract"> Object interaction (1/r²)</label>
-            </div><br>
+              <div class="help">
+                <label><input type="checkbox" id="chk_gravity"> Gravity (z)</label>
+              </div><br>
 
-            <div class="help indent_dyn">
-              <label><input type="radio" name="attract_sign" id="rad_attract"> Attraction</label>
-              &nbsp;
-              <label><input type="radio" name="attract_sign" id="rad_repulse"> Repulsion</label>
-            </div><br>
+              <div class="help">
+                <label><input type="checkbox" id="chk_springs"> Springs (chains)</label>
+              </div><br>
 
-            <div class="help indent_dyn"> <span> Strength: </span>
-              <input type="range" id="attract_strength_input" min="0" max="100000" step="1000" style="vertical-align:middle; width:120px">
-              <input type="number" id="attract_strength_num" min="0" step="1000" style="width:90px" title="valeur libre (étend le curseur au-delà de son max)">
-            </div><br>
+              <div class="help">
+                <label><input type="checkbox" id="chk_attract"> Object interaction (1/r²)</label>
+              </div><br>
 
-            <div class="help indent_dyn"> <span> Softening ε: </span>
-              <input type="range" id="softening_input" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
-              <span id="softening_val"></span>
-            </div><br>
+              <div class="help indent_dyn">
+                <label><input type="radio" name="attract_sign" id="rad_attract"> Attraction</label>
+                &nbsp;
+                <label><input type="radio" name="attract_sign" id="rad_repulse"> Repulsion</label>
+              </div><br>
 
-            <hr>
-            <div class="help">
-              <label><input type="checkbox" id="chk_deactivate_all"> deactivate the interactions</label>
-            </div><br>
+              <div class="help indent_dyn"> <span> Strength: </span>
+                <input type="range" id="attract_strength_input" min="0" max="100000" step="1000" style="vertical-align:middle; width:120px">
+                <input type="number" id="attract_strength_num" min="0" step="1000" style="width:90px" title="valeur libre (étend le curseur au-delà de son max)">
+              </div><br>
 
-            <div class="help">
-              <label><input type="checkbox" id="chk_cell_lists" title="collisions filtrées par grille spatiale : O(n) au lieu de O(n²), résultat identique"> Fast collisions (cell lists, O(n))</label>
-            </div><br>
+              <div class="help indent_dyn"> <span> Softening ε: </span>
+                <input type="range" id="softening_input" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
+                <span id="softening_val"></span>
+              </div><br>
 
-            <div class="help">
-              <label><input type="checkbox" id="chk_barnes_hut" title="attraction 1/r² approchée par octree : O(n log n) au lieu de O(n²) — APPROXIMATION réglée par θ"> Fast attraction (Barnes-Hut, O(n log n))</label>
-            </div><br>
+              <hr>
+              <div class="help">
+                <label><input type="checkbox" id="chk_deactivate_all"> deactivate the interactions</label>
+              </div><br>
 
-            <div class="help indent_dyn"> <span> θ (precision): </span>
-              <input type="range" id="bh_theta_input" min="0" max="1.5" step="0.05" style="vertical-align:middle; width:120px" title="0 = exact (lent) · plus grand = plus rapide mais plus approché">
-              <span id="bh_theta_val"></span>
-            </div><br>
+            </div>
+
+            <!-- ----- Sous-page : Optimisation ----- -->
+            <div id="sub_optim" class="dyn_subtab" style="display:none">
+
+              <div class="help">
+                <label><input type="checkbox" id="chk_cell_lists" title="collisions filtrées par grille spatiale : O(n) au lieu de O(n²), résultat identique"> Fast collisions (cell lists, O(n))</label>
+              </div><br>
+
+              <div class="help">
+                <label><input type="checkbox" id="chk_barnes_hut" title="attraction 1/r² approchée par octree : O(n log n) au lieu de O(n²) — APPROXIMATION réglée par θ"> Fast attraction (Barnes-Hut, O(n log n))</label>
+              </div><br>
+
+              <div class="help indent_dyn"> <span> θ (precision): </span>
+                <input type="range" id="bh_theta_input" min="0" max="1.5" step="0.05" style="vertical-align:middle; width:120px" title="0 = exact (lent) · plus grand = plus rapide mais plus approché">
+                <span id="bh_theta_val"></span>
+              </div><br>
+
+            </div>
 
           </div>
 
@@ -84,6 +100,19 @@
               <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
               &nbsp;
               <button type="button" id="btn_flatten_z" style="font-family:inherit; cursor:pointer; padding:3px 10px" title="projette les boules sur z=0 (gaz plan)">flatten z=0</button>
+            </div><br>
+
+            <hr>
+            <!-- Aperçu de la distribution des vitesses (module + dispersion angulaire) -->
+            <div class="help" style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap">
+              <div style="text-align:center">
+                <div style="color:#888; margin-bottom:2px">|v| (count)</div>
+                <canvas id="panel_speed_hist" width="180" height="120" style="background:#fafafa; border:1px solid #ddd"></canvas>
+              </div>
+              <div style="text-align:center">
+                <div style="color:#888; margin-bottom:2px">angular (x-y)</div>
+                <canvas id="panel_angle_hist" width="130" height="130" style="background:#fafafa; border:1px solid #ddd"></canvas>
+              </div>
             </div><br>
 
           </div>
@@ -219,14 +248,21 @@
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
     }
 
+    // Redessine les aperçus |v| + rose angulaire de l'onglet Initial speeds (mise à jour "sur action")
+    function refresh_speed_panels(){
+        if (typeof draw_speed_panels === 'function'){ draw_speed_panels() }
+    }
+
     // Réinitialise la vitesse de TOUTES les boules selon les params courants (relance une simu de zéro)
     $('#btn_reinit_speeds').on('click', function(){
         reinitialize_speeds()
         if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // rafraîchit l'histogramme si affiché
+        refresh_speed_panels()
     })
     $('#btn_flatten_z').on('click', function(){                 // aplatit les boules sur z=0 (nettoie la dérive z)
         flatten_z()
         if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste les positions aplaties
+        refresh_speed_panels()
     })
 
     // --- Monitoring : graphe d'énergie ---
@@ -301,6 +337,12 @@
     // Ne pas laisser les touches/clics du champ déclencher les raccourcis de scène TANT qu'il a le focus
     $('#altitude_fit_expr').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
+    // Croix de fermeture des fenêtres de suivi : décoche la case Monitoring correspondante
+    // et déclenche son handler 'change' (masque la fenêtre + met à jour le drapeau global).
+    $(document).on('click', '.mon_close', function(){
+        $('#' + $(this).data('chk')).prop('checked', false).trigger('change')
+    })
+
     // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)
     // Délégué + scopé au panneau courant pour ne pas interférer entre panneaux.
     $(document).on('click', '.dyn_tab_btn', function(){
@@ -309,6 +351,17 @@
         $(this).addClass('active')
         $panel.find('.dyn_tab').hide()
         $panel.find('#' + $(this).data('tab')).show()
+        if ($(this).data('tab') === 'tab_speeds'){ refresh_speed_panels() }   // aperçus à jour à l'ouverture
+    })
+
+    // Sous-onglets (Basic settings / Optimisation dans Interactions).
+    // Scopé au .dyn_tab parent pour ne pas toucher aux onglets de niveau supérieur.
+    $(document).on('click', '.dyn_subtab_btn', function(){
+        var $group = $(this).closest('.dyn_tab')
+        $group.find('.dyn_subtab_btn').removeClass('active')
+        $(this).addClass('active')
+        $group.find('.dyn_subtab').hide()
+        $group.find('#' + $(this).data('subtab')).show()
     })
 
     // Ne pas faire pivoter la caméra quand on manipule le panneau
