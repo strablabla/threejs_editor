@@ -88,7 +88,9 @@ function bs_prompt(title, message, defaultValue, onOk){
     <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_z_wrap">
-    <div style="margin:6px 0 3px;"><b>z(t)</b> <span style="color:#888">altitude vs temps</span></div>
+    <div style="margin:6px 0 3px;"><b>z(t)</b> <span style="color:#888">altitude vs temps</span>
+      <button type="button" id="btn_z_means" style="float:right; font-size:10px; cursor:pointer" title="n'afficher que les moyennes ⟨z⟩ (masque les courbes)">moyennes seules</button>
+    </div>
     <canvas id="z_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_msd_wrap">

@@ -258,6 +258,7 @@
         $('#chk_velocity_hist').prop('checked', show_velocity_hist).trigger('change')
         $('#chk_altitude_hist').prop('checked', show_altitude_hist).trigger('change')
         if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }
+        if (typeof highlight_z_means === 'function'){ highlight_z_means() }
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
     }
 
@@ -332,6 +333,18 @@
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
     })
     highlight_traj_mode()
+    // z(t) : n'afficher que les moyennes ⟨z⟩ (masque les courbes)
+    if (typeof z_means_only === 'undefined'){ z_means_only = false }
+    window.highlight_z_means = function(){
+        $('#btn_z_means').css({'font-weight': z_means_only ? 'bold' : 'normal', 'background': z_means_only ? '#cfe3ff' : ''})
+    }
+    $('#btn_z_means').on('click', function(){
+        z_means_only = !z_means_only
+        this.blur()
+        highlight_z_means()
+        if (typeof draw_trajectories === 'function'){ draw_trajectories() }
+    })
+    highlight_z_means()
     $('#btn_reset_traj').on('click', function(){            // réinitialise toutes les trajectoires (origine = position courante)
         reset_all_trajectories()
         draw_trajectories()

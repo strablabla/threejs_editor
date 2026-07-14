@@ -1390,18 +1390,22 @@ function draw_trajectories(){
                   for (var g=0;g<=4;g++){ var v=dz.b0+(dz.b1-dz.b0)*g/4, y=ZY(v); cz.strokeStyle='#eee'; cz.lineWidth=1
                         cz.beginPath(); cz.moveTo(L,y); cz.lineTo(L+PW,y); cz.stroke(); cz.fillText(fmt_energy(v),L-4,y) }
                   cz.save(); cz.beginPath(); cz.rect(L,T,PW,PH); cz.clip()
+                  var means_only = (typeof z_means_only !== 'undefined' && z_means_only)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.z||tr.z.length<2)continue
                         var n=tr.z.length, st=traj_stride(n), col=traj_color(t[i])
-                        //--- z(t)
-                        cz.strokeStyle=col; cz.lineWidth=1.5; cz.beginPath()
-                        var first=true
-                        for (var k=0;k<n;k+=st){ var X=ZX(k),Y=ZY(tr.z[k]); if(first){cz.moveTo(X,Y);first=false}else cz.lineTo(X,Y) }
-                        cz.lineTo(ZX(n-1),ZY(tr.z[n-1]))         // dernier point
-                        cz.stroke()
-                        //--- moyenne ⟨z⟩ depuis le reset : trait horizontal pointillé
+                        //--- z(t) : courbe (masquée en mode "moyennes seules")
+                        if (!means_only){
+                              cz.strokeStyle=col; cz.lineWidth=1.5; cz.beginPath()
+                              var first=true
+                              for (var k=0;k<n;k+=st){ var X=ZX(k),Y=ZY(tr.z[k]); if(first){cz.moveTo(X,Y);first=false}else cz.lineTo(X,Y) }
+                              cz.lineTo(ZX(n-1),ZY(tr.z[n-1]))         // dernier point
+                              cz.stroke()
+                        }
+                        //--- moyenne ⟨z⟩ depuis le reset : pointillé avec la courbe, trait plein si seule affichée
                         if (tr.zcount > 0){
                               var yzmean=ZY(tr.zsum/tr.zcount)
-                              cz.strokeStyle=col; cz.lineWidth=1; cz.setLineDash([4,3])
+                              cz.strokeStyle=col; cz.lineWidth=1.5
+                              if (!means_only){ cz.lineWidth=1; cz.setLineDash([4,3]) }
                               cz.beginPath(); cz.moveTo(L,yzmean); cz.lineTo(L+PW,yzmean); cz.stroke()
                               cz.setLineDash([])
                         }

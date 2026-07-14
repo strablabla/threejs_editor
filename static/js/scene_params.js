@@ -91,6 +91,7 @@ show_energy_graph = false   // affichage du graphe temporel d'énergie (panneau 
 show_velocity_hist = false  // affichage de l'histogramme des normes de vitesse (panneau Tools)
 show_trajectories = false   // affichage de la fenêtre trajectoires + MSD (Monitoring)
 traj_show = { xy:true, z:false, msd:true }   // tracés visibles dans la fenêtre trajectoires (bascules indépendantes -> toutes combinaisons)
+z_means_only = false        // z(t) : n'afficher que les moyennes ⟨z⟩ (masque les courbes z(t))
 show_altitude_hist = false  // affichage de l'histogramme nombre de particules vs altitude (Monitoring)
 show_speeds = false         // flèches 3D de vitesse sur chaque objet mobile (onglet Initial speeds)
 
