@@ -134,6 +134,9 @@
                $('#scene_name').val(name)
                update_scene_name_display()
                load_scene(data)                   // recrée objets + chaînes
+               scene.name = name                  // le NOM DE FICHIER fait foi : ignore un scene_name interne périmé/corrompu (ex. après un rename)
+               $('#scene_name').val(name)
+               update_scene_name_display()
                if (typeof history_seed === 'function'){ history_seed() }   // undo/redo : historique propre à cette scène
           })
     }
