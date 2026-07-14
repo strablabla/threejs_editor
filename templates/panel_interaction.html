@@ -91,6 +91,10 @@
               <label><input type="checkbox" id="chk_random_speed_z"> z component</label>
             </div><br>
 
+            <div class="help">
+              <label><input type="checkbox" id="chk_show_speeds" title="affiche une flèche 3D de vitesse sur chaque objet mobile"> show speeds (3D arrows)</label>
+            </div><br>
+
             <div class="help"> <span> Strength: </span>
               <input type="range" id="rng_speed_intensity" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
               <span id="speed_intensity_val"></span>
@@ -220,6 +224,13 @@
         $('#speed_intensity_val').text(random_speed_module)
     })
 
+    // Flèches 3D de vitesse : la boucle render() les crée/actualise ; décoché -> nettoyage immédiat
+    $('#chk_show_speeds').prop('checked', show_speeds)
+    $('#chk_show_speeds').change(function(){
+        show_speeds = this.checked
+        if (!show_speeds && typeof clear_speed_arrows === 'function'){ clear_speed_arrows() }
+    })
+
     // Rafraîchit TOUS les contrôles du panneau depuis les variables globales
     // (appelé au chargement d'une scène qui restaure les réglages Dynamics).
     window.refresh_dynamics_panel = function(){
@@ -239,12 +250,14 @@
         $('#chk_random_speed_z').prop('checked', random_speed_z)
         $('#rng_speed_intensity').val(random_speed_module)
         $('#speed_intensity_val').text(random_speed_module)
+        $('#chk_show_speeds').prop('checked', show_speeds).trigger('change')
         sync_deactivate_all()
         // Monitoring : régler la case ET déclencher son handler (affiche/masque la fenêtre)
         if (typeof altitude_fit_expr !== 'undefined'){ $('#altitude_fit_expr').val(altitude_fit_expr || '') }
         $('#chk_energy_graph').prop('checked', show_energy_graph).trigger('change')
         $('#chk_velocity_hist').prop('checked', show_velocity_hist).trigger('change')
         $('#chk_altitude_hist').prop('checked', show_altitude_hist).trigger('change')
+        if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
     }
 
@@ -296,11 +309,29 @@
         if (show_trajectories){
               reset_all_trajectories()                      // repart d'un tracé vierge
               $('#trajectories_box').show()
+              if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
               draw_trajectories()
         } else {
               $('#trajectories_box').hide()
         }
     })
+    // Tracés affichés : bascules indépendantes x–y / z(t) / MSD (toutes combinaisons ; boutons -> pas de focus/typeahead comme un <select>)
+    if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true } }  // garde-fou (JS servi depuis le cache)
+    window.highlight_traj_mode = function(){                    // surligne chaque bouton actif
+        $('.traj_mode_btn').each(function(){
+            var on = !!traj_show[this.getAttribute('data-mode')]
+            $(this).css({'font-weight': on ? 'bold' : 'normal', 'background': on ? '#cfe3ff' : ''})
+        })
+    }
+    $('.traj_mode_btn').on('click', function(){
+        var m = this.getAttribute('data-mode')
+        traj_show[m] = !traj_show[m]                           // bascule ce tracé indépendamment des autres
+        this.blur()                                            // rend le focus clavier à la scène (le raccourci 'x' reste fonctionnel)
+        highlight_traj_mode()
+        if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
+        if (typeof draw_trajectories === 'function'){ draw_trajectories() }
+    })
+    highlight_traj_mode()
     $('#btn_reset_traj').on('click', function(){            // réinitialise toutes les trajectoires (origine = position courante)
         reset_all_trajectories()
         draw_trajectories()

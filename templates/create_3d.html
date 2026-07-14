@@ -61,6 +61,7 @@
 		function render() {
 				controls.update();
 				update_all_elastics();   // les ressorts suivent les boules (drag inclus, même animation à l'arrêt)
+				if (typeof update_speed_arrows === 'function'){ update_speed_arrows() }   // flèches de vitesse (show_speeds)
 				renderer.render( scene, camera );
 		}
 

@@ -839,6 +839,79 @@ function collect_speeds(){
 
 }
 
+//===================================================================== Flèches de vitesse 3D (show_speeds)
+
+var speed_arrows = []                                        // flèches actives : liste de { obj, arrow }
+var SPEED_ARROW_SCALE = 1.0                                  // longueur flèche = |v| * échelle (ajustable)
+var SPEED_ARROW_COLOR = 0x00b0ff                             // bleu clair
+
+function speed_arrow_objects(){                              // objets mobiles porteurs d'une vitesse (mêmes exclusions que l'énergie cinétique)
+      var res = []
+      for (var i in list_moving_objects){
+            var obj = list_moving_objects[i]
+            if (obj.blocked){ continue }
+            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
+            if (!obj.speed){ continue }
+            res.push(obj)
+      }
+      return res
+}
+
+function clear_speed_arrows(){                               // retire toutes les flèches de la scène
+      for (var i=0;i<speed_arrows.length;i++){
+            scene.remove(speed_arrows[i].arrow)
+            if (speed_arrows[i].obj){ speed_arrows[i].obj._speed_arrow = null }
+      }
+      speed_arrows = []
+}
+
+function update_speed_arrows(){
+
+      /*
+      Dessine/actualise une flèche 3D de vitesse sur chaque objet mobile (appelée chaque frame
+      depuis render()). Les flèches ne sont PAS ajoutées à objects[] : ni sélectionnables ni persistées.
+      */
+
+      if (!show_speeds){ if (speed_arrows.length){ clear_speed_arrows() } return }
+
+      var objs = speed_arrow_objects()
+      var present = {}
+      for (var k=0;k<objs.length;k++){
+            var obj = objs[k]
+            present[obj.id] = true                          // .id : identifiant unique THREE
+            var v = obj.speed
+            var len = Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
+            var arrow = obj._speed_arrow
+            if (len < 1e-6){                                 // vitesse nulle -> pas de direction : masque la flèche
+                  if (arrow){ arrow.visible = false }
+                  continue
+            }
+            var dir = new THREE.Vector3(v.x, v.y, v.z).multiplyScalar(1/len)
+            var alen = len * SPEED_ARROW_SCALE
+            if (!arrow){
+                  arrow = new THREE.ArrowHelper(dir, obj.position.clone(), alen, SPEED_ARROW_COLOR,
+                                                Math.min(alen*0.25, 30), Math.min(alen*0.15, 18))
+                  scene.add(arrow)
+                  obj._speed_arrow = arrow
+                  speed_arrows.push({ obj: obj, arrow: arrow })
+            } else {
+                  arrow.visible = true
+                  arrow.position.copy(obj.position)
+                  arrow.setDirection(dir)
+                  arrow.setLength(alen, Math.min(alen*0.25, 30), Math.min(alen*0.15, 18))
+            }
+      }
+      //--- retire les flèches des objets disparus ou devenus inéligibles
+      for (var i = speed_arrows.length - 1; i >= 0; i--){
+            var rec = speed_arrows[i]
+            if (!present[rec.obj.id]){
+                  scene.remove(rec.arrow)
+                  if (rec.obj){ rec.obj._speed_arrow = null }
+                  speed_arrows.splice(i, 1)
+            }
+      }
+}
+
 function draw_velocity_hist(){
 
       /*
@@ -1155,11 +1228,20 @@ function tracked_objects(){                                 // objets dont la tr
       return a
 }
 
+// traj_show = { xy, z, msd } (bascules indépendantes) est déclaré dans scene_params.js (réglages Monitoring)
+
+function apply_traj_mode(){                                 // montre/masque chaque tracé selon traj_show
+      var wxy = document.getElementById('traj_xy_wrap');  if (wxy){ wxy.style.display = traj_show.xy  ? '' : 'none' }
+      var wz  = document.getElementById('traj_z_wrap');   if (wz){  wz.style.display  = traj_show.z   ? '' : 'none' }
+      var wm  = document.getElementById('traj_msd_wrap'); if (wm){  wm.style.display  = traj_show.msd ? '' : 'none' }
+}
+
 function reset_trajectory(obj){                             // (re)démarre l'enregistrement à partir de la position courante
-      obj.traj = { x:[], y:[], msd:[], x0:null, y0:null, z0:null }
+      obj.traj = { x:[], y:[], z:[], msd:[], x0:null, y0:null, z0:null, zsum:0, zcount:0 }  // zsum/zcount : ⟨z⟩ depuis le reset (indépendant de la fenêtre glissante)
 }
 
 function reset_all_trajectories(){
+      if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // repartir sur une vue auto-fit
       var t = tracked_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }
 }
 
@@ -1172,8 +1254,9 @@ function record_trajectories(){                             // appelé chaque fr
             var tr = o.traj
             if (tr.x0 === null){ tr.x0 = o.position.x; tr.y0 = o.position.y; tr.z0 = o.position.z }  // origine r0
             var dx = o.position.x-tr.x0, dy = o.position.y-tr.y0, dz = o.position.z-tr.z0
-            tr.x.push(o.position.x); tr.y.push(o.position.y); tr.msd.push(dx*dx+dy*dy+dz*dz)          // |r-r0|²
-            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.msd.shift() }
+            tr.x.push(o.position.x); tr.y.push(o.position.y); tr.z.push(o.position.z); tr.msd.push(dx*dx+dy*dy+dz*dz)  // |r-r0|²
+            tr.zsum += o.position.z; tr.zcount++            // moyenne z cumulée depuis le reset (tous les points, pas seulement la fenêtre)
+            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift() }
       }
       draw_trajectories()
 
@@ -1181,11 +1264,75 @@ function record_trajectories(){                             // appelé chaque fr
 
 function traj_stride(n){ return Math.max(1, Math.ceil(n / TRAJ_DRAW_MAX)) }  // décimation : au plus TRAJ_DRAW_MAX points
 
+/*
+Zoom "rubber-band" sur les graphes trajectoires. Chaque canvas a :
+  - traj_zoom[key] : null (auto-fit) ou {a0,a1,b0,b1} = domaine imposé en coordonnées DONNÉES
+                     (a = abscisse, b = ordonnée ; pour z(t)/MSD l'abscisse est l'index d'échantillon)
+  - traj_view[key] : dernière transfo affichée {L,T,W,H (rect de tracé en px), a0,a1,b0,b1 (domaine)}
+                     -> permet d'inverser pixel -> donnée au relâchement du rectangle.
+Glisser = zoomer sur le rectangle ; double-clic = revenir à l'auto-fit.
+*/
+var traj_zoom = { xy:null, z:null, msd:null }
+var traj_view = { xy:null, z:null, msd:null }
+var _traj_zoom_setup = false
+
+function clear_traj_zoom(){ traj_zoom = { xy:null, z:null, msd:null } }
+
+function _bind_traj_zoom(canvasId, key){
+      var cv = document.getElementById(canvasId); if (!cv){ return }
+      cv.style.cursor = 'crosshair'
+      var drag = null
+      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+      cv.addEventListener('mousedown', function(e){
+            var v = traj_view[key]; if (!v){ return }
+            var p = pos(e)
+            if (p.x<v.L || p.x>v.L+v.W || p.y<v.T || p.y>v.T+v.H){ return }   // hors zone de tracé
+            drag = { x0:p.x, y0:p.y, x1:p.x, y1:p.y }
+            e.preventDefault()
+      })
+      cv.addEventListener('mousemove', function(e){
+            if (!drag){ return }
+            var v = traj_view[key], p = pos(e)
+            drag.x1 = Math.max(v.L, Math.min(v.L+v.W, p.x))
+            drag.y1 = Math.max(v.T, Math.min(v.T+v.H, p.y))
+            draw_trajectories()                              // redessine le graphe...
+            var ctx = cv.getContext('2d')                    // ...puis le rectangle de sélection par-dessus
+            var x=Math.min(drag.x0,drag.x1), y=Math.min(drag.y0,drag.y1), w=Math.abs(drag.x1-drag.x0), h=Math.abs(drag.y1-drag.y0)
+            ctx.save(); ctx.fillStyle='rgba(0,119,255,0.12)'; ctx.strokeStyle='#0077ff'; ctx.lineWidth=1
+            ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h); ctx.restore()
+      })
+      function finish(){
+            if (!drag){ return }
+            var v = traj_view[key]
+            var x0=Math.min(drag.x0,drag.x1), x1=Math.max(drag.x0,drag.x1)
+            var y0=Math.min(drag.y0,drag.y1), y1=Math.max(drag.y0,drag.y1)
+            drag = null
+            if (v && (x1-x0)>4 && (y1-y0)>4){                 // ignore les clics/micro-rectangles
+                  var a0 = v.a0 + (x0-v.L)/v.W*(v.a1-v.a0)
+                  var a1 = v.a0 + (x1-v.L)/v.W*(v.a1-v.a0)
+                  var b1 = v.b0 + (1-(y0-v.T)/v.H)*(v.b1-v.b0)   // haut de l'écran -> grande valeur
+                  var b0 = v.b0 + (1-(y1-v.T)/v.H)*(v.b1-v.b0)
+                  traj_zoom[key] = { a0:a0, a1:a1, b0:b0, b1:b1 }
+            }
+            draw_trajectories()
+      }
+      cv.addEventListener('mouseup', finish)
+      cv.addEventListener('mouseleave', finish)
+      cv.addEventListener('dblclick', function(){ traj_zoom[key]=null; draw_trajectories() })   // reset zoom de ce graphe
+}
+
+function setup_traj_zoom(){                                 // idempotent : attache les handlers une seule fois
+      if (_traj_zoom_setup){ return }
+      _traj_zoom_setup = true
+      _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd')
+}
+
 function draw_trajectories(){
 
+      setup_traj_zoom()
       var t = tracked_objects()
 
-      //---- fenêtre 1 : trajectoires (projection x-y, échelle isotrope) ----
+      //---- fenêtre 1 : trajectoires (projection x-y, échelle isotrope si pas de zoom) ----
       var cv = document.getElementById('traj_canvas')
       if (cv){
             var ctx = cv.getContext('2d'), W = cv.width, H = cv.height
@@ -1199,10 +1346,16 @@ function draw_trajectories(){
                   var lx=tr.x[n-1], ly=tr.y[n-1]                 // toujours inclure le dernier point
                   if(lx<xmin)xmin=lx; if(lx>xmax)xmax=lx; if(ly<ymin)ymin=ly; if(ly>ymax)ymax=ly }
             if (npts>0){
-                  var span=Math.max((xmax-xmin)||1,(ymax-ymin)||1)
-                  var cxx=(xmin+xmax)/2, cyy=(ymin+ymax)/2, pad=10, S=(Math.min(W,H)-2*pad)/(span*1.1)
-                  var PX=function(x){ return W/2 + (x-cxx)*S }
-                  var PY=function(y){ return H/2 - (y-cyy)*S }
+                  var dom
+                  if (traj_zoom.xy){ dom = traj_zoom.xy }
+                  else { var cxx=(xmin+xmax)/2, cyy=(ymin+ymax)/2, half=Math.max((xmax-xmin)||1,(ymax-ymin)||1)*0.55
+                        dom = { a0:cxx-half, a1:cxx+half, b0:cyy-half, b1:cyy+half } }   // domaine carré -> isotrope
+                  var pad=10, side=Math.min(W,H)-2*pad, L=(W-side)/2, T=(H-side)/2, PW=side, PH=side
+                  traj_view.xy = { L:L, T:T, W:PW, H:PH, a0:dom.a0, a1:dom.a1, b0:dom.b0, b1:dom.b1 }
+                  var PX=function(x){ return L + (x-dom.a0)/((dom.a1-dom.a0)||1)*PW }
+                  var PY=function(y){ return T + (1-(y-dom.b0)/((dom.b1-dom.b0)||1))*PH }
+                  ctx.strokeStyle='#ddd'; ctx.lineWidth=1; ctx.strokeRect(L,T,PW,PH)   // cadre de la zone de tracé
+                  ctx.save(); ctx.beginPath(); ctx.rect(L,T,PW,PH); ctx.clip()          // n'affiche que l'intérieur (utile en zoom)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.x.length<2)continue
                         var n=tr.x.length, st=traj_stride(n), col=traj_color(t[i])
                         ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath()
@@ -1212,7 +1365,49 @@ function draw_trajectories(){
                         ctx.stroke()
                         ctx.fillStyle=col; ctx.beginPath(); ctx.arc(PX(tr.x[n-1]),PY(tr.y[n-1]),3,0,2*Math.PI); ctx.fill()
                   }
-            }
+                  ctx.restore()
+            } else { traj_view.xy = null }
+      }
+
+      //---- fenêtre z(t) : altitude z vs temps (index d'échantillon) ----
+      var cvz = document.getElementById('z_canvas')
+      if (cvz){
+            var cz = cvz.getContext('2d'), Wz=cvz.width, Hz=cvz.height
+            cz.clearRect(0,0,Wz,Hz)
+            var nz=0, zmax=0                                 // axe y calé sur 0 (zmin = 0)
+            for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.z||!tr.z.length)continue
+                  if(tr.z.length>nz)nz=tr.z.length
+                  var n=tr.z.length, st=traj_stride(n)
+                  for(var k=0;k<n;k+=st){ if(tr.z[k]>zmax)zmax=tr.z[k] }
+                  if(tr.z[n-1]>zmax)zmax=tr.z[n-1] }
+            if (nz>1 && zmax>0){
+                  var dz = traj_zoom.z || { a0:0, a1:nz-1, b0:0, b1:zmax }
+                  var zL=46, zT=6, zB=6, zR=4, L=zL, T=zT, PW=Wz-zL-zR, PH=Hz-zT-zB
+                  traj_view.z = { L:L, T:T, W:PW, H:PH, a0:dz.a0, a1:dz.a1, b0:dz.b0, b1:dz.b1 }
+                  var ZX=function(k){ return L + (k-dz.a0)/((dz.a1-dz.a0)||1)*PW }
+                  var ZY=function(v){ return T + (1-(v-dz.b0)/((dz.b1-dz.b0)||1))*PH }
+                  cz.font='10px sans-serif'; cz.fillStyle='#666'; cz.textAlign='right'; cz.textBaseline='middle'
+                  for (var g=0;g<=4;g++){ var v=dz.b0+(dz.b1-dz.b0)*g/4, y=ZY(v); cz.strokeStyle='#eee'; cz.lineWidth=1
+                        cz.beginPath(); cz.moveTo(L,y); cz.lineTo(L+PW,y); cz.stroke(); cz.fillText(fmt_energy(v),L-4,y) }
+                  cz.save(); cz.beginPath(); cz.rect(L,T,PW,PH); cz.clip()
+                  for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.z||tr.z.length<2)continue
+                        var n=tr.z.length, st=traj_stride(n), col=traj_color(t[i])
+                        //--- z(t)
+                        cz.strokeStyle=col; cz.lineWidth=1.5; cz.beginPath()
+                        var first=true
+                        for (var k=0;k<n;k+=st){ var X=ZX(k),Y=ZY(tr.z[k]); if(first){cz.moveTo(X,Y);first=false}else cz.lineTo(X,Y) }
+                        cz.lineTo(ZX(n-1),ZY(tr.z[n-1]))         // dernier point
+                        cz.stroke()
+                        //--- moyenne ⟨z⟩ depuis le reset : trait horizontal pointillé
+                        if (tr.zcount > 0){
+                              var yzmean=ZY(tr.zsum/tr.zcount)
+                              cz.strokeStyle=col; cz.lineWidth=1; cz.setLineDash([4,3])
+                              cz.beginPath(); cz.moveTo(L,yzmean); cz.lineTo(L+PW,yzmean); cz.stroke()
+                              cz.setLineDash([])
+                        }
+                  }
+                  cz.restore()
+            } else { traj_view.z = null }
       }
 
       //---- fenêtre 2 : MSD |r-r0|² vs temps (index d'échantillon) ----
@@ -1227,12 +1422,15 @@ function draw_trajectories(){
                   for(var k=0;k<n;k+=st){ if(tr.msd[k]>vmaxm)vmaxm=tr.msd[k] }
                   if(tr.msd[n-1]>vmaxm)vmaxm=tr.msd[n-1] }
             if (nmax>1 && vmaxm>0){
-                  var ML=46, MT=6, MB=6, plotW=W2-ML-4, plotH=H2-MT-MB
-                  var MX=function(k){ return ML + k/(nmax-1)*plotW }
-                  var MY=function(v){ return MT + (1 - v/vmaxm)*plotH }
+                  var dm = traj_zoom.msd || { a0:0, a1:nmax-1, b0:0, b1:vmaxm }
+                  var ML=46, MT=6, MB=6, MR=4, L=ML, T=MT, PW=W2-ML-MR, PH=H2-MT-MB
+                  traj_view.msd = { L:L, T:T, W:PW, H:PH, a0:dm.a0, a1:dm.a1, b0:dm.b0, b1:dm.b1 }
+                  var MX=function(k){ return L + (k-dm.a0)/((dm.a1-dm.a0)||1)*PW }
+                  var MY=function(v){ return T + (1-(v-dm.b0)/((dm.b1-dm.b0)||1))*PH }
                   c2.font='10px sans-serif'; c2.fillStyle='#666'; c2.textAlign='right'; c2.textBaseline='middle'
-                  for (var g=0;g<=4;g++){ var v=vmaxm*g/4, y=MY(v); c2.strokeStyle='#eee'; c2.lineWidth=1
-                        c2.beginPath(); c2.moveTo(ML,y); c2.lineTo(W2-4,y); c2.stroke(); c2.fillText(fmt_energy(v),ML-4,y) }
+                  for (var g=0;g<=4;g++){ var v=dm.b0+(dm.b1-dm.b0)*g/4, y=MY(v); c2.strokeStyle='#eee'; c2.lineWidth=1
+                        c2.beginPath(); c2.moveTo(L,y); c2.lineTo(L+PW,y); c2.stroke(); c2.fillText(fmt_energy(v),L-4,y) }
+                  c2.save(); c2.beginPath(); c2.rect(L,T,PW,PH); c2.clip()
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.msd.length<2)continue
                         var n=tr.msd.length, st=traj_stride(n)
                         c2.strokeStyle=traj_color(t[i]); c2.lineWidth=1.5; c2.beginPath()
@@ -1241,7 +1439,8 @@ function draw_trajectories(){
                         c2.lineTo(MX(n-1),MY(tr.msd[n-1]))        // dernier point
                         c2.stroke()
                   }
-            }
+                  c2.restore()
+            } else { traj_view.msd = null }
       }
 
 }
