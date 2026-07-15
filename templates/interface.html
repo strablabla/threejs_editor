@@ -63,6 +63,13 @@ function bs_prompt(title, message, defaultValue, onOk){
 <!-- Histogramme d'altitude : nombre de particules vs z (toggle "altitude histogram" dans Monitoring) -->
 <div id="altitude_hist_box" style="display:none; position:fixed; top:70px; right:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_altitude_hist" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Altitude</b> <span style="color:#888">(N vs z)</span></div>
+  <!-- Objets comptés : « all » ou une seule couleur (options peuplées par refresh_alt_color_options) -->
+  <div style="margin-bottom:4px; display:flex; gap:4px; align-items:center">
+    <span style="color:#888">objets&nbsp;:</span>
+    <select id="alt_color_sel" style="flex:1; min-width:0; font-family:monospace" title="ne compter que les objets de cette couleur">
+      <option value="all">all</option>
+    </select>
+  </div>
   <canvas id="altitude_hist" width="220" height="240" style="display:block; background:#fafafa"></canvas>
   <div style="margin-top:4px; display:flex; gap:4px; align-items:center">
     <span style="color:#888">N(z)&nbsp;≈</span>
@@ -82,7 +89,10 @@ function bs_prompt(title, message, defaultValue, onOk){
       <button type="button" class="traj_mode_btn" data-mode="msd" style="font-size:10px; cursor:pointer">MSD</button>
     </span>
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
+    <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause)">t = 0.0 u.a.</span>
     <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
+    <!-- Couleurs tracées : une case par couleur suivie (peuplées par refresh_traj_color_filters) -->
+    <div id="traj_color_filters" style="margin-top:3px"></div>
   </div>
   <div id="traj_xy_wrap">
     <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
@@ -163,6 +173,30 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top).append($rng); $f.append($row)
   }
+  // Types « boîte » (parallélépipèdes) : seuls objets dont la rotation autour de z est visible/utile.
+  // (il n'existe pas de type 'cube' : tous passent par simple_parallelepiped)
+  var BOXY_TYPES = ['simple_cube', 'cube_mult_tex', 'pavement', 'square_pillar', 'wall', 'wall_box']
+  function rotz_row($f, obj){                                  // rotation autour de la verticale (z), en degrés
+        var $row = $('<div style="margin:6px 0">')
+        var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
+        function deg(){ return Math.round(obj.rotation.z * 180 / Math.PI) }
+        var $val = $('<span style="min-width:34px; text-align:right">').text(deg() + '°')
+        $top.append($('<span>').text('rotation z')).append($val)
+        var $rng = $('<input type="range" min="-180" max="180" step="1" style="width:100%">').val(deg())
+        $rng.on('input change', function(){
+              var a = parseFloat($rng.val()); if (isNaN(a)){ return }
+              $val.text(Math.round(a) + '°')
+              obj.rotation.z = a * Math.PI / 180
+              if (obj.orientation){                            // vecteur de rebond dérivé de l'angle (parois de boîte, murs)
+                    obj.orientation.x = Math.cos(obj.rotation.z)
+                    obj.orientation.y = Math.sin(obj.rotation.z)
+              }
+        })
+        // persiste (pos.json) au relâchement : le mouseup local est stoppé plus bas
+        $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
+        $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+        $row.append($top).append($rng); $f.append($row)
+  }
   function ctx_tab_bar($f, tabs){                              // barre d'onglets + panneaux, scopée à ce menu
         var $bar = $('<div style="display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid #ddd">')
         var pane = {}
@@ -213,6 +247,7 @@ function bs_prompt(title, message, defaultValue, onOk){
         num_row($A, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
         if (obj.material && obj.material.color){ color_row($A, obj, applyAll) }   // couleur de l'objet
         if (obj.type === 'sphere'){ radius_row($A, obj, applyAll) }               // rayon réel
+        if (BOXY_TYPES.indexOf(obj.type) >= 0){ rotz_row($A, obj) }               // cube/pavé : rotation autour de la verticale
 
         // --- Dynamics : vitesse (vx/vy/vz), friction, radius_interact ---
         if (obj.speed){                                        // vitesse (composantes) — objets mobiles

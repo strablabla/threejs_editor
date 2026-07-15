@@ -94,6 +94,18 @@ traj_show = { xy:true, z:false, msd:true }   // tracés visibles dans la fenêtr
 z_means_only = false        // z(t) : n'afficher que les moyennes ⟨z⟩ (masque les courbes z(t))
 show_altitude_hist = false  // affichage de l'histogramme nombre de particules vs altitude (Monitoring)
 show_speeds = false         // flèches 3D de vitesse sur chaque objet mobile (onglet Initial speeds)
+alt_color_filter = 'all'    // histogramme d'altitude : 'all' ou '#rrggbb' — ne compte que les objets de cette couleur
+                            // (les cases couleur des trajectoires n'ont pas d'état propre : elles reflètent
+                            //  directement obj.track_trajectory, cf. refresh_traj_color_filters)
+sim_time = 0                // temps de simulation écoulé (u.a.) depuis le dernier reset des trajectoires ; se fige à la pause
+
+//---------------------- Déplacement vertical (double-clic sur un objet)
+
+vdrag_obj = null            // objet en mode altitude (null = mode inactif)
+vdrag_plane = null          // plan vertical : repère visuel ET support de projection de la souris
+vdrag_dragging = false      // un glisser vertical est en cours
+vdrag_z0 = 0                // z de l'objet au moment de la prise
+vdrag_hit_z0 = 0            // z du point d'accroche sur le plan (drag relatif -> pas de saut au clic)
 
 //------------
 

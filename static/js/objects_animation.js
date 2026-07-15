@@ -1099,6 +1099,31 @@ function draw_speed_panels(){                                 // les deux aperç
       draw_panel_angle_hist()
 }
 
+//===================================================================== Couleurs (filtres de suivi)
+
+function obj_hex(obj){
+
+      /*
+      Couleur RÉELLE d'un objet, en '#rrggbb'.
+      On lit currentHex et non material.color : ce dernier est écrasé temporairement par les
+      surbrillances (jaune = plus proche, vert = cliqué, orange = piqué, violet = groupe).
+      */
+
+      var hex = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
+      return '#' + ('000000' + hex.toString(16)).slice(-6)
+
+}
+
+function distinct_colors(list){                               // couleurs distinctes présentes, triées (ordre stable d'une frame à l'autre)
+      var seen = {}, out = []
+      for (var i=0;i<list.length;i++){
+            var h = obj_hex(list[i])
+            if (!seen[h]){ seen[h] = true; out.push(h) }
+      }
+      out.sort()
+      return out
+}
+
 //===================================================================== Histogramme d'altitude
 
 var ALT_HIST_BINS = 24                                        // nombre de tranches d'altitude
@@ -1128,15 +1153,59 @@ function request_altitude_fit(expr){
        .fail(function(){ $('#altitude_fit_err').text('serveur injoignable') })
 }
 
-function collect_altitudes(){                                 // z des objets massifs mobiles (mêmes exclusions que l'énergie cinétique)
-      var zs = []
+function altitude_objects(){                                  // objets massifs mobiles (mêmes exclusions que l'énergie cinétique)
+      var a = []
       for (var i in list_moving_objects){
             var obj = list_moving_objects[i]
             if (obj.blocked){ continue }
             if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
-            zs.push(obj.position.z)
+            a.push(obj)
+      }
+      return a
+}
+
+function collect_altitudes(){                                 // z des objets retenus, filtrés par le select de couleur du panneau
+      var a = altitude_objects(), zs = []
+      for (var i=0;i<a.length;i++){
+            if (alt_color_filter !== 'all' && obj_hex(a[i]) !== alt_color_filter){ continue }
+            zs.push(a[i].position.z)
       }
       return zs
+}
+
+var _alt_colors_sig = null                                    // signature des couleurs présentes -> ne reconstruit le <select> que si elle change
+
+function refresh_alt_color_options(){
+
+      /*
+      Peuple le select de couleurs (« all » + une entrée par couleur présente).
+      Appelé à chaque frame depuis draw_altitude_hist : on compare une signature avant de toucher au
+      DOM, sinon on détruirait le menu 60 fois par seconde (impossible à ouvrir).
+      */
+
+      var sel = document.getElementById('alt_color_sel')
+      if (!sel){ return }
+      var a = altitude_objects()
+      var cols = distinct_colors(a)
+      var counts = {}
+      for (var i=0;i<a.length;i++){ var h = obj_hex(a[i]); counts[h] = (counts[h] || 0) + 1 }
+      var sig = cols.map(function(h){ return h + ':' + counts[h] }).join(',')
+      if (sig === _alt_colors_sig){ return }
+      _alt_colors_sig = sig
+      if (alt_color_filter !== 'all' && cols.indexOf(alt_color_filter) < 0){ alt_color_filter = 'all' }  // la couleur filtrée a disparu
+      while (sel.firstChild){ sel.removeChild(sel.firstChild) }
+      var o = document.createElement('option')
+      o.value = 'all'; o.textContent = 'all (' + a.length + ')'
+      sel.appendChild(o)
+      for (var i=0;i<cols.length;i++){
+            o = document.createElement('option')
+            o.value = cols[i]
+            o.textContent = cols[i] + '  (' + counts[cols[i]] + ')'   // le hex seul est illisible : on donne l'effectif
+            o.style.background = cols[i]                      // pastille : l'option prend la couleur qu'elle désigne
+            sel.appendChild(o)
+      }
+      sel.value = alt_color_filter
+
 }
 
 function draw_altitude_hist(){
@@ -1149,6 +1218,7 @@ function draw_altitude_hist(){
       if (!show_altitude_hist){ return }
       var cv = document.getElementById('altitude_hist')
       if (!cv){ return }
+      refresh_alt_color_options()                             // met à jour le select si les couleurs de la scène ont changé
       var ctx = cv.getContext('2d')
       var W = cv.width, H = cv.height
       ctx.clearRect(0, 0, W, H)
@@ -1175,7 +1245,8 @@ function draw_altitude_hist(){
       for (var b=0;b<ALT_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
       if (cmax <= 0){ cmax = 1 }
       //--- géométrie : altitude en Y (haut = zmax), comptage en X (barres horizontales)
-      var ML = 46, MT = 6, MB = 16, MR = 6
+      //    ML laisse la place aux graduations + au titre « z » ; MB aux bornes + au titre « N »
+      var ML = 56, MT = 6, MB = 30, MR = 6
       var plotW = W - ML - MR, plotH = H - MT - MB
       //--- axe Y : graduations d'altitude (haut = zmax, bas = zmin)
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
@@ -1210,6 +1281,16 @@ function draw_altitude_hist(){
       ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
       ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
       ctx.textAlign = 'right'; ctx.fillText(cmax, W - MR, MT + plotH + 3)
+      //--- noms des axes : z (altitude, vertical) et N (comptage, horizontal)
+      ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#333'
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+      ctx.fillText('N', ML + plotW / 2, MT + plotH + 15)      // sous les bornes 0/cmax
+      ctx.save()                                              // « z » écrit verticalement le long de l'axe des altitudes
+      ctx.translate(9, MT + plotH / 2)
+      ctx.rotate(-Math.PI / 2)
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillText('z', 0, 0)
+      ctx.restore()
 
 }
 
@@ -1217,15 +1298,112 @@ function draw_altitude_hist(){
 
 var TRAJ_MAX = 200000                                       // échantillons max par trajectoire (borne mémoire, ~1h @60fps)
 var TRAJ_DRAW_MAX = 2000                                    // points max tracés par courbe (décimation -> rendu rapide)
-function traj_color(obj){                                   // couleur RÉELLE de la boule (currentHex = teinte hors surbrillance)
-      var hex = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
-      return '#' + ('000000' + hex.toString(16)).slice(-6)
-}
+function traj_color(obj){ return obj_hex(obj) }             // couleur RÉELLE de la boule (currentHex = teinte hors surbrillance)
 
 function tracked_objects(){                                 // objets dont la trajectoire est suivie
       var a = []
       for (var k in objects){ if (objects[k] && objects[k].track_trajectory){ a.push(objects[k]) } }
       return a
+}
+
+function traj_candidate_objects(){
+
+      /*
+      Objets qu'on peut proposer au suivi : les objets mobiles (mêmes exclusions que l'altitude)
+      + tout objet DÉJÀ suivi via le menu contextuel, même s'il n'est pas mobile (cube, paroi...),
+      pour que sa couleur apparaisse quand même dans la liste et reste décochable.
+      */
+
+      var a = altitude_objects()
+      var t = tracked_objects()
+      for (var i=0;i<t.length;i++){ if (a.indexOf(t[i]) < 0){ a.push(t[i]) } }
+      return a
+
+}
+
+function color_is_tracked(hex){                             // au moins un objet de cette couleur est-il suivi ?
+      var a = traj_candidate_objects()
+      for (var i=0;i<a.length;i++){
+            if (obj_hex(a[i]) === hex && a[i].track_trajectory){ return true }
+      }
+      return false
+}
+
+function set_track_by_color(hex, on){
+
+      /*
+      Active/coupe le suivi de TOUS les objets d'une couleur — c'est l'action des cases à cocher
+      de la fenêtre Trajectories : on choisit les objets à suivre par leur couleur.
+      */
+
+      var a = traj_candidate_objects(), n = 0
+      for (var i=0;i<a.length;i++){
+            if (obj_hex(a[i]) !== hex){ continue }
+            a[i].track_trajectory = on
+            if (on){ reset_trajectory(a[i]) } else { a[i].traj = null }
+            n++
+      }
+      return n
+
+}
+
+var _traj_colors_sig = null                                 // signature (couleurs + état coché) -> ne reconstruit les cases que si elle change
+
+function refresh_traj_color_filters(){
+
+      /*
+      Une case à cocher par couleur présente dans la scène : cocher = suivre les objets de cette
+      couleur. On compare une signature avant de toucher au DOM (ce code tourne à chaque frame :
+      recréer les cases en continu les rendrait impossibles à cliquer).
+      La signature inclut l'état coché -> la case reste synchro si le suivi est changé ailleurs
+      (case « trajectory » du menu clic droit).
+      */
+
+      var box = document.getElementById('traj_color_filters')
+      if (!box){ return }
+      var a = traj_candidate_objects()
+      var cols = distinct_colors(a)
+      var counts = {}, tracked = {}
+      for (var i=0;i<a.length;i++){
+            var h = obj_hex(a[i])
+            counts[h] = (counts[h] || 0) + 1
+            if (a[i].track_trajectory){ tracked[h] = true }
+      }
+      var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] }).join(',')
+      if (sig === _traj_colors_sig){ return }
+      _traj_colors_sig = sig
+      $(box).empty()
+      if (!cols.length){
+            $(box).append($('<span style="color:#999">').text('aucun objet dans la scène'))
+            return
+      }
+      $(box).append($('<span style="color:#888; margin-right:3px">').text('suivre :'))
+      for (var i=0;i<cols.length;i++){
+            (function(hex){
+                  var $cb = $('<input type="checkbox">').prop('checked', !!tracked[hex])
+                  $cb.on('change', function(){
+                        set_track_by_color(hex, $cb.is(':checked'))
+                        this.blur()                                     // rend le focus clavier à la scène (le raccourci 'x' reste actif)
+                        _traj_colors_sig = null                         // l'état coché a changé -> laisser les cases se resynchroniser
+                        draw_trajectories()
+                  })
+                  // TrackballControls écoute le mousedown sur DOCUMENT et l'annule (cf. le select d'altitude) :
+                  // on isole la case pour qu'un clic reste un clic normal et ne fasse pas pivoter la caméra.
+                  $cb.on('mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+                  var $sw = $('<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; vertical-align:middle; margin:0 2px">')
+                              .css('background', hex)
+                  $(box).append($('<label style="cursor:pointer; margin-right:7px; white-space:nowrap">')
+                        .append($cb).append($sw)
+                        .append($('<span style="color:#888">').text(counts[hex]))
+                        .attr('title', hex + ' — ' + counts[hex] + ' objet(s)'))
+            })(cols[i])
+      }
+
+}
+
+function update_traj_time(){                                // temps de simulation écoulé depuis le dernier reset / début du suivi
+      var el = document.getElementById('traj_time')
+      if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a.' }
 }
 
 // traj_show = { xy, z, msd } (bascules indépendantes) est déclaré dans scene_params.js (réglages Monitoring)
@@ -1242,6 +1420,7 @@ function reset_trajectory(obj){                             // (re)démarre l'en
 
 function reset_all_trajectories(){
       if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // repartir sur une vue auto-fit
+      sim_time = 0                                                      // le chrono repart avec les tracés (« depuis le dernier Reset »)
       var t = tracked_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }
 }
 
@@ -1330,6 +1509,8 @@ function setup_traj_zoom(){                                 // idempotent : atta
 function draw_trajectories(){
 
       setup_traj_zoom()
+      refresh_traj_color_filters()                              // cases à cocher : couleurs à suivre
+      update_traj_time()
       var t = tracked_objects()
 
       //---- fenêtre 1 : trajectoires (projection x-y, échelle isotrope si pas de zoom) ----
@@ -1814,7 +1995,8 @@ function animate_physics(){
             var delta = ( time - prevTime ) / 100;
             if (delta > MAX_PHYS_DELTA){ delta = MAX_PHYS_DELTA }  // requestAnimationFrame est gelé en arrière-plan
             interactions_and_movement(delta)                       //  -> au retour, on borne le pas au lieu d'exploser
-            prevTime = time;
+            sim_time += delta                                      // temps de simulation (u.a.) : c'est le pas physique qu'on cumule,
+            prevTime = time;                                       // donc il se fige à la pause — cohérent avec z(t) et le MSD
         }
         else{ prevTime = performance.now() }
 }

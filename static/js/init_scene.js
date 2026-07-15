@@ -395,6 +395,26 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
     return listpos
 }
 
+function json_ascii(data){
+
+    /*
+    JSON.stringify + échappement \uXXXX de TOUT caractère non-ASCII.
+
+    Indispensable : python-engineio 3.x décode le transport *polling* en latin-1. Un « è » (U+00E8)
+    émis en clair revient donc en « Ã¨ » — et comme socket.io démarre TOUJOURS en polling avant de
+    basculer en websocket, l'auto-save qui suit le chargement de la page tombait dans ce trou et
+    ajoutait UNE couche de mojibake à CHAQUE ouverture de l'appli (« Archimède » -> « ArchimÃ¨de »
+    -> « ArchimÃÂ¨de » -> ...). En n'envoyant que de l'ASCII, le transport n'a plus rien à
+    corrompre ; \uXXXX est du JSON valide, json.loads() côté serveur restitue les vrais caractères.
+    (Le sens serveur -> client est déjà sûr : python-socketio sérialise avec ensure_ascii=True.)
+    */
+
+    return JSON.stringify(data).replace(/[\u0080-\uffff]/g, function(c){
+          return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4)
+    })
+
+}
+
 function emit_infos_scene(archive_name){          									// emits the positions toward the server to save them
 
     /*
@@ -499,6 +519,7 @@ function init() {
   renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
   renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
   renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+  init_vertical_drag();       // plan vertical + double-clic (mode altitude) — après renderer : a besoin de domElement
 
   //------------------
 

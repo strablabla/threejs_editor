@@ -36,6 +36,7 @@ function onDocumentMouseMove( event ) {
       */
 
       if (poscam_dragging){ poscam_update(event); return }   // glisser « position caméra » (touche k) : flèche + pointillés
+      if (vdrag_dragging){ vdrag_mouse_move(event); return } // mode altitude (double-clic) : seul z suit la souris
       var raycaster = make_raycaster(event)
       if (new_select_ok){ refresh_dotted_area() } // refresh the dotted line
       if ( SELECTED ) {
@@ -56,6 +57,7 @@ function onDocumentMouseDown( event ) {
       */
 
       if ( event.button === 2 ){ return }   // clic droit -> menu contextuel seulement (pas de sélection/attrape)
+      if (vdrag_mouse_down(event)){ return }              // mode altitude : glisser vertical (pas de sélection/glisser horizontal)
       if (select_poscam){ poscam_begin(event); return }   // touche k : amorce le glisser « position caméra » (A fixé ici)
 
       var raycaster = make_raycaster(event)
@@ -74,6 +76,7 @@ function onDocumentMouseUp( event ) {
 
       event.preventDefault();
       if (poscam_dragging){ poscam_end(event); return }   // fin du glisser « position caméra » : applique la vue + nettoie
+      if (vdrag_dragging){ vdrag_mouse_up() }             // fin du glisser vertical (on reste en mode altitude) -> nettoyage commun ci-dessous
       controls.enabled = true;
       if (dragging_box){ box_drag_end() }       // fin de déplacement d'une boîte -> persiste
       if (nearest_elem){ magnet_between_objects(nearest_elem) }  // attraction between walls.. by the sides..

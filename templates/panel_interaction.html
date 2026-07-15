@@ -364,6 +364,19 @@
               $('#altitude_hist_box').hide()
         }
     })
+    // Filtre de couleur : ne compter que les objets d'une couleur (« all » = tous).
+    // Les options sont (re)peuplées par refresh_alt_color_options() depuis draw_altitude_hist.
+    $('#alt_color_sel').on('change', function(){
+        alt_color_filter = this.value
+        this.blur()                                        // un <select> gardé au focus capte les raccourcis de scène (typeahead : « x »…)
+        if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }   // dessin immédiat, sans attendre l'animation
+    })
+    // INDISPENSABLE pour que la liste déroulante s'ouvre : TrackballControls est construit sans domElement
+    // (init_scene.js) -> il s'attache à DOCUMENT et fait preventDefault() sur CHAQUE mousedown de la page.
+    // Or ouvrir un <select> est justement l'action par défaut du mousedown : sans ce stopPropagation,
+    // l'événement remonte jusqu'à lui et le menu ne s'ouvre jamais. Même parade que le champ « fit ».
+    $('#alt_color_sel').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+
     // Ajustement Python de N(z) : bouton "fit" ou Entrée dans le champ
     // Après validation, on DÉFOCALISE le champ -> le clavier repart à la scène.
     $('#altitude_fit_btn').on('click', function(){
