@@ -97,15 +97,16 @@ show_speeds = false         // flèches 3D de vitesse sur chaque objet mobile (o
 alt_color_filter = 'all'    // histogramme d'altitude : 'all' ou '#rrggbb' — ne compte que les objets de cette couleur
                             // (les cases couleur des trajectoires n'ont pas d'état propre : elles reflètent
                             //  directement obj.track_trajectory, cf. refresh_traj_color_filters)
+traj_colors_open = true     // trajectoires : liste dépliable des couleurs à suivre — dépliée ou repliée
 sim_time = 0                // temps de simulation écoulé (u.a.) depuis le dernier reset des trajectoires ; se fige à la pause
 
-//---------------------- Déplacement vertical (double-clic sur un objet)
+//---------------------- Déplacement dans un plan vertical (double-clic sur un objet)
 
-vdrag_obj = null            // objet en mode altitude (null = mode inactif)
+vdrag_obj = null            // objet en mode plan vertical (null = mode inactif)
 vdrag_plane = null          // plan vertical : repère visuel ET support de projection de la souris
-vdrag_dragging = false      // un glisser vertical est en cours
-vdrag_z0 = 0                // z de l'objet au moment de la prise
-vdrag_hit_z0 = 0            // z du point d'accroche sur le plan (drag relatif -> pas de saut au clic)
+vdrag_dragging = false      // un glisser est en cours
+vdrag_pos0 = null           // position de l'objet au moment de la prise (Vector3)
+vdrag_hit0 = null           // point d'accroche sur le plan (Vector3) — glisser relatif : pas de saut au clic
 
 //------------
 

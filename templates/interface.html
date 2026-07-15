@@ -91,8 +91,19 @@ function bs_prompt(title, message, defaultValue, onOk){
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
     <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause)">t = 0.0 u.a.</span>
     <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
-    <!-- Couleurs tracées : une case par couleur suivie (peuplées par refresh_traj_color_filters) -->
-    <div id="traj_color_filters" style="margin-top:3px"></div>
+    <!-- Couleurs à suivre : panneau dépliable + défilable (peuplé par refresh_traj_color_filters).
+         En grille plutôt qu'en ligne : une scène peut compter beaucoup de couleurs distinctes. -->
+    <div id="traj_colors_wrap" style="margin-top:3px">
+      <div id="traj_colors_toggle" title="afficher / masquer la liste des couleurs"
+           style="cursor:pointer; user-select:none; -webkit-user-select:none; color:#555">
+        <span id="traj_colors_caret">▾</span> <b>suivre par couleur</b>
+        <span id="traj_colors_count" style="color:#888; font-weight:normal"></span>
+      </div>
+      <div id="traj_color_filters"
+           style="max-height:104px; overflow-y:auto; border:1px solid #ddd; border-radius:3px;
+                  padding:3px 4px; margin-top:2px; display:grid; gap:1px 4px;
+                  grid-template-columns:repeat(auto-fill, minmax(56px, 1fr))"></div>
+    </div>
   </div>
   <div id="traj_xy_wrap">
     <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
@@ -176,7 +187,7 @@ function bs_prompt(title, message, defaultValue, onOk){
   // Types « boîte » (parallélépipèdes) : seuls objets dont la rotation autour de z est visible/utile.
   // (il n'existe pas de type 'cube' : tous passent par simple_parallelepiped)
   var BOXY_TYPES = ['simple_cube', 'cube_mult_tex', 'pavement', 'square_pillar', 'wall', 'wall_box']
-  function rotz_row($f, obj){                                  // rotation autour de la verticale (z), en degrés
+  function rotz_row($f, obj, applyAll){                        // rotation autour de la verticale (z), en degrés
         var $row = $('<div style="margin:6px 0">')
         var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
         function deg(){ return Math.round(obj.rotation.z * 180 / Math.PI) }
@@ -186,11 +197,13 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('input change', function(){
               var a = parseFloat($rng.val()); if (isNaN(a)){ return }
               $val.text(Math.round(a) + '°')
-              obj.rotation.z = a * Math.PI / 180
-              if (obj.orientation){                            // vecteur de rebond dérivé de l'angle (parois de boîte, murs)
-                    obj.orientation.x = Math.cos(obj.rotation.z)
-                    obj.orientation.y = Math.sin(obj.rotation.z)
-              }
+              applyAll(function(t){                            // cet objet, ou tous ceux de même type+couleur si "all"
+                    t.rotation.z = a * Math.PI / 180
+                    if (t.orientation){                        // vecteur de rebond dérivé de l'angle (parois de boîte, murs)
+                          t.orientation.x = Math.cos(t.rotation.z)
+                          t.orientation.y = Math.sin(t.rotation.z)
+                    }
+              })
         })
         // persiste (pos.json) au relâchement : le mouseup local est stoppé plus bas
         $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
@@ -223,20 +236,42 @@ function bs_prompt(title, message, defaultValue, onOk){
         tabs.forEach(function(t){ $f.append(pane[t[0]]) })
         return pane
   }
+  function same_type_and_color(o){
+
+        /*
+        Objets de MÊME TYPE et MÊME COULEUR que o (o inclus) — cible de la case « all ».
+        La couleur lue est currentHex (via obj_hex) : material.color est écrasé par les surbrillances.
+        */
+
+        var hex = obj_hex(o), a = []
+        for (var k in objects){
+              var t = objects[k]
+              if (!t || t.type !== o.type){ continue }
+              if (!t.material || !t.material.color){ continue }
+              if (obj_hex(t) !== hex){ continue }
+              a.push(t)
+        }
+        return a
+
+  }
   window.show_object_context_menu = function(obj, x, y){
         $('#ctx_obj_title').text((obj.type || 'object') + ' — ' + (obj.name || ''))
         var $f = $('#ctx_obj_fields').empty()
-        // Case maîtresse "all" (sphères) : applique CHAQUE changement d'attribut à toutes les boules — au-dessus des onglets
+        // Case maîtresse "all" : applique CHAQUE changement d'attribut aux objets de même type ET même couleur.
+        // La liste est FIGÉE à l'ouverture du menu, et c'est essentiel : changer la couleur avec « all » coché
+        // repeint les cibles, donc un critère recalculé à chaque événement ne retrouverait plus personne
+        // (la couleur de référence aurait changé) et le 2e cran de la glissière ne ferait plus rien.
+        var all_targets = (obj.material && obj.material.color) ? same_type_and_color(obj) : [obj]
         var $all = null
-        if (obj.type === 'sphere'){
+        if (all_targets.length > 1){                           // inutile de proposer « all » pour un objet unique
               var $arow = $('<div style="margin:2px 0 8px; padding-bottom:6px; border-bottom:1px solid #ddd">')
               $all = $('<input type="checkbox">')
-              $arow.append($('<label style="cursor:pointer; font-weight:bold">').append($all).append(' all (appliquer à toutes les boules)'))
+              $arow.append($('<label style="cursor:pointer; font-weight:bold">').append($all)
+                    .append(' all (' + all_targets.length + ' ' + (obj.type || 'objet') + 's de cette couleur)'))
               $f.append($arow)
         }
-        function spheres(){ var a=[]; for (var k in objects){ if (objects[k].type === 'sphere'){ a.push(objects[k]) } } return a }
-        function applyAll(setter){                             // setter(cible) : cet objet, ou toutes les boules si "all" coché
-              if ($all && $all.is(':checked')){ spheres().forEach(setter) } else { setter(obj) }
+        function applyAll(setter){                             // setter(cible) : cet objet, ou tous ceux de même type+couleur si "all" coché
+              if ($all && $all.is(':checked')){ all_targets.forEach(setter) } else { setter(obj) }
         }
         // Onglets : Attributes / Dynamics / Miscellaneous
         var pane = ctx_tab_bar($f, [['attributes','Attributes'], ['dynamics','Dynamics'], ['misc','Miscellaneous']])
@@ -247,7 +282,7 @@ function bs_prompt(title, message, defaultValue, onOk){
         num_row($A, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
         if (obj.material && obj.material.color){ color_row($A, obj, applyAll) }   // couleur de l'objet
         if (obj.type === 'sphere'){ radius_row($A, obj, applyAll) }               // rayon réel
-        if (BOXY_TYPES.indexOf(obj.type) >= 0){ rotz_row($A, obj) }               // cube/pavé : rotation autour de la verticale
+        if (BOXY_TYPES.indexOf(obj.type) >= 0){ rotz_row($A, obj, applyAll) }     // cube/pavé : rotation autour de la verticale
 
         // --- Dynamics : vitesse (vx/vy/vz), friction, radius_interact ---
         if (obj.speed){                                        // vitesse (composantes) — objets mobiles

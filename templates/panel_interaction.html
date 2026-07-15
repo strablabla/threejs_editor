@@ -349,6 +349,21 @@
         reset_all_trajectories()
         draw_trajectories()
     })
+    // Liste dépliable des couleurs à suivre (grille défilable : une scène peut avoir beaucoup de couleurs)
+    if (typeof traj_colors_open === 'undefined'){ traj_colors_open = true }   // garde-fou (JS servi depuis le cache)
+    window.apply_traj_colors_open = function(){
+        $('#traj_color_filters').toggle(!!traj_colors_open)
+        $('#traj_colors_caret').text(traj_colors_open ? '▾' : '▸')
+    }
+    $('#traj_colors_toggle').on('click', function(){
+        traj_colors_open = !traj_colors_open
+        apply_traj_colors_open()
+    })
+    apply_traj_colors_open()
+    // Isole TOUTE la zone des couleurs de TrackballControls (branché sur document, il annule chaque
+    // mousedown et ferait pivoter la caméra quand on coche une case ou qu'on fait défiler la liste).
+    // On ne bloque PAS 'click' : la croix de fermeture .mon_close est un handler DÉLÉGUÉ sur document.
+    $('#traj_colors_wrap').on('mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
     // --- Monitoring : histogramme d'altitude (N vs z) ---
     $('#chk_altitude_hist').prop('checked', show_altitude_hist)

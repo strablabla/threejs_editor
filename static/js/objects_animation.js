@@ -1369,30 +1369,31 @@ function refresh_traj_color_filters(){
             counts[h] = (counts[h] || 0) + 1
             if (a[i].track_trajectory){ tracked[h] = true }
       }
+      var nsel = 0
+      for (var i=0;i<cols.length;i++){ if (tracked[cols[i]]){ nsel++ } }
       var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] }).join(',')
       if (sig === _traj_colors_sig){ return }
       _traj_colors_sig = sig
       $(box).empty()
+      $('#traj_colors_count').text('(' + cols.length + ' couleur(s)' + (nsel ? ', ' + nsel + ' suivie(s)' : '') + ')')
       if (!cols.length){
-            $(box).append($('<span style="color:#999">').text('aucun objet dans la scène'))
+            $(box).append($('<span style="color:#999; grid-column:1/-1">').text('aucun objet dans la scène'))
             return
       }
-      $(box).append($('<span style="color:#888; margin-right:3px">').text('suivre :'))
       for (var i=0;i<cols.length;i++){
             (function(hex){
-                  var $cb = $('<input type="checkbox">').prop('checked', !!tracked[hex])
+                  var $cb = $('<input type="checkbox" style="margin:0">').prop('checked', !!tracked[hex])
                   $cb.on('change', function(){
                         set_track_by_color(hex, $cb.is(':checked'))
                         this.blur()                                     // rend le focus clavier à la scène (le raccourci 'x' reste actif)
                         _traj_colors_sig = null                         // l'état coché a changé -> laisser les cases se resynchroniser
                         draw_trajectories()
                   })
-                  // TrackballControls écoute le mousedown sur DOCUMENT et l'annule (cf. le select d'altitude) :
-                  // on isole la case pour qu'un clic reste un clic normal et ne fasse pas pivoter la caméra.
-                  $cb.on('mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+                  // (l'isolation vis-à-vis de TrackballControls est posée une fois pour toutes
+                  //  sur #traj_colors_wrap, cf. panel_interaction.html — inutile de la répéter ici)
                   var $sw = $('<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; vertical-align:middle; margin:0 2px">')
                               .css('background', hex)
-                  $(box).append($('<label style="cursor:pointer; margin-right:7px; white-space:nowrap">')
+                  $(box).append($('<label style="cursor:pointer; white-space:nowrap; display:flex; align-items:center">')
                         .append($cb).append($sw)
                         .append($('<span style="color:#888">').text(counts[hex]))
                         .attr('title', hex + ' — ' + counts[hex] + ' objet(s)'))

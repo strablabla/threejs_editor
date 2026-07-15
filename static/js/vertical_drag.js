@@ -1,18 +1,21 @@
 /*
 
-Déplacement VERTICAL d'un objet (double-clic).
+Déplacement d'un objet dans un PLAN VERTICAL (double-clic).
 
 Le glisser normal projette la souris sur le plan du sol (`plane`, horizontal z=0) et garde z constant
-(voir mouse_move_interact.js). Pour régler l'altitude il faut donc un support de projection VERTICAL :
-`vdrag_plane`, un plan qui contient l'objet et la verticale, orienté face à la caméra.
+(voir mouse_move_interact.js) : impossible de changer l'altitude. D'où un second support de projection,
+VERTICAL : `vdrag_plane`, un plan qui contient l'objet et la verticale, orienté face à la caméra.
+
+Dans ce plan le déplacement est LIBRE (deux degrés de liberté) : en hauteur (z) et latéralement le long
+de la direction horizontale du plan. L'objet ne quitte jamais le plan.
 
 Cycle de vie (mode persistant) :
-      double-clic sur un objet  -> le plan apparaît, l'objet passe en mode altitude
-      glisser sur l'objet       -> son z suit la souris (x et y inchangés) ; autant de fois qu'on veut
+      double-clic sur un objet  -> le plan apparaît, l'objet passe en mode plan vertical
+      glisser sur l'objet       -> il suit la souris DANS le plan ; autant de fois qu'on veut
       Échap / 2e double-clic /  -> sortie du mode, le plan disparaît
       clic dans le vide            (+ sortie auto si l'objet est supprimé : vdrag_check_alive)
 
-L'état (vdrag_obj, vdrag_plane, vdrag_dragging, vdrag_z0, vdrag_hit_z0) est déclaré dans scene_params.js.
+L'état (vdrag_obj, vdrag_plane, vdrag_dragging, vdrag_pos0, vdrag_hit0) est déclaré dans scene_params.js.
 
 */
 
@@ -68,7 +71,7 @@ function enter_vertical_mode(obj){
 
       vdrag_obj = obj
       vdrag_orient_plane(obj)
-      container.style.cursor = 'ns-resize'
+      container.style.cursor = 'move'
 
 }
 
@@ -97,14 +100,14 @@ function vdrag_dblclick(event){
 
 }
 
-function vdrag_hit_z(raycaster){
+function vdrag_hit_point(raycaster){
 
       /*
-      z du point visé par la souris sur le plan vertical, ou null si la souris est hors du plan.
+      Point visé par la souris SUR le plan vertical (Vector3), ou null si la souris est hors du plan.
       */
 
       var hits = raycaster.intersectObject( vdrag_plane )
-      return hits.length ? hits[0].point.z : null
+      return hits.length ? hits[0].point : null
 
 }
 
@@ -125,13 +128,13 @@ function vdrag_mouse_down(event){
       vdrag_orient_plane(vdrag_obj)                         // la caméra a pu tourner depuis l'entrée dans le mode : on remet
                                                             // le plan face à elle AVANT de mesurer le point d'accroche, sinon
                                                             // un plan vu par la tranche rend le glisser inexploitable
-      var z = vdrag_hit_z(raycaster)
-      if (z === null){ return false }
+      var hit = vdrag_hit_point(raycaster)
+      if (!hit){ return false }
       vdrag_dragging = true
-      vdrag_z0 = vdrag_obj.position.z                       // glisser RELATIF : l'objet ne saute pas sous le curseur au clic
-      vdrag_hit_z0 = z
+      vdrag_pos0 = vdrag_obj.position.clone()               // glisser RELATIF : l'objet ne saute pas sous le curseur au clic
+      vdrag_hit0 = hit.clone()
       controls.enabled = false                              // le trackball ne doit pas tourner pendant le glisser
-      container.style.cursor = 'ns-resize'
+      container.style.cursor = 'move'
 
       return true
 
@@ -140,12 +143,16 @@ function vdrag_mouse_down(event){
 function vdrag_mouse_move(event){
 
       /*
-      Glisser vertical : seul z change, x et y restent ceux de l'objet.
+      Glisser LIBRE dans le plan : l'objet suit le point d'accroche, en hauteur comme latéralement.
+
+      Le déplacement appliqué est (point visé − point d'accroche). Ces deux points appartiennent au
+      MÊME plan, donc leur différence est un vecteur DU plan : l'objet glisse dans le plan vertical
+      sans jamais en sortir — sa composante le long de la normale reste rigoureusement constante.
       */
 
-      var z = vdrag_hit_z(make_raycaster(event))
-      if (z === null){ return }
-      vdrag_obj.position.z = vdrag_z0 + (z - vdrag_hit_z0)
+      var hit = vdrag_hit_point(make_raycaster(event))
+      if (!hit){ return }
+      vdrag_obj.position.copy(vdrag_pos0).add(hit.clone().sub(vdrag_hit0))   // clone : sub() modifierait le point d'intersection
 
 }
 
