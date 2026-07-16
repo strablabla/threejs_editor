@@ -360,10 +360,11 @@
         apply_traj_colors_open()
     })
     apply_traj_colors_open()
-    // Isole TOUTE la zone des couleurs de TrackballControls (branché sur document, il annule chaque
-    // mousedown et ferait pivoter la caméra quand on coche une case ou qu'on fait défiler la liste).
+    // Isole TOUTE la fenêtre de TrackballControls (branché sur document, il capte chaque mousedown et
+    // ferait pivoter la caméra quand on coche une case, qu'on fait défiler la liste ou qu'on trace un
+    // rectangle de zoom sur un graphe ; la molette au-dessus de la fenêtre zoomait la scène).
     // On ne bloque PAS 'click' : la croix de fermeture .mon_close est un handler DÉLÉGUÉ sur document.
-    $('#traj_colors_wrap').on('mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+    $('#trajectories_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
 
     // --- Monitoring : histogramme d'altitude (N vs z) ---
     $('#chk_altitude_hist').prop('checked', show_altitude_hist)

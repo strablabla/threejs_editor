@@ -120,6 +120,9 @@ function bs_prompt(title, message, defaultValue, onOk){
   </div>
 </div>
 
+<!-- Infobulle de survol des moyennes ⟨z⟩ du graphe z(t) (peuplée par show_traj_tooltip) -->
+<div id="traj_tooltip" style="display:none; position:fixed; z-index:10300; pointer-events:none; background:rgba(30,30,30,0.92); color:#fff; font-family:sans-serif; font-size:11px; line-height:1.4; padding:4px 7px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>
+
 <!-- Menu contextuel (clic droit sur un objet VERT) : attributs éditables -->
 <div id="obj_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 10px; font-family:sans-serif; font-size:12px; min-width:200px;">
   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">

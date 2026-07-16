@@ -1347,7 +1347,13 @@ function set_track_by_color(hex, on){
 
 }
 
-var _traj_colors_sig = null                                 // signature (couleurs + état coché) -> ne reconstruit les cases que si elle change
+function traj_mass_label(lo, hi){                           // « masse 1.0 », ou « masse 1.0…5.0 » si la couleur mélange des masses
+      if (lo === undefined){ return 'masse inconnue' }
+      var a = fmt_energy(lo), b = fmt_energy(hi)
+      return 'masse ' + (a === b ? a : a + '…' + b)
+}
+
+var _traj_colors_sig = null                                 // signature (couleurs + état coché + masses) -> ne reconstruit les cases que si elle change
 
 function refresh_traj_color_filters(){
 
@@ -1363,15 +1369,20 @@ function refresh_traj_color_filters(){
       if (!box){ return }
       var a = traj_candidate_objects()
       var cols = distinct_colors(a)
-      var counts = {}, tracked = {}
+      var counts = {}, tracked = {}, mmin = {}, mmax = {}
       for (var i=0;i<a.length;i++){
             var h = obj_hex(a[i])
             counts[h] = (counts[h] || 0) + 1
+            var m = a[i].mass                             // masses min/max de la couleur (une couleur peut mélanger des masses)
+            if (typeof m === 'number' && isFinite(m)){
+                  if (mmin[h] === undefined || m < mmin[h]){ mmin[h] = m }
+                  if (mmax[h] === undefined || m > mmax[h]){ mmax[h] = m }
+            }
             if (a[i].track_trajectory){ tracked[h] = true }
       }
       var nsel = 0
       for (var i=0;i<cols.length;i++){ if (tracked[cols[i]]){ nsel++ } }
-      var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] }).join(',')
+      var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] + '/' + mmin[h] + '-' + mmax[h] }).join(',')
       if (sig === _traj_colors_sig){ return }
       _traj_colors_sig = sig
       $(box).empty()
@@ -1396,7 +1407,7 @@ function refresh_traj_color_filters(){
                   $(box).append($('<label style="cursor:pointer; white-space:nowrap; display:flex; align-items:center">')
                         .append($cb).append($sw)
                         .append($('<span style="color:#888">').text(counts[hex]))
-                        .attr('title', hex + ' — ' + counts[hex] + ' objet(s)'))
+                        .attr('title', hex + ' — ' + counts[hex] + ' objet(s) — ' + traj_mass_label(mmin[hex], mmax[hex])))
             })(cols[i])
       }
 
@@ -1454,39 +1465,89 @@ Glisser = zoomer sur le rectangle ; double-clic = revenir à l'auto-fit.
 */
 var traj_zoom = { xy:null, z:null, msd:null }
 var traj_view = { xy:null, z:null, msd:null }
+var traj_drag = null                                        // rectangle en cours : {canvasId, key, x0,y0,x1,y1} (un seul glisser à la fois)
+var traj_z_means = []                                       // lignes ⟨z⟩ du dernier dessin : {y (px canvas), value, mass, color} -> infobulle de survol
 var _traj_zoom_setup = false
 
 function clear_traj_zoom(){ traj_zoom = { xy:null, z:null, msd:null } }
 
+function hide_traj_tooltip(){ var el=document.getElementById('traj_tooltip'); if(el){ el.style.display='none' } }
+
+function show_traj_tooltip(clientX, clientY, groups){
+
+      /*
+      Infobulle au survol d'une ligne de moyenne ⟨z⟩ : une entrée par (couleur, masse) survolée
+      — plusieurs particules d'une même couleur/masse partagent alors une seule ligne récapitulative
+      (moyenne des ⟨z⟩, avec ×N), sinon 2000 boules d'une couleur donneraient 2000 lignes.
+      */
+
+      var el = document.getElementById('traj_tooltip'); if (!el){ return }
+      var html = ''
+      for (var i=0;i<groups.length;i++){
+            var g = groups[i], mean = g.sum/g.count
+            html += '<div style="display:flex; align-items:center; gap:4px; white-space:nowrap">'
+                  + '<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; background:' + g.color + '"></span>'
+                  + 'masse ' + fmt_energy(g.mass) + ' — ⟨z⟩ = ' + fmt_energy(mean)
+                  + (g.count > 1 ? ' <span style="color:#bbb">(×' + g.count + ')</span>' : '')
+                  + '</div>'
+      }
+      el.innerHTML = html
+      el.style.display = 'block'
+      // positionne près du curseur, en restant dans la fenêtre (bascule à gauche/au-dessus si ça déborde)
+      var pad = 12, w = el.offsetWidth, h = el.offsetHeight
+      var x = clientX + pad; if (x + w > window.innerWidth - 4){ x = clientX - pad - w }
+      var y = clientY + pad; if (y + h > window.innerHeight - 4){ y = clientY - pad - h }
+      el.style.left = Math.max(4, x) + 'px'
+      el.style.top  = Math.max(4, y) + 'px'
+}
+
+function draw_traj_drag_rect(){
+
+      /*
+      Rectangle de sélection, dessiné À LA FIN de draw_trajectories() et pas dans le handler
+      mousemove : l'animation appelle draw_trajectories() à chaque frame, ce qui efface le canvas.
+      Peint depuis le handler, le rectangle disparaissait à la frame suivante — donc invisible.
+      */
+
+      if (!traj_drag){ return }
+      var cv = document.getElementById(traj_drag.canvasId); if (!cv){ return }
+      var ctx = cv.getContext('2d')
+      var x = Math.min(traj_drag.x0, traj_drag.x1), y = Math.min(traj_drag.y0, traj_drag.y1)
+      var w = Math.abs(traj_drag.x1-traj_drag.x0), h = Math.abs(traj_drag.y1-traj_drag.y0)
+      ctx.save(); ctx.fillStyle='rgba(0,119,255,0.12)'; ctx.strokeStyle='#0077ff'; ctx.lineWidth=1
+      ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h); ctx.restore()
+
+}
+
 function _bind_traj_zoom(canvasId, key){
       var cv = document.getElementById(canvasId); if (!cv){ return }
       cv.style.cursor = 'crosshair'
-      var drag = null
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
       cv.addEventListener('mousedown', function(e){
+            // stopPropagation : TrackballControls est branché sur document et ferait pivoter la caméra
+            // pendant le tracé du rectangle (l'isolation posée sur #trajectories_box couvre déjà ce cas,
+            // on la répète ici pour que le canvas reste sûr même hors de ce conteneur).
+            e.stopPropagation()
             var v = traj_view[key]; if (!v){ return }
             var p = pos(e)
             if (p.x<v.L || p.x>v.L+v.W || p.y<v.T || p.y>v.T+v.H){ return }   // hors zone de tracé
-            drag = { x0:p.x, y0:p.y, x1:p.x, y1:p.y }
+            traj_drag = { canvasId:canvasId, key:key, x0:p.x, y0:p.y, x1:p.x, y1:p.y }
             e.preventDefault()
       })
       cv.addEventListener('mousemove', function(e){
-            if (!drag){ return }
+            if (!traj_drag || traj_drag.key !== key){ return }
+            e.stopPropagation()
             var v = traj_view[key], p = pos(e)
-            drag.x1 = Math.max(v.L, Math.min(v.L+v.W, p.x))
-            drag.y1 = Math.max(v.T, Math.min(v.T+v.H, p.y))
-            draw_trajectories()                              // redessine le graphe...
-            var ctx = cv.getContext('2d')                    // ...puis le rectangle de sélection par-dessus
-            var x=Math.min(drag.x0,drag.x1), y=Math.min(drag.y0,drag.y1), w=Math.abs(drag.x1-drag.x0), h=Math.abs(drag.y1-drag.y0)
-            ctx.save(); ctx.fillStyle='rgba(0,119,255,0.12)'; ctx.strokeStyle='#0077ff'; ctx.lineWidth=1
-            ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h); ctx.restore()
+            traj_drag.x1 = Math.max(v.L, Math.min(v.L+v.W, p.x))
+            traj_drag.y1 = Math.max(v.T, Math.min(v.T+v.H, p.y))
+            draw_trajectories()                              // redessine le graphe + le rectangle par-dessus
       })
       function finish(){
-            if (!drag){ return }
+            if (!traj_drag || traj_drag.key !== key){ return }
             var v = traj_view[key]
-            var x0=Math.min(drag.x0,drag.x1), x1=Math.max(drag.x0,drag.x1)
-            var y0=Math.min(drag.y0,drag.y1), y1=Math.max(drag.y0,drag.y1)
-            drag = null
+            var x0=Math.min(traj_drag.x0,traj_drag.x1), x1=Math.max(traj_drag.x0,traj_drag.x1)
+            var y0=Math.min(traj_drag.y0,traj_drag.y1), y1=Math.max(traj_drag.y0,traj_drag.y1)
+            traj_drag = null
             if (v && (x1-x0)>4 && (y1-y0)>4){                 // ignore les clics/micro-rectangles
                   var a0 = v.a0 + (x0-v.L)/v.W*(v.a1-v.a0)
                   var a1 = v.a0 + (x1-v.L)/v.W*(v.a1-v.a0)
@@ -1501,10 +1562,42 @@ function _bind_traj_zoom(canvasId, key){
       cv.addEventListener('dblclick', function(){ traj_zoom[key]=null; draw_trajectories() })   // reset zoom de ce graphe
 }
 
+function _bind_traj_z_means_hover(){
+
+      /*
+      Survol des lignes ⟨z⟩ du graphe z(t) : infobulle couleur + masse + moyenne actuelle.
+      Séparé du handler de zoom (même canvas) : le zoom n'agit que pendant un glisser (traj_drag),
+      le survol que hors glisser. Regroupe les lignes proches par (couleur, masse) — cf. show_traj_tooltip.
+      */
+
+      var cv = document.getElementById('z_canvas'); if (!cv){ return }
+      var THRESH = 5                                          // distance verticale de capture (px canvas)
+      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+      cv.addEventListener('mousemove', function(e){
+            if (traj_drag){ hide_traj_tooltip(); return }     // en plein zoom -> pas d'infobulle
+            var v = traj_view.z, p = pos(e)
+            if (!v || p.x<v.L || p.x>v.L+v.W){ hide_traj_tooltip(); cv.style.cursor='crosshair'; return }
+            var groups = {}, order = []                       // regroupe les moyennes à portée par (couleur+masse)
+            for (var i=0;i<traj_z_means.length;i++){
+                  var m = traj_z_means[i]
+                  if (Math.abs(m.y - p.y) > THRESH){ continue }
+                  var key = m.color + '|' + m.mass
+                  if (!groups[key]){ groups[key] = { color:m.color, mass:m.mass, sum:0, count:0 }; order.push(key) }
+                  groups[key].sum += m.value; groups[key].count++
+            }
+            if (!order.length){ hide_traj_tooltip(); cv.style.cursor='crosshair'; return }
+            order.sort()                                       // ordre stable d'un survol à l'autre
+            show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }))
+            cv.style.cursor='pointer'
+      })
+      cv.addEventListener('mouseleave', hide_traj_tooltip)
+}
+
 function setup_traj_zoom(){                                 // idempotent : attache les handlers une seule fois
       if (_traj_zoom_setup){ return }
       _traj_zoom_setup = true
       _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd')
+      _bind_traj_z_means_hover()
 }
 
 function draw_trajectories(){
@@ -1556,6 +1649,7 @@ function draw_trajectories(){
       if (cvz){
             var cz = cvz.getContext('2d'), Wz=cvz.width, Hz=cvz.height
             cz.clearRect(0,0,Wz,Hz)
+            traj_z_means = []                                // lignes ⟨z⟩ survolables (repeuplées à chaque dessin)
             var nz=0, zmax=0                                 // axe y calé sur 0 (zmin = 0)
             for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.z||!tr.z.length)continue
                   if(tr.z.length>nz)nz=tr.z.length
@@ -1585,7 +1679,8 @@ function draw_trajectories(){
                         }
                         //--- moyenne ⟨z⟩ depuis le reset : pointillé avec la courbe, trait plein si seule affichée
                         if (tr.zcount > 0){
-                              var yzmean=ZY(tr.zsum/tr.zcount)
+                              var zmean=tr.zsum/tr.zcount, yzmean=ZY(zmean)
+                              traj_z_means.push({ y:yzmean, value:zmean, mass:t[i].mass, color:col })   // pour l'infobulle de survol
                               cz.strokeStyle=col; cz.lineWidth=1.5
                               if (!means_only){ cz.lineWidth=1; cz.setLineDash([4,3]) }
                               cz.beginPath(); cz.moveTo(L,yzmean); cz.lineTo(L+PW,yzmean); cz.stroke()
@@ -1628,6 +1723,8 @@ function draw_trajectories(){
                   c2.restore()
             } else { traj_view.msd = null }
       }
+
+      draw_traj_drag_rect()                                     // rectangle de zoom en cours, par-dessus le tracé fraîchement redessiné
 
 }
 
