@@ -89,7 +89,7 @@ function bs_prompt(title, message, defaultValue, onOk){
       <button type="button" class="traj_mode_btn" data-mode="msd" style="font-size:10px; cursor:pointer">MSD</button>
     </span>
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
-    <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause)">t = 0.0 u.a.</span>
+    <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause) — 1 u.a. = 100 ms de temps réel">t = 0.0 u.a. (0:00)</span>
     <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
     <!-- Couleurs à suivre : panneau dépliable + défilable (peuplé par refresh_traj_color_filters).
          En grille plutôt qu'en ligne : une scène peut compter beaucoup de couleurs distinctes. -->
@@ -118,6 +118,30 @@ function bs_prompt(title, message, defaultValue, onOk){
     <div style="margin:6px 0 3px;"><b>MSD</b> <span style="color:#888">|r−r₀|² vs temps</span></div>
     <canvas id="msd_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
+</div>
+
+<!-- Compte rendu : éditeur markdown léger + snapshots des graphes de trajectoires (toggle "report" dans Monitoring).
+     Déplaçable par la barre de titre. Le contenu (texte + figures PNG) est persisté dans localStorage. -->
+<div id="report_box" style="display:none; position:fixed; top:70px; left:360px; z-index:9999; width:380px; background:rgba(255,255,255,0.97); border:1px solid #888; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,0.3); font-family:sans-serif; font-size:12px;">
+  <div id="report_header" style="display:flex; align-items:center; gap:6px; padding:5px 8px; background:#2e7d32; color:#fff; border-radius:6px 6px 0 0; cursor:move; user-select:none; -webkit-user-select:none;">
+    <b style="flex:1">Compte rendu</b>
+    <button type="button" id="report_mode_btn" title="basculer édition / aperçu" style="font-size:10px; cursor:pointer">aperçu</button>
+    <span class="mon_close" data-chk="chk_report" title="fermer" style="cursor:pointer; padding-left:4px; font-size:14px; line-height:1">&times;</span>
+  </div>
+  <div id="report_toolbar" style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 8px; border-bottom:1px solid #ddd;">
+    <span style="color:#888">insérer&nbsp;:</span>
+    <button type="button" class="report_snap_btn" data-kind="xy"  title="snapshot du graphe x–y (état courant)" style="font-size:10px; cursor:pointer">＋ x–y</button>
+    <button type="button" class="report_snap_btn" data-kind="z"   title="snapshot du graphe z(t) (état courant)" style="font-size:10px; cursor:pointer">＋ z(t)</button>
+    <button type="button" class="report_snap_btn" data-kind="msd" title="snapshot du graphe MSD (état courant)" style="font-size:10px; cursor:pointer">＋ MSD</button>
+    <span style="flex:1"></span>
+    <button type="button" id="report_pdf_btn"   title="ouvrir la version imprimable (PDF via le navigateur)" style="font-size:10px; cursor:pointer">PDF</button>
+    <button type="button" id="report_clear_btn" title="effacer le compte rendu (texte + figures)" style="font-size:10px; cursor:pointer">vider</button>
+  </div>
+  <!-- Zone d'édition : textarea (édition) OU rendu (aperçu). Redimensionnable en hauteur. -->
+  <textarea id="report_md" spellcheck="false"
+            placeholder="# Titre du compte rendu&#10;&#10;Décris l'expérience ici. **gras**, *italique*, listes avec «- ».&#10;&#10;Clique « ＋ x–y / z(t) / MSD » pour insérer un graphe."
+            style="display:none; box-sizing:border-box; width:100%; height:320px; border:0; border-radius:0 0 6px 6px; padding:8px; resize:vertical; outline:none; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.45;"></textarea>
+  <div id="report_preview" style="box-sizing:border-box; width:100%; height:320px; overflow:auto; padding:10px 12px; border-radius:0 0 6px 6px; background:#fff; color:#222; line-height:1.5;"></div>
 </div>
 
 <!-- Infobulle de survol des moyennes ⟨z⟩ du graphe z(t) (peuplée par show_traj_tooltip) -->
@@ -176,7 +200,7 @@ function bs_prompt(title, message, defaultValue, onOk){
         var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
         var $val = $('<span style="min-width:30px; text-align:right">').text(Math.round(obj.radius))
         $top.append($('<span>').text('radius')).append($val)
-        var $rng = $('<input type="range" min="5" max="150" step="1" style="width:100%">').val(obj.radius)
+        var $rng = $('<input type="range" min="5" max="300" step="1" style="width:100%">').val(obj.radius)
         $rng.on('input change', function(){
               var R = parseFloat($rng.val()); if (isNaN(R)){ return }
               $val.text(Math.round(R))

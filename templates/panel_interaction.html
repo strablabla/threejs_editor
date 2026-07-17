@@ -140,6 +140,10 @@
               <label><input type="checkbox" id="chk_altitude_hist"> altitude histogram</label>
             </div><br>
 
+            <div class="help">
+              <label><input type="checkbox" id="chk_report"> report (compte rendu)</label>
+            </div><br>
+
           </div>
 
     </div>
@@ -260,6 +264,7 @@
         if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }
         if (typeof highlight_z_means === 'function'){ highlight_z_means() }
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
+        $('#chk_report').prop('checked', show_report).trigger('change')
     }
 
     // Redessine les aperçus |v| + rose angulaire de l'onglet Initial speeds (mise à jour "sur action")
@@ -348,6 +353,17 @@
     $('#btn_reset_traj').on('click', function(){            // réinitialise toutes les trajectoires (origine = position courante)
         reset_all_trajectories()
         draw_trajectories()
+    })
+    // --- Monitoring : compte rendu (fenêtre éditeur + snapshots) ---
+    $('#chk_report').prop('checked', show_report)
+    $('#chk_report').change(function(){
+        show_report = this.checked
+        if (show_report){
+              $('#report_box').show()
+              if (typeof report_init === 'function'){ report_init() }   // (idempotent) : câble et charge le contenu persisté
+        } else {
+              $('#report_box').hide()
+        }
     })
     // Liste dépliable des couleurs à suivre (grille défilable : une scène peut avoir beaucoup de couleurs)
     if (typeof traj_colors_open === 'undefined'){ traj_colors_open = true }   // garde-fou (JS servi depuis le cache)

@@ -1413,10 +1413,16 @@ function refresh_traj_color_filters(){
 
 }
 
+function fmt_hms(sec){                                      // secondes -> H:MM:SS (heures omises si nulles)
+      var s = Math.floor(sec % 60), m = Math.floor(sec / 60) % 60, h = Math.floor(sec / 3600)
+      var mm = (m < 10 && h > 0 ? '0' : '') + m
+      return (h > 0 ? h + ':' : '') + mm + ':' + (s < 10 ? '0' : '') + s
+}
+
 function update_traj_time(){                                // temps de simulation écoulé depuis le dernier reset / début du suivi
       var el = document.getElementById('traj_time')
-      if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a.' }
-}
+      if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a. (' + fmt_hms(sim_time / 10) + ')' }
+}                                                          // 1 u.a. = 100 ms de temps réel (cf. animate_physics)
 
 // traj_show = { xy, z, msd } (bascules indépendantes) est déclaré dans scene_params.js (réglages Monitoring)
 

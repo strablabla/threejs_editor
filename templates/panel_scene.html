@@ -56,12 +56,29 @@
 
     function update_scene_name_display(){         // nom de la scène affiché dans la navbar (à gauche du ?)
          $('#scene_name_navbar').text(scene.name || '')
+         if (typeof report_bind_scene === 'function'){ report_bind_scene() }   // bascule le compte rendu sur CETTE scène
     }
 
     function archive_scene(name){                 // enregistre la scène courante sous <name> (-> scenes/<name>.json)
+         var oldName = scene.name                 // nom AVANT enregistrement (souvent '' : scène encore sans nom)
          scene.name = (name || '').trim()
+         // Le compte rendu SUIT la scène quand on la nomme/enregistre : on reporte le bucket
+         // report::<ancien> vers report::<nouveau> (sans jamais écraser un rapport déjà présent à destination).
+         // Depuis une scène SANS nom (bucket scratch __unnamed__) -> déplacement : le prochain vierge repart blanc.
+         // Depuis une scène nommée (Save as = clone) -> copie : la scène d'origine garde son rapport.
+         if (scene.name && scene.name !== oldName){
+               try {
+                     var oldKey = 'report::' + (oldName || '__unnamed__')
+                     var newKey = 'report::' + scene.name
+                     var rk = localStorage.getItem(oldKey)
+                     if (rk !== null && localStorage.getItem(newKey) === null){
+                           localStorage.setItem(newKey, rk)
+                           if (!oldName){ localStorage.removeItem(oldKey) }
+                     }
+               } catch(e){}
+         }
          $('#scene_name').val(scene.name)
-         update_scene_name_display()
+         update_scene_name_display()              // report_bind_scene lit alors la clé (désormais peuplée)
          emit_infos_scene(scene.name)             // sauvegarde EXPLICITE -> fige scenes/<name>.json
          setTimeout(populate_scene_list, 400)     // la scène archivée apparaît dans la liste
     }
@@ -165,6 +182,11 @@
                       try {
                             var hk = localStorage.getItem('scene_history::' + old)
                             if (hk !== null){ localStorage.setItem('scene_history::' + newname, hk); localStorage.removeItem('scene_history::' + old) }
+                      } catch(e){}
+                      // migre de même le compte rendu (clé = report::<nom>) pour qu'il suive la scène renommée
+                      try {
+                            var rk = localStorage.getItem('report::' + old)
+                            if (rk !== null){ localStorage.setItem('report::' + newname, rk); localStorage.removeItem('report::' + old) }
                       } catch(e){}
                       // si on renomme la scène ACTUELLEMENT chargée, refléter le nouveau nom partout
                       if (scene.name === old){

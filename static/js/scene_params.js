@@ -93,6 +93,7 @@ show_trajectories = false   // affichage de la fenêtre trajectoires + MSD (Moni
 traj_show = { xy:true, z:false, msd:true }   // tracés visibles dans la fenêtre trajectoires (bascules indépendantes -> toutes combinaisons)
 z_means_only = false        // z(t) : n'afficher que les moyennes ⟨z⟩ (masque les courbes z(t))
 show_altitude_hist = false  // affichage de l'histogramme nombre de particules vs altitude (Monitoring)
+show_report = false         // affichage de la fenêtre « Compte rendu » (Monitoring) — éditeur + snapshots des graphes
 show_speeds = false         // flèches 3D de vitesse sur chaque objet mobile (onglet Initial speeds)
 alt_color_filter = 'all'    // histogramme d'altitude : 'all' ou '#rrggbb' — ne compte que les objets de cette couleur
                             // (les cases couleur des trajectoires n'ont pas d'état propre : elles reflètent
