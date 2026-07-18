@@ -229,3 +229,113 @@ function mouse_create_object_or_action(){
       link(paire_harmonic, select_two_obj_and_action, null)
 
 } // end mouse_create_object_or_action
+
+
+/* ============================================================================
+   Population par couleur (sphères) — régler le NOMBRE d'objets de même type et
+   même couleur qu'une sphère cliquée.
+   - réduire  : retire des membres tirés au hasard (jamais la sphère cliquée, sauf
+                si la cible est 0), pour que le menu contextuel reste valide ;
+   - augmenter: ajoute des sphères clonées (mêmes attributs + même couleur), à des
+                positions aléatoires DANS le volume englobant de la population — donc
+                sans référence à une boîte : on se cale sur l'espace déjà occupé.
+   Un axe « plat » (span nul, ex. z=0 pour un gaz plan) reste plat : les nouvelles
+   sphères y prennent la même valeur.
+   ============================================================================ */
+
+function color_population(obj){                       // sphères de MÊME type + MÊME couleur que obj (obj inclus)
+      var hex = obj_hex(obj), a = []
+      for (var k in objects){
+            var t = objects[k]
+            if (!t || t.type !== obj.type){ continue }
+            if (!t.material || !t.material.color){ continue }
+            if (obj_hex(t) === hex){ a.push(t) }
+      }
+      return a
+}
+
+function population_bounds(list){                     // boîte englobante (min/max sur x,y,z) des positions
+      var b = { xmin:Infinity, xmax:-Infinity, ymin:Infinity, ymax:-Infinity, zmin:Infinity, zmax:-Infinity }
+      for (var i=0;i<list.length;i++){
+            var p = list[i].position
+            if (p.x < b.xmin){ b.xmin = p.x }; if (p.x > b.xmax){ b.xmax = p.x }
+            if (p.y < b.ymin){ b.ymin = p.y }; if (p.y > b.ymax){ b.ymax = p.y }
+            if (p.z < b.zmin){ b.zmin = p.z }; if (p.z > b.zmax){ b.zmax = p.z }
+      }
+      return b
+}
+
+function remove_single_object(o){                     // retrait propre d'un objet : scène + toutes les listes + sélection
+      scene.remove(o)
+      var i = objects.indexOf(o);            if (i>=0){ objects.splice(i,1) }
+      i = list_moving_objects.indexOf(o);    if (i>=0){ list_moving_objects.splice(i,1) }
+      if (typeof list_interact !== 'undefined'){ i = list_interact.indexOf(o); if (i>=0){ list_interact.splice(i,1) } }
+      if (typeof list_string !== 'undefined'){ i = list_string.indexOf(o); if (i>=0){ list_string.splice(i,1) } }
+      if (typeof list_obj_inside !== 'undefined'){ i = list_obj_inside.indexOf(o); if (i>=0){ list_obj_inside.splice(i,1) } }
+      if (o.name && typeof listorig !== 'undefined'){ delete listorig[o.name] }
+      // retire les ressorts qui référencent o (sinon la boucle harmonique planterait)
+      if (typeof list_paired_harmonic !== 'undefined'){
+            for (var k=list_paired_harmonic.length-1;k>=0;k--){
+                  var pr = list_paired_harmonic[k]
+                  if (pr[0]===o || pr[1]===o){ if (pr[2]){ scene.remove(pr[2]) } list_paired_harmonic.splice(k,1) }
+            }
+      }
+      if (typeof SELECTED    !== 'undefined' && SELECTED    === o){ SELECTED = null }
+      if (typeof INTERSECTED !== 'undefined' && INTERSECTED === o){ INTERSECTED = null }
+      if (typeof nearest_elem!== 'undefined' && nearest_elem=== o){ nearest_elem = null }
+      o.traj = null
+}
+
+function set_color_population(template, targetN){
+      /*
+      Ajuste à targetN le nombre de sphères de même type+couleur que 'template'.
+      Renvoie l'effectif obtenu. Ne fait rien pour un objet non-sphère.
+      */
+      if (template.type !== 'sphere'){ return 0 }
+      var pop = color_population(template)
+      var cur = pop.length
+      targetN = Math.max(0, Math.round(targetN))
+      if (targetN === cur){ return cur }
+
+      if (targetN < cur){
+            // retire au hasard, en préservant la sphère cliquée (sauf si cible = 0)
+            var pool = []
+            for (var pi=0; pi<pop.length; pi++){ if (pop[pi] !== template){ pool.push(pop[pi]) } }
+            var toRemove = cur - targetN
+            var n = Math.min(toRemove, pool.length)
+            for (var r=0;r<n;r++){
+                  var j = Math.floor(Math.random()*pool.length)
+                  remove_single_object(pool[j]); pool.splice(j,1)
+            }
+            if (toRemove > n){ remove_single_object(template) }   // cible = 0 : on retire aussi la cliquée
+      } else {
+            var b = population_bounds(pop)
+            var hexNum = (template.currentHex !== undefined) ? template.currentHex : template.material.color.getHex()
+            var R = template.radius || radius_spring
+            var flat_xy = (b.xmax <= b.xmin && b.ymax <= b.ymin)      // population ponctuelle (1 sphère) -> petit étalement
+            var jit = flat_xy ? R*4 : 0
+            var coords = random_speed_z ? ['x','y','z'] : ['x','y']
+            var add = targetN - cur
+            for (var a2=0;a2<add;a2++){
+                  var x = b.xmin + Math.random()*(b.xmax-b.xmin) + (jit ? (Math.random()-0.5)*jit : 0)
+                  var y = b.ymin + Math.random()*(b.ymax-b.ymin) + (jit ? (Math.random()-0.5)*jit : 0)
+                  var z = b.zmin + Math.random()*(b.zmax-b.zmin)     // span z = 0 -> les nouvelles restent dans le plan
+                  var sph = basic_sphere(random_name(), {x:x, y:y, z:z}, {x:0, y:0, z:0}, hexNum)
+                  sph.currentHex = hexNum                            // couleur "réelle" -> comptée dans le bon groupe
+                  set_sphere_radius(sph, R)                          // même taille que la population
+                  sph.mass = template.mass
+                  sph.friction = template.friction
+                  sph.radius_interact = template.radius_interact
+                  sph.magnet = false
+                  if (template.material){
+                        sph.material.transparent = template.material.transparent
+                        sph.material.opacity = template.material.opacity
+                        sph.material.needsUpdate = true
+                  }
+                  if (template.blocked){ sph.blocked = true }        // clone bloqué : reste statique
+                  else { random_speed_chose_xyz(sph, coords); list_moving_objects.push(sph) }
+            }
+      }
+      if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+      return color_population(template).length
+}
