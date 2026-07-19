@@ -440,7 +440,10 @@ function init() {
 
   //------------------------- Camera
 
-  camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+  // near=10 / far=60000 : on voit de bien plus loin sans que la scène soit coupée au dézoom.
+  // Monter near (1 -> 10) en même temps que far garde le rapport far/near BAS (6000 < 10000
+  // d'avant), donc la précision du buffer de profondeur reste bonne (pas de z-fighting).
+  camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 10, 60000 );
   camera.position.set(0,-2000,2000)
 
   //------------------------- Control the view
