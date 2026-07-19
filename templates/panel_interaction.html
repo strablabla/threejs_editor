@@ -322,7 +322,7 @@
         }
     })
     // Displayed plots: independent toggles x–y / z(t) / MSD (all combinations; buttons -> no focus/typeahead like a <select>)
-    if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true } }  // safeguard (JS served from cache)
+    if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true, v:false } }  // safeguard (JS served from cache)
     window.highlight_traj_mode = function(){                    // highlight each active button
         $('.traj_mode_btn').each(function(){
             var on = !!traj_show[this.getAttribute('data-mode')]

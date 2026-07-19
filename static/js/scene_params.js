@@ -90,7 +90,7 @@ tot_energy = 0      // total
 show_energy_graph = false   // display of the energy time graph (Tools panel)
 show_velocity_hist = false  // display of the velocity magnitude histogram (Tools panel)
 show_trajectories = false   // display of the trajectories + MSD window (Monitoring)
-traj_show = { xy:true, z:false, msd:true }   // plots visible in the trajectories window (independent toggles -> all combinations)
+traj_show = { xy:true, z:false, msd:true, v:false }   // plots visible in the trajectories window (independent toggles -> all combinations) ; v = |velocity|(t)
 z_means_only = false        // z(t): show only the means ⟨z⟩ (hides the z(t) curves)
 show_altitude_hist = false  // display of the number-of-particles vs altitude histogram (Monitoring)
 show_report = false         // display of the « Compte rendu » window (Monitoring) — editor + graph snapshots

@@ -87,6 +87,7 @@ function bs_prompt(title, message, defaultValue, onOk){
       <button type="button" class="traj_mode_btn" data-mode="xy"  style="font-size:10px; cursor:pointer">x–y</button>
       <button type="button" class="traj_mode_btn" data-mode="z"   style="font-size:10px; cursor:pointer">z(t)</button>
       <button type="button" class="traj_mode_btn" data-mode="msd" style="font-size:10px; cursor:pointer">MSD</button>
+      <button type="button" class="traj_mode_btn" data-mode="v"   style="font-size:10px; cursor:pointer">|v|(t)</button>
     </span>
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
     <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause) — 1 u.a. = 100 ms de temps réel">t = 0.0 u.a. (0:00)</span>
@@ -117,6 +118,10 @@ function bs_prompt(title, message, defaultValue, onOk){
   <div id="traj_msd_wrap">
     <div style="margin:6px 0 3px;"><b>MSD</b> <span style="color:#888">|r−r₀|² vs temps</span></div>
     <canvas id="msd_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
+  </div>
+  <div id="traj_v_wrap">
+    <div style="margin:6px 0 3px;"><b>|v|(t)</b> <span style="color:#888">module de la vitesse vs temps</span></div>
+    <canvas id="v_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
 </div>
 

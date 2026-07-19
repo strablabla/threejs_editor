@@ -1424,16 +1424,17 @@ function update_traj_time(){                                // simulation time e
       if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a. (' + fmt_hms(sim_time / 10) + ')' }
 }                                                          // 1 u.a. = 100 ms of real time (cf. animate_physics)
 
-// traj_show = { xy, z, msd } (independent toggles) is declared in scene_params.js (Monitoring settings)
+// traj_show = { xy, z, msd, v } (independent toggles) is declared in scene_params.js (Monitoring settings)
 
 function apply_traj_mode(){                                 // shows/hides each plot according to traj_show
       var wxy = document.getElementById('traj_xy_wrap');  if (wxy){ wxy.style.display = traj_show.xy  ? '' : 'none' }
       var wz  = document.getElementById('traj_z_wrap');   if (wz){  wz.style.display  = traj_show.z   ? '' : 'none' }
       var wm  = document.getElementById('traj_msd_wrap'); if (wm){  wm.style.display  = traj_show.msd ? '' : 'none' }
+      var wv  = document.getElementById('traj_v_wrap');   if (wv){  wv.style.display  = traj_show.v   ? '' : 'none' }
 }
 
 function reset_trajectory(obj){                             // (re)starts recording from the current position
-      obj.traj = { x:[], y:[], z:[], msd:[], x0:null, y0:null, z0:null, zsum:0, zcount:0 }  // zsum/zcount: ⟨z⟩ since the reset (independent of the sliding window)
+      obj.traj = { x:[], y:[], z:[], msd:[], v:[], x0:null, y0:null, z0:null, zsum:0, zcount:0 }  // v: |velocity| per sample ; zsum/zcount: ⟨z⟩ since the reset (independent of the sliding window)
 }
 
 function reset_all_trajectories(){
@@ -1452,8 +1453,10 @@ function record_trajectories(){                             // called each anima
             if (tr.x0 === null){ tr.x0 = o.position.x; tr.y0 = o.position.y; tr.z0 = o.position.z }  // origin r0
             var dx = o.position.x-tr.x0, dy = o.position.y-tr.y0, dz = o.position.z-tr.z0
             tr.x.push(o.position.x); tr.y.push(o.position.y); tr.z.push(o.position.z); tr.msd.push(dx*dx+dy*dy+dz*dz)  // |r-r0|²
+            var sp = o.speed                               // |velocity| = speed magnitude at this sample
+            tr.v.push(sp ? Math.sqrt(sp.x*sp.x + sp.y*sp.y + sp.z*sp.z) : 0)
             tr.zsum += o.position.z; tr.zcount++            // cumulative z mean since the reset (all points, not just the window)
-            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift() }
+            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift(); tr.v.shift() }
       }
       draw_trajectories()
 
@@ -1602,7 +1605,7 @@ function _bind_traj_z_means_hover(){
 function setup_traj_zoom(){                                 // idempotent: attaches the handlers only once
       if (_traj_zoom_setup){ return }
       _traj_zoom_setup = true
-      _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd')
+      _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd'); _bind_traj_zoom('v_canvas','v')
       _bind_traj_z_means_hover()
 }
 
@@ -1728,6 +1731,39 @@ function draw_trajectories(){
                   }
                   c2.restore()
             } else { traj_view.msd = null }
+      }
+
+      //---- window |v|(t): velocity magnitude vs time (sample index) ----
+      var cvv = document.getElementById('v_canvas')
+      if (cvv){
+            var c3 = cvv.getContext('2d'), W3=cvv.width, H3=cvv.height
+            c3.clearRect(0,0,W3,H3)
+            var nmaxv=0, vmaxv=0
+            for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.v||!tr.v.length)continue
+                  if(tr.v.length>nmaxv)nmaxv=tr.v.length
+                  var n=tr.v.length, st=traj_stride(n)
+                  for(var k=0;k<n;k+=st){ if(tr.v[k]>vmaxv)vmaxv=tr.v[k] }
+                  if(tr.v[n-1]>vmaxv)vmaxv=tr.v[n-1] }
+            if (nmaxv>1 && vmaxv>0){
+                  var dvv = traj_zoom.v || { a0:0, a1:nmaxv-1, b0:0, b1:vmaxv }
+                  var VL=46, VT=6, VB=6, VR=4, L=VL, T=VT, PW=W3-VL-VR, PH=H3-VT-VB
+                  traj_view.v = { L:L, T:T, W:PW, H:PH, a0:dvv.a0, a1:dvv.a1, b0:dvv.b0, b1:dvv.b1 }
+                  var VX=function(k){ return L + (k-dvv.a0)/((dvv.a1-dvv.a0)||1)*PW }
+                  var VY=function(v){ return T + (1-(v-dvv.b0)/((dvv.b1-dvv.b0)||1))*PH }
+                  c3.font='10px sans-serif'; c3.fillStyle='#666'; c3.textAlign='right'; c3.textBaseline='middle'
+                  for (var g=0;g<=4;g++){ var v=dvv.b0+(dvv.b1-dvv.b0)*g/4, y=VY(v); c3.strokeStyle='#eee'; c3.lineWidth=1
+                        c3.beginPath(); c3.moveTo(L,y); c3.lineTo(L+PW,y); c3.stroke(); c3.fillText(fmt_energy(v),L-4,y) }
+                  c3.save(); c3.beginPath(); c3.rect(L,T,PW,PH); c3.clip()
+                  for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.v||tr.v.length<2)continue
+                        var n=tr.v.length, st=traj_stride(n)
+                        c3.strokeStyle=traj_color(t[i]); c3.lineWidth=1.5; c3.beginPath()
+                        var first=true
+                        for (var k=0;k<n;k+=st){ var X=VX(k),Y=VY(tr.v[k]); if(first){c3.moveTo(X,Y);first=false}else c3.lineTo(X,Y) }
+                        c3.lineTo(VX(n-1),VY(tr.v[n-1]))        // last point
+                        c3.stroke()
+                  }
+                  c3.restore()
+            } else { traj_view.v = null }
       }
 
       draw_traj_drag_rect()                                     // zoom rectangle in progress, on top of the freshly redrawn plot
