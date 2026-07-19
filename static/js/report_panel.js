@@ -67,8 +67,8 @@ function report_bind_scene(){
 
 // --- Snapshots of the trajectory graphs -------------------------------------
 
-var REPORT_CANVAS = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas' }
-var REPORT_LABEL  = { xy:'x–y', z:'z(t)', msd:'MSD' }
+var REPORT_CANVAS = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas', v:'v_canvas' }
+var REPORT_LABEL  = { xy:'x–y', z:'z(t)', msd:'MSD', v:'|v|(t)' }
 
 // Composes the source canvas on a white background (the graphs are drawn transparent:
 // without a background, the PNG would be transparent and unreadable when printed) and returns a data-URL.
@@ -240,12 +240,24 @@ function report_init(){
 
       // Edit -> state + persistence (preview recomputed on toggle)
       $('#report_md').on('input', function(){ report_state.md = this.value; report_save() })
-      // Keystrokes must not trigger the scene's keyboard shortcuts during editing.
-      $('#report_md').on('keydown keypress keyup', function(e){ e.stopPropagation() })
+
+      // Isolate the whole window from the 3D scene: TrackballControls is bound to `document`
+      // and preventDefaults every mousedown (which steals the textarea focus AND rotates the
+      // scene), while scene shortcuts listen for keydown on document (typing would trigger tools).
+      // Stopping mousedown/wheel/keys here fixes focus + typing AND lets a native <select> open.
+      // We deliberately DON'T stop mousemove/mouseup so the title-bar drag (document listeners) keeps working.
+      $('#report_box').on('mousedown click dblclick wheel keydown keypress keyup', function(e){ e.stopPropagation() })
 
       $('#report_mode_btn').on('click', function(){ report_set_mode(!$('#report_md').is(':visible')) })
-      $('.report_snap_btn').on('click', function(){ report_snapshot(this.getAttribute('data-kind')) })
+      // Insert a graph snapshot via a single dropdown (instead of one button per graph).
+      $('#report_snap_select').on('change', function(){
+            var k = this.value
+            if (k){ report_snapshot(k) }
+            this.value = ''                                  // back to the "insert…" prompt
+            this.blur()
+      })
       $('#report_pdf_btn').on('click', report_print)
+      $('#report_close_btn').on('click', function(){ report_set_visible(false) })
       $('#report_clear_btn').on('click', function(){
             if (!confirm('Effacer tout le compte rendu (texte et figures) ?')){ return }
             report_state.md = ''; report_state.figs = {}; report_state.seq = 0
@@ -265,7 +277,7 @@ function report_make_draggable(){
       if (!box || !head){ return }
       var dx = 0, dy = 0, dragging = false
       head.addEventListener('mousedown', function(e){
-            if (e.target.classList.contains('mon_close') || e.target.tagName === 'BUTTON'){ return }
+            if (e.target.id === 'report_close_btn' || e.target.tagName === 'BUTTON'){ return }   // don't drag when clicking the close/mode buttons
             dragging = true
             var r = box.getBoundingClientRect()
             dx = e.clientX - r.left; dy = e.clientY - r.top
@@ -279,3 +291,19 @@ function report_make_draggable(){
       })
       document.addEventListener('mouseup', function(){ dragging = false })
 }
+
+// --- Show/hide, driven by a click on the experiment name -----------------------
+
+function report_set_visible(on){
+      show_report = !!on
+      if (show_report){ $('#report_box').show(); report_init() }   // report_init is idempotent
+      else { $('#report_box').hide() }
+}
+function report_toggle(){ report_set_visible(!show_report) }
+
+// The report opens/closes by clicking the experiment name (navbar), not a Monitoring checkbox.
+// Delegated so it works whatever moment the name is (re)populated.
+$(function(){
+      $('#scene_name_navbar').css('cursor', 'pointer').attr('title', 'compte rendu de cette expérience (clic)')
+      $(document).on('click', '#scene_name_navbar', report_toggle)
+})
