@@ -1,28 +1,28 @@
 /*
 
-Copier / coller d'objets (Ctrl+C / Ctrl+V).
+Copy / paste objects (Ctrl+C / Ctrl+V).
 
-Choix de la cible à COPIER (par priorité) :
-  1. Souris DANS la zone de sélection -> tous les objets sélectionnés (list_obj_inside).
-  2. Sinon, objet survolé (INTERSECTED) :
-       - s'il appartient à un groupe persistant -> tout le groupe (group_members) ;
-       - sinon -> l'objet seul.
+Choice of the target to COPY (by priority):
+  1. Mouse INSIDE the selection area -> all selected objects (list_obj_inside).
+  2. Otherwise, hovered object (INTERSECTED):
+       - if it belongs to a persistent group -> the whole group (group_members);
+       - otherwise -> the object alone.
 
-Le collage (Ctrl+V) recrée les objets à la position de la souris (barycentre recollé
-sous le curseur, disposition relative conservée), avec de nouveaux noms. Si les copiés
-formaient un groupe persistant, la copie forme un NOUVEAU groupe indépendant.
+Pasting (Ctrl+V) recreates the objects at the mouse position (barycenter re-anchored
+under the cursor, relative layout preserved), with new names. If the copied ones
+formed a persistent group, the copy forms a NEW independent group.
 
-Recrée via load_object() (init_scene.js) : gère sphères, cubes, pavés, murs, boîtes,
-couleur, rayon, masse, vitesse, etc. Les ressorts/élastiques/pions/couvercles ne sont
-pas copiés (recréés autrement).
+Recreates via load_object() (init_scene.js): handles spheres, cubes, pavements, walls, boxes,
+color, radius, mass, velocity, etc. Springs/elastics/pawns/lids are
+not copied (recreated otherwise).
 */
 
 var copy_clipboard = null                  // { items:[{data,dx,dy,dz}], groupPaste, cx0,cy0,cz0 }
 
 var COPY_LOADABLE_TYPES = ['sphere', 'simple_cube', 'pavement', 'wall', 'cube_mult_tex', 'wall_box']
 
-// Position monde de la souris sur le plan z=0, à partir de la DERNIÈRE position connue
-// (le global `mouse` est mis à jour à chaque mousemove) -> utilisable dans un keydown.
+// World position of the mouse on the z=0 plane, from the LAST known position
+// (the global `mouse` is updated on every mousemove) -> usable in a keydown.
 function mouse_world_pos(){
       if (typeof mouse === 'undefined' || !isFinite(mouse.x) || !isFinite(mouse.y)){ return null }
       var vector = new THREE.Vector3(mouse.x, mouse.y, 0.5)
@@ -32,14 +32,14 @@ function mouse_world_pos(){
       return hits.length ? hits[0].point.clone() : null
 }
 
-function copy_is_loadable(o){              // objet "réel" recréable (pas coin/pointillé/ressort…)
+function copy_is_loadable(o){              // "real" recreatable object (not corner/dotted/spring…)
       if (!o || !o.type || o.del){ return false }
       if (list_sel_corners.indexOf(o) >= 0){ return false }
       if (list_dotted_area.indexOf(o) >= 0){ return false }
       return COPY_LOADABLE_TYPES.indexOf(o.type) >= 0
 }
 
-function mouse_in_selection_area(){        // la souris est-elle dans le rectangle de sélection ?
+function mouse_in_selection_area(){        // is the mouse inside the selection rectangle?
       if (list_sel_corners.length !== 2){ return false }
       var p = mouse_world_pos()
       if (!p){ return false }
@@ -49,12 +49,12 @@ function mouse_in_selection_area(){        // la souris est-elle dans le rectang
       return (p.x > minx && p.x < maxx && p.y > miny && p.y < maxy)
 }
 
-function copy_targets(){                   // liste des objets à copier selon les règles ci-dessus
-      // 1) souris dans la zone -> toute la sélection
+function copy_targets(){                   // list of objects to copy according to the rules above
+      // 1) mouse in the area -> the whole selection
       if (list_obj_inside.length > 0 && mouse_in_selection_area()){
             return list_obj_inside.filter(copy_is_loadable)
       }
-      // 2) objet survolé (+ son groupe éventuel)
+      // 2) hovered object (+ its group if any)
       if (INTERSECTED && copy_is_loadable(INTERSECTED)){
             if (INTERSECTED.group_id !== undefined && typeof group_members === 'function'){
                   return group_members(INTERSECTED.group_id).filter(copy_is_loadable)
@@ -68,19 +68,19 @@ function do_copy(){
       var targets = copy_targets()
       if (!targets.length){ copy_clipboard = null; $('#curr_func').text('nothing to copy'); return }
 
-      // barycentre des cibles = ancre (pour recoller sous la souris) + z conservé
+      // barycenter of the targets = anchor (to re-anchor under the mouse) + z preserved
       var cx=0, cy=0, cz=0
       for (var i=0;i<targets.length;i++){ cx+=targets[i].position.x; cy+=targets[i].position.y; cz+=targets[i].position.z }
       cx/=targets.length; cy/=targets.length; cz/=targets.length
 
-      // groupe persistant si TOUTES les cibles partagent un même group_id défini
+      // persistent group if ALL targets share the same defined group_id
       var gid0 = targets[0].group_id
       var groupPaste = (gid0 !== undefined) && targets.every(function(t){ return t.group_id === gid0 })
 
       var items = []
       for (var i=0;i<targets.length;i++){
             var o = targets[i]
-            // deep copy détachée des références vives (Vector3 -> {x,y,z})
+            // deep copy detached from live references (Vector3 -> {x,y,z})
             var data = JSON.parse(JSON.stringify(make_infos_obj_of(o)))
             items.push({ data: data,
                          dx: o.position.x - cx, dy: o.position.y - cy, dz: o.position.z - cz })
@@ -92,31 +92,31 @@ function do_copy(){
 function do_paste(){
       if (!copy_clipboard || !copy_clipboard.items.length){ $('#curr_func').text('clipboard empty'); return }
 
-      // base de collage : sous la souris (z conservé) ; repli = décalage fixe si pas de souris
+      // paste base: under the mouse (z preserved); fallback = fixed offset if no mouse
       var anchor = mouse_world_pos()
       var base = anchor ? { x: anchor.x, y: anchor.y, z: copy_clipboard.cz0 }
                         : { x: copy_clipboard.cx0 + 120, y: copy_clipboard.cy0 + 120, z: copy_clipboard.cz0 }
 
-      var newgid = copy_clipboard.groupPaste ? (++group_id_counter) : undefined  // nouveau groupe indépendant
+      var newgid = copy_clipboard.groupPaste ? (++group_id_counter) : undefined  // new independent group
       if (newgid !== undefined){ group_highlighted[newgid] = false }
 
-      // Remappe les box_id : chaque boîte copiée devient une boîte NEUVE et indépendante.
-      // Table ancien->nouveau : toutes les parois d'une même boîte reçoivent le même nouvel id.
+      // Remap the box_id: each copied box becomes a NEW and independent box.
+      // Old->new table: all the walls of the same box receive the same new id.
       var box_id_map = {}
 
       for (var i=0;i<copy_clipboard.items.length;i++){
             var it = copy_clipboard.items[i]
             var name = random_name()
-            var data = JSON.parse(JSON.stringify(it.data))          // recopie fraîche par collage
+            var data = JSON.parse(JSON.stringify(it.data))          // fresh copy per paste
             data.pos = { x: base.x + it.dx, y: base.y + it.dy, z: base.z + it.dz }
             if (newgid !== undefined){ data.group_id = newgid } else { delete data.group_id }
-            if (data.box_id !== undefined){                         // paroi de boîte -> nouvel id de boîte
+            if (data.box_id !== undefined){                         // box wall -> new box id
                   if (box_id_map[data.box_id] === undefined){ box_id_map[data.box_id] = ++box_id_counter }
                   data.box_id = box_id_map[data.box_id]
             }
             var msg = {}; msg[name] = data
-            load_object(name, msg)                                  // recrée l'objet (scène + objects + physique)
+            load_object(name, msg)                                  // recreates the object (scene + objects + physics)
       }
       $('#curr_func').text(copy_clipboard.items.length + ' object(s) pasted')
-      if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste la scène
+      if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persists the scene
 }

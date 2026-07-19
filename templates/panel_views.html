@@ -1,17 +1,17 @@
-<!-- Flèches 3D des directions de vue : afficher/masquer via la touche V.
-     (L'ancien panneau "Views" a été retiré ; seule la logique des flèches subsiste ici.) -->
+<!-- 3D arrows for the view directions: show/hide via the V key.
+     (The old "Views" panel was removed; only the arrow logic remains here.) -->
 
 <script>
 
     var view_arrows = null
 
-    // ---- Opacité des objets de la scène ----
+    // ---- Opacity of the scene objects ----
     function each_material(m, fn){
          if (!m){ return }
          if (m.materials){ for (var j in m.materials){ fn(m.materials[j]) } }   // MeshFaceMaterial
          else { fn(m) }
     }
-    function dim_objects(){                          // objets à 0.5 (mémorise l'opacité d'origine)
+    function dim_objects(){                          // objects at 0.5 (stores the original opacity)
          for (var i in objects){
                each_material(objects[i].material, function(mat){
                      if (mat._origOpacity === undefined){
@@ -24,7 +24,7 @@
                })
          }
     }
-    function restore_objects_opacity(){             // restaure l'opacité par défaut
+    function restore_objects_opacity(){             // restore the default opacity
          for (var i in objects){
                each_material(objects[i].material, function(mat){
                      if (mat._origOpacity !== undefined){
@@ -38,7 +38,7 @@
          }
     }
 
-    // ---- Flèches 3D des directions de vue ----
+    // ---- 3D arrows for the view directions ----
     function hide_view_arrows(){
          if (view_arrows){ scene.remove(view_arrows); view_arrows = null }
          restore_objects_opacity()
@@ -46,21 +46,21 @@
 
     function show_view_arrows(){
          view_arrows = new THREE.Object3D()
-         var D = 1000, L = 600, hl = 140, hw = 90              // base, longueur, pointe
+         var D = 1000, L = 600, hl = 140, hw = 90              // base, length, tip
          var defs = [
-               { dir:[ 0, 0, 1], col:0x3399ff, view:'above_view', noTail:true },  // dessus (bleu, sans queue)
-               { dir:[ 0,-1, 0], col:0x33cc33, view:'front_view' },               // face
-               { dir:[ 0, 1, 0], col:0x009900, view:'back_view'  },               // derrière
-               { dir:[-1, 0, 0], col:0xff3333, view:'left_view'  },               // gauche
-               { dir:[ 1, 0, 0], col:0xcc0000, view:'right_view' }                // droite
+               { dir:[ 0, 0, 1], col:0x3399ff, view:'above_view', noTail:true },  // top (blue, no tail)
+               { dir:[ 0,-1, 0], col:0x33cc33, view:'front_view' },               // front
+               { dir:[ 0, 1, 0], col:0x009900, view:'back_view'  },               // back
+               { dir:[-1, 0, 0], col:0xff3333, view:'left_view'  },               // left
+               { dir:[ 1, 0, 0], col:0xcc0000, view:'right_view' }                // right
          ]
          for (var i in defs){
                var d = new THREE.Vector3(defs[i].dir[0], defs[i].dir[1], defs[i].dir[2])
-               var base = d.clone().multiplyScalar(D)          // base côté point de vue
-               var inward = d.clone().negate()                 // pointe vers la scène
+               var base = d.clone().multiplyScalar(D)          // base on the viewpoint side
+               var inward = d.clone().negate()                 // points toward the scene
                var arr = new THREE.ArrowHelper(inward, base, L, defs[i].col, hl, hw)
                arr.userData.viewId = defs[i].view
-               if (defs[i].noTail){ arr.line.visible = false } // flèche bleue : pas de queue
+               if (defs[i].noTail){ arr.line.visible = false } // blue arrow: no tail
                view_arrows.add(arr)
          }
          scene.add(view_arrows)
@@ -71,7 +71,7 @@
          if (view_arrows){ hide_view_arrows() } else { show_view_arrows() }
     }
 
-    // ---- Clic sur une flèche : change la vue + restaure l'opacité ----
+    // ---- Click on an arrow: change the view + restore the opacity ----
     function on_arrow_click(event){
          if (!view_arrows){ return }
          var rect = renderer.domElement.getBoundingClientRect()
@@ -84,21 +84,21 @@
          var hits = ray.intersectObjects(view_arrows.children, true)
          if (!hits.length){ return }
          var o = hits[0].object
-         while (o && !(o.userData && o.userData.viewId)){ o = o.parent }   // remonte jusqu'à l'ArrowHelper
+         while (o && !(o.userData && o.userData.viewId)){ o = o.parent }   // go up to the ArrowHelper
          if (o && o.userData.viewId){
                var vid = o.userData.viewId
-               hide_view_arrows()              // retire flèches + restaure opacité
-               apply_view(vid)                 // applique la vue
+               hide_view_arrows()              // remove arrows + restore opacity
+               apply_view(vid)                 // apply the view
          }
     }
     renderer.domElement.addEventListener('click', on_arrow_click, false)
 
-    // ---- Touche V : afficher / masquer les flèches de vue ----
+    // ---- V key: show / hide the view arrows ----
     document.addEventListener('keydown', function(event){
-         var t = event.target || event.srcElement                 // ne pas déclencher si on tape dans un champ
+         var t = event.target || event.srcElement                 // do not trigger if typing in a field
          if (t){ var tag = (t.tagName || '').toLowerCase()
                  if (tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable){ return } }
-         if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && event.keyCode === 86){   // V : (dé)afficher les flèches 3D (Ctrl+V reste "coller")
+         if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && event.keyCode === 86){   // V: show/hide the 3D arrows (Ctrl+V stays "paste")
                event.preventDefault()
                toggle_view_arrows()
          }

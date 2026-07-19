@@ -1,5 +1,5 @@
 
-<!-- Boîte de dialogue maison (div simple = champ éditable, + boutons Bootstrap) -->
+<!-- Custom dialog box (plain div = editable field, + Bootstrap buttons) -->
 <div id="app_dialog_overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:10090;"></div>
 <div id="app_dialog" style="display:none; position:fixed; top:25%; left:50%; transform:translateX(-50%); width:340px; background:#fff; border:3px solid #2e7d32; border-radius:8px; box-shadow:0 8px 28px rgba(0,0,0,0.6); z-index:10100; font-family:'Playfair Display';">
   <div id="app_dialog_title" style="padding:12px 16px; background:#2e7d32; color:#fff; border-radius:4px 4px 0 0; font-size:1.15em; font-weight:bold"></div>
@@ -24,17 +24,17 @@ function bs_dialog(opts){
      function close_dialog(){ $('#app_dialog').hide(); $('#app_dialog_overlay').hide() }
      function validate(){
           var val = opts.input ? $input.val().trim() : true
-          if (opts.input && !val){ return }            // champ vide -> on ne valide pas
+          if (opts.input && !val){ return }            // empty field -> do not validate
           close_dialog()
           if (opts.onOk){ opts.onOk(val) }
      }
      $ok.off('click').on('click', validate)
      $('#app_dialog_cancel').off('click').on('click', close_dialog)
-     // isole le champ des handlers globaux (clavier ET souris) pour permettre saisie + sélection à la souris
+     // isolate the field from global handlers (keyboard AND mouse) to allow typing + mouse selection
      $input.off('keydown keypress keyup mousedown mousemove mouseup dblclick')
            .on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){
           e.stopPropagation()
-          if (e.type === 'keypress' && e.which === 13){ validate() }   // Entrée = OK
+          if (e.type === 'keypress' && e.which === 13){ validate() }   // Enter = OK
      })
      $('#app_dialog_overlay').show()
      $('#app_dialog').show()
@@ -48,22 +48,22 @@ function bs_prompt(title, message, defaultValue, onOk){
 }
 </script>
 
-<!-- Graphe temporel d'énergie (toggle dans le panneau Tools) -->
+<!-- Energy vs time graph (toggle in the Tools panel) -->
 <div id="energy_graph_box" style="display:none; position:fixed; bottom:10px; left:10px; z-index:9998; background:rgba(255,255,255,0.93); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_energy_graph" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Energy</b> <span style="color:#888">(a.u.)</span> &nbsp;<span style="color:#000">▬ total</span> &nbsp;<span style="color:#e53935">▬ kinetic</span> &nbsp;<span style="color:#1e88e5">▬ potential</span> &nbsp;<span style="color:#888">— time →</span></div>
   <canvas id="energy_graph" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
-<!-- Histogramme des normes de vitesse (toggle dans le panneau Tools) -->
+<!-- Histogram of velocity magnitudes (toggle in the Tools panel) -->
 <div id="velocity_hist_box" style="display:none; position:fixed; bottom:10px; right:10px; z-index:9998; background:rgba(255,255,255,0.93); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_velocity_hist" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Velocities</b> <span style="color:#888">(count vs |v|)</span></div>
   <canvas id="velocity_hist" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
-<!-- Histogramme d'altitude : nombre de particules vs z (toggle "altitude histogram" dans Monitoring) -->
+<!-- Altitude histogram: number of particles vs z (toggle "altitude histogram" in Monitoring) -->
 <div id="altitude_hist_box" style="display:none; position:fixed; top:70px; right:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_altitude_hist" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Altitude</b> <span style="color:#888">(N vs z)</span></div>
-  <!-- Objets comptés : « all » ou une seule couleur (options peuplées par refresh_alt_color_options) -->
+  <!-- Counted objects: « all » or a single color (options populated by refresh_alt_color_options) -->
   <div style="margin-bottom:4px; display:flex; gap:4px; align-items:center">
     <span style="color:#888">objets&nbsp;:</span>
     <select id="alt_color_sel" style="flex:1; min-width:0; font-family:monospace" title="ne compter que les objets de cette couleur">
@@ -80,7 +80,7 @@ function bs_prompt(title, message, defaultValue, onOk){
   <div id="altitude_fit_err" style="color:#c62828; font-size:10px; min-height:12px"></div>
 </div>
 
-<!-- Trajectoires + MSD (toggle "trajectories" dans Monitoring ; suivi par objet via clic droit) -->
+<!-- Trajectories + MSD (toggle "trajectories" in Monitoring; per-object tracking via right-click) -->
 <div id="trajectories_box" style="display:none; position:fixed; top:70px; left:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_trajectories" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Trajectories</b>
     <span id="traj_mode_btns" style="margin-left:4px" title="tracés affichés (combinaisons libres)">
@@ -91,8 +91,8 @@ function bs_prompt(title, message, defaultValue, onOk){
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
     <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause) — 1 u.a. = 100 ms de temps réel">t = 0.0 u.a. (0:00)</span>
     <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
-    <!-- Couleurs à suivre : panneau dépliable + défilable (peuplé par refresh_traj_color_filters).
-         En grille plutôt qu'en ligne : une scène peut compter beaucoup de couleurs distinctes. -->
+    <!-- Colors to track: collapsible + scrollable panel (populated by refresh_traj_color_filters).
+         In a grid rather than a row: a scene can have many distinct colors. -->
     <div id="traj_colors_wrap" style="margin-top:3px">
       <div id="traj_colors_toggle" title="afficher / masquer la liste des couleurs"
            style="cursor:pointer; user-select:none; -webkit-user-select:none; color:#555">
@@ -120,8 +120,8 @@ function bs_prompt(title, message, defaultValue, onOk){
   </div>
 </div>
 
-<!-- Compte rendu : éditeur markdown léger + snapshots des graphes de trajectoires (toggle "report" dans Monitoring).
-     Déplaçable par la barre de titre. Le contenu (texte + figures PNG) est persisté dans localStorage. -->
+<!-- Report: lightweight markdown editor + snapshots of the trajectory graphs (toggle "report" in Monitoring).
+     Draggable by the title bar. The content (text + PNG figures) is persisted in localStorage. -->
 <div id="report_box" style="display:none; position:fixed; top:70px; left:360px; z-index:9999; width:380px; background:rgba(255,255,255,0.97); border:1px solid #888; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,0.3); font-family:sans-serif; font-size:12px;">
   <div id="report_header" style="display:flex; align-items:center; gap:6px; padding:5px 8px; background:#2e7d32; color:#fff; border-radius:6px 6px 0 0; cursor:move; user-select:none; -webkit-user-select:none;">
     <b style="flex:1">Compte rendu</b>
@@ -137,17 +137,17 @@ function bs_prompt(title, message, defaultValue, onOk){
     <button type="button" id="report_pdf_btn"   title="ouvrir la version imprimable (PDF via le navigateur)" style="font-size:10px; cursor:pointer">PDF</button>
     <button type="button" id="report_clear_btn" title="effacer le compte rendu (texte + figures)" style="font-size:10px; cursor:pointer">vider</button>
   </div>
-  <!-- Zone d'édition : textarea (édition) OU rendu (aperçu). Redimensionnable en hauteur. -->
+  <!-- Edit area: textarea (edit) OR rendering (preview). Resizable in height. -->
   <textarea id="report_md" spellcheck="false"
             placeholder="# Titre du compte rendu&#10;&#10;Décris l'expérience ici. **gras**, *italique*, listes avec «- ».&#10;&#10;Clique « ＋ x–y / z(t) / MSD » pour insérer un graphe."
             style="display:none; box-sizing:border-box; width:100%; height:320px; border:0; border-radius:0 0 6px 6px; padding:8px; resize:vertical; outline:none; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.45;"></textarea>
   <div id="report_preview" style="box-sizing:border-box; width:100%; height:320px; overflow:auto; padding:10px 12px; border-radius:0 0 6px 6px; background:#fff; color:#222; line-height:1.5;"></div>
 </div>
 
-<!-- Infobulle de survol des moyennes ⟨z⟩ du graphe z(t) (peuplée par show_traj_tooltip) -->
+<!-- Hover tooltip for the ⟨z⟩ means of the z(t) graph (populated by show_traj_tooltip) -->
 <div id="traj_tooltip" style="display:none; position:fixed; z-index:10300; pointer-events:none; background:rgba(30,30,30,0.92); color:#fff; font-family:sans-serif; font-size:11px; line-height:1.4; padding:4px 7px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>
 
-<!-- Menu contextuel (clic droit sur un objet VERT) : attributs éditables -->
+<!-- Context menu (right-click on a GREEN object): editable attributes -->
 <div id="obj_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 10px; font-family:sans-serif; font-size:12px; min-width:200px;">
   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">
     <span id="ctx_obj_title" style="font-weight:bold"></span>
@@ -173,16 +173,16 @@ function bs_prompt(title, message, defaultValue, onOk){
         $row.append($('<label style="cursor:pointer">').append($cb).append(' ' + label))
         $f.append($row)
   }
-  function set_object_color(t, hex){                            // couleur d'un objet, matériau rendu propre au besoin
-        if (!t._ownMaterial){                                   // matériau souvent PARTAGÉ (clones) -> le rendre propre
-              t.material = t.material.clone()                    // sinon on colorerait toutes les boules/murs liés
+  function set_object_color(t, hex){                            // color of an object, material made unique if needed
+        if (!t._ownMaterial){                                   // material often SHARED (clones) -> make it unique
+              t.material = t.material.clone()                    // otherwise we would color all linked balls/walls
               t._ownMaterial = true
         }
         t.material.color.setHex(hex)
         t.material.needsUpdate = true
-        t.currentHex = hex                                      // couleur "réelle" mémorisée (restaurée à la désélection + sauvegardée)
+        t.currentHex = hex                                      // "real" color stored (restored on deselection + saved)
   }
-  function color_row($f, obj, applyAll){                        // sélecteur de couleur de l'objet
+  function color_row($f, obj, applyAll){                        // object color picker
         var cur = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
         var hexstr = '#' + ('000000' + cur.toString(16)).slice(-6)
         var $row = $('<div style="margin:4px 0; display:flex; justify-content:space-between; align-items:center">')
@@ -190,26 +190,26 @@ function bs_prompt(title, message, defaultValue, onOk){
         var $inp = $('<input type="color" style="width:80px; height:24px; padding:0; border:1px solid #999; cursor:pointer">').val(hexstr)
         $inp.on('input change', function(){
               var hex = parseInt($inp.val().slice(1), 16)
-              applyAll(function(t){ set_object_color(t, hex) })  // cet objet, ou toutes les boules si "all"
+              applyAll(function(t){ set_object_color(t, hex) })  // this object, or all balls if "all"
         })
         $inp.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($inp); $f.append($row)
   }
-  // Plafond de la glissière de rayon : préférence globale mémorisée (localStorage), réglable
-  // dans chaque menu via le petit champ « max ». Défaut 300.
+  // Radius slider ceiling: global preference stored (localStorage), adjustable
+  // in each menu via the small « max » field. Default 300.
   function get_radius_slider_max(){
         var v = parseFloat(localStorage.getItem('radius_slider_max'))
         return (!isNaN(v) && v >= 10) ? v : 300
   }
   function set_radius_slider_max(v){ try { localStorage.setItem('radius_slider_max', v) } catch(e){} }
 
-  function radius_row($f, obj, applyAll){                        // glissière de rayon (sphères) — portée via la case "all"
+  function radius_row($f, obj, applyAll){                        // radius slider (spheres) — scope via the "all" checkbox
         var $row = $('<div style="margin:6px 0">')
         var $top = $('<div style="display:flex; align-items:center; gap:6px">')
         var $val = $('<span style="min-width:30px; text-align:right">').text(Math.round(obj.radius))
-        // Champ « max » : borne supérieure de la glissière, choisie par l'utilisateur et retenue.
+        // « max » field: upper bound of the slider, chosen by the user and remembered.
         var maxPref = get_radius_slider_max()
-        var effMax  = Math.max(maxPref, Math.ceil(obj.radius))   // ne jamais rogner un rayon déjà plus grand que le plafond
+        var effMax  = Math.max(maxPref, Math.ceil(obj.radius))   // never clip a radius already larger than the ceiling
         var $max = $('<input type="number" min="10" step="10" title="valeur maximale de la glissière (mémorisée)" style="width:58px; font-size:0.85em">').val(maxPref)
         $top.append($('<span style="flex:1">').text('radius')).append($val)
             .append($('<span style="color:#888">max</span>')).append($max)
@@ -217,23 +217,23 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('input change', function(){
               var R = parseFloat($rng.val()); if (isNaN(R)){ return }
               $val.text(Math.round(R))
-              applyAll(function(t){ set_sphere_radius(t, R) })    // cette boule, ou toutes si "all"
+              applyAll(function(t){ set_sphere_radius(t, R) })    // this ball, or all if "all"
         })
-        // Changer le max : met à jour le plafond de CETTE glissière et retient la préférence.
+        // Changing the max: updates the ceiling of THIS slider and remembers the preference.
         $max.on('input change', function(){
               var m = parseFloat($max.val()); if (isNaN(m) || m < 10){ return }
               set_radius_slider_max(m)
               var eff = Math.max(m, Math.ceil(obj.radius))
               $rng.attr('max', eff)
-              if (parseFloat($rng.val()) > eff){ $rng.val(eff).trigger('input') }   // ramène la poignée sous le nouveau plafond
+              if (parseFloat($rng.val()) > eff){ $rng.val(eff).trigger('input') }   // bring the handle back under the new ceiling
         })
-        // persiste (pos.json) au relâchement, car le mouseup local est stoppé plus bas
+        // persists (pos.json) on release, because the local mouseup is stopped below
         $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $max.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top).append($rng); $f.append($row)
   }
-  function population_row($f, obj){                             // nombre de sphères de même type+couleur ; réduit/augmente au hasard dans leur volume
+  function population_row($f, obj){                             // number of spheres of the same type+color; randomly reduces/increases within their volume
         function count(){ return (typeof color_population === 'function') ? color_population(obj).length : 1 }
         var $row = $('<div style="margin:8px 0 2px; padding-top:6px; border-top:1px solid #eee">')
         var $top = $('<div style="display:flex; align-items:center; gap:6px">')
@@ -244,18 +244,18 @@ function bs_prompt(title, message, defaultValue, onOk){
               var n = parseInt($num.val(), 10); if (isNaN(n) || n < 0){ return }
               if (typeof set_color_population !== 'function'){ return }
               set_color_population(obj, n)
-              if (n === 0){ $('#obj_context_menu').hide(); return }   // la sphère cliquée a pu être retirée : on ferme le menu
-              var c = count(); $num.val(c)                            // reflète l'effectif réel obtenu
+              if (n === 0){ $('#obj_context_menu').hide(); return }   // the clicked sphere may have been removed: close the menu
+              var c = count(); $num.val(c)                            // reflects the actual count obtained
         }
         $apply.on('click', doApply)
         $num.on('keydown', function(e){ if (e.key === 'Enter' || e.keyCode === 13){ doApply() } })
         $num.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top); $f.append($row)
   }
-  // Types « boîte » (parallélépipèdes) : seuls objets dont la rotation autour de z est visible/utile.
-  // (il n'existe pas de type 'cube' : tous passent par simple_parallelepiped)
+  // « box » types (parallelepipeds): the only objects whose rotation around z is visible/useful.
+  // (there is no 'cube' type: they all go through simple_parallelepiped)
   var BOXY_TYPES = ['simple_cube', 'cube_mult_tex', 'pavement', 'square_pillar', 'wall', 'wall_box']
-  function rotz_row($f, obj, applyAll){                        // rotation autour de la verticale (z), en degrés
+  function rotz_row($f, obj, applyAll){                        // rotation around the vertical (z), in degrees
         var $row = $('<div style="margin:6px 0">')
         var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
         function deg(){ return Math.round(obj.rotation.z * 180 / Math.PI) }
@@ -265,20 +265,20 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('input change', function(){
               var a = parseFloat($rng.val()); if (isNaN(a)){ return }
               $val.text(Math.round(a) + '°')
-              applyAll(function(t){                            // cet objet, ou tous ceux de même type+couleur si "all"
+              applyAll(function(t){                            // this object, or all of the same type+color if "all"
                     t.rotation.z = a * Math.PI / 180
-                    if (t.orientation){                        // vecteur de rebond dérivé de l'angle (parois de boîte, murs)
+                    if (t.orientation){                        // bounce vector derived from the angle (box walls, walls)
                           t.orientation.x = Math.cos(t.rotation.z)
                           t.orientation.y = Math.sin(t.rotation.z)
                     }
               })
         })
-        // persiste (pos.json) au relâchement : le mouseup local est stoppé plus bas
+        // persists (pos.json) on release: the local mouseup is stopped below
         $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top).append($rng); $f.append($row)
   }
-  function ctx_tab_bar($f, tabs){                              // barre d'onglets + panneaux, scopée à ce menu
+  function ctx_tab_bar($f, tabs){                              // tab bar + panes, scoped to this menu
         var $bar = $('<div style="display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid #ddd">')
         var pane = {}
         tabs.forEach(function(t, idx){
@@ -307,8 +307,8 @@ function bs_prompt(title, message, defaultValue, onOk){
   function same_type_and_color(o){
 
         /*
-        Objets de MÊME TYPE et MÊME COULEUR que o (o inclus) — cible de la case « all ».
-        La couleur lue est currentHex (via obj_hex) : material.color est écrasé par les surbrillances.
+        Objects of the SAME TYPE and SAME COLOR as o (o included) — target of the « all » checkbox.
+        The color read is currentHex (via obj_hex): material.color is overwritten by the highlights.
         */
 
         var hex = obj_hex(o), a = []
@@ -325,35 +325,35 @@ function bs_prompt(title, message, defaultValue, onOk){
   window.show_object_context_menu = function(obj, x, y){
         $('#ctx_obj_title').text((obj.type || 'object') + ' — ' + (obj.name || ''))
         var $f = $('#ctx_obj_fields').empty()
-        // Case maîtresse "all" : applique CHAQUE changement d'attribut aux objets de même type ET même couleur.
-        // La liste est FIGÉE à l'ouverture du menu, et c'est essentiel : changer la couleur avec « all » coché
-        // repeint les cibles, donc un critère recalculé à chaque événement ne retrouverait plus personne
-        // (la couleur de référence aurait changé) et le 2e cran de la glissière ne ferait plus rien.
+        // Master "all" checkbox: applies EACH attribute change to objects of the same type AND same color.
+        // The list is FROZEN when the menu opens, and this is essential: changing the color with « all » checked
+        // repaints the targets, so a criterion recomputed on each event would no longer find anyone
+        // (the reference color would have changed) and the 2nd slider notch would no longer do anything.
         var all_targets = (obj.material && obj.material.color) ? same_type_and_color(obj) : [obj]
         var $all = null
-        if (all_targets.length > 1){                           // inutile de proposer « all » pour un objet unique
+        if (all_targets.length > 1){                           // no point offering « all » for a single object
               var $arow = $('<div style="margin:2px 0 8px; padding-bottom:6px; border-bottom:1px solid #ddd">')
               $all = $('<input type="checkbox">')
               $arow.append($('<label style="cursor:pointer; font-weight:bold">').append($all)
                     .append(' all (' + all_targets.length + ' ' + (obj.type || 'objet') + 's de cette couleur)'))
               $f.append($arow)
         }
-        function applyAll(setter){                             // setter(cible) : cet objet, ou tous ceux de même type+couleur si "all" coché
+        function applyAll(setter){                             // setter(target): this object, or all of the same type+color if "all" is checked
               if ($all && $all.is(':checked')){ all_targets.forEach(setter) } else { setter(obj) }
         }
-        // Onglets : Attributes / Dynamics / Miscellaneous
+        // Tabs: Attributes / Dynamics / Miscellaneous
         var pane = ctx_tab_bar($f, [['attributes','Attributes'], ['dynamics','Dynamics'], ['misc','Miscellaneous']])
         var $A = pane['attributes'], $D = pane['dynamics'], $M = pane['misc']
 
-        // --- Attributes : mass, opacity, color, radius ---
+        // --- Attributes: mass, opacity, color, radius ---
         num_row($A, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })
         num_row($A, 'opacity',         function(){ return obj.material.opacity }, function(v){ applyAll(function(t){ t.material.transparent = true; t.material.opacity = v; t.material.needsUpdate = true }) })
-        if (obj.material && obj.material.color){ color_row($A, obj, applyAll) }   // couleur de l'objet
-        if (obj.type === 'sphere'){ radius_row($A, obj, applyAll); population_row($A, obj) }   // rayon réel + effectif de la couleur
-        if (BOXY_TYPES.indexOf(obj.type) >= 0){ rotz_row($A, obj, applyAll) }     // cube/pavé : rotation autour de la verticale
+        if (obj.material && obj.material.color){ color_row($A, obj, applyAll) }   // object color
+        if (obj.type === 'sphere'){ radius_row($A, obj, applyAll); population_row($A, obj) }   // actual radius + color count
+        if (BOXY_TYPES.indexOf(obj.type) >= 0){ rotz_row($A, obj, applyAll) }     // cube/slab: rotation around the vertical
 
-        // --- Dynamics : vitesse (vx/vy/vz), friction, radius_interact ---
-        if (obj.speed){                                        // vitesse (composantes) — objets mobiles
+        // --- Dynamics: velocity (vx/vy/vz), friction, radius_interact ---
+        if (obj.speed){                                        // velocity (components) — moving objects
               num_row($D, 'vx',        function(){ return obj.speed.x },          function(v){ applyAll(function(t){ t.speed.x = v }) })
               num_row($D, 'vy',        function(){ return obj.speed.y },          function(v){ applyAll(function(t){ t.speed.y = v }) })
               num_row($D, 'vz',        function(){ return obj.speed.z },          function(v){ applyAll(function(t){ t.speed.z = v }) })
@@ -361,32 +361,32 @@ function bs_prompt(title, message, defaultValue, onOk){
         num_row($D, 'friction',        function(){ return obj.friction },         function(v){ applyAll(function(t){ t.friction = v }) })
         num_row($D, 'radius_interact', function(){ return obj.radius_interact },  function(v){ applyAll(function(t){ t.radius_interact = v }) })
 
-        // --- Miscellaneous : magnet, blocked, trajectory (+ coloration groupe) ---
+        // --- Miscellaneous: magnet, blocked, trajectory (+ group coloring) ---
         bool_row($M, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
         bool_row($M, 'blocked', function(){ return obj.blocked }, function(v){ applyAll(function(t){ t.blocked = v }) })
-        bool_row($M, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // suivi propre à cet objet
+        bool_row($M, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // tracking specific to this object
               obj.track_trajectory = v
               if (v && typeof reset_trajectory === 'function'){ reset_trajectory(obj) } else { obj.traj = null }
         })
-        if (obj.group_id !== undefined){                 // membre d'un groupe persistant : voir/masquer sa coloration
+        if (obj.group_id !== undefined){                 // member of a persistent group: show/hide its coloring
               bool_row($M, 'coloration groupe',
                     function(){ return !!group_highlighted[obj.group_id] },
                     function(v){ if (typeof highlight_group === 'function'){ highlight_group(obj.group_id, v) } })
         }
         position_ctx(x, y, 220, 300)
   }
-  window.show_elastic_context_menu = function(pair, x, y){       // clic droit sur un élastique : sa raideur propre
+  window.show_elastic_context_menu = function(pair, x, y){       // right-click on an elastic: its own stiffness
         $('#ctx_obj_title').text('elastic — ' + (((pair[0] && pair[0].name) || '?') + ' ↔ ' + ((pair[1] && pair[1].name) || '?')))
         var $f = $('#ctx_obj_fields').empty()
         num_row($f, 'stiffness',
               function(){ return (pair.k_spring !== undefined) ? pair.k_spring : harmonic_const },
-              function(v){ pair.k_spring = v })                  // raideur de CET élastique seulement
+              function(v){ pair.k_spring = v })                  // stiffness of THIS elastic only
         var mw = 210, mh = 110
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
   }
-  function opacity_row($f, obj){                                // glissière d'opacité de l'élément cliqué
+  function opacity_row($f, obj){                                // opacity slider for the clicked element
         var $row = $('<div style="margin:6px 0">')
         var $top = $('<div style="display:flex; justify-content:space-between; align-items:center">')
         var $val = $('<span style="min-width:34px; text-align:right">').text(Number(obj.material.opacity).toFixed(2))
@@ -404,11 +404,11 @@ function bs_prompt(title, message, defaultValue, onOk){
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
   }
-  window.show_wall_context_menu = function(wall, x, y){         // clic droit sur une paroi de boîte
+  window.show_wall_context_menu = function(wall, x, y){         // right-click on a box wall
         $('#ctx_obj_title').text('box wall — ' + (wall.name || ''))
         var $f = $('#ctx_obj_fields').empty()
         opacity_row($f, wall)
-        if (wall.box_id !== undefined){                          // actions sur la boîte entière
+        if (wall.box_id !== undefined){                          // actions on the whole box
               bool_row($f, 'movable (déplaçable)', function(){ return !!wall.movable }, function(v){ set_box_movable(wall, v) })
               num_row($f, 'box height', function(){ return Math.round(wall.height) }, function(v){ if (v > 0){ set_box_height(wall, v) } })
               var $rowb = $('<div style="margin:6px 0; display:flex; gap:6px; align-items:center">')
@@ -422,18 +422,18 @@ function bs_prompt(title, message, defaultValue, onOk){
               var $lbtn = $('<button type="button" style="cursor:pointer">' + (has ? 'remove lid' : 'add lid') + '</button>')
               $lbtn.on('click', function(){
                     if (box_lid_index(wall.box_id) >= 0){ remove_lid(wall.box_id) } else { add_lid(wall) }
-                    show_wall_context_menu(wall, x, y)           // rafraîchit le libellé du bouton
+                    show_wall_context_menu(wall, x, y)           // refreshes the button label
               })
               $rowl.append($lbtn); $f.append($rowl)
         }
-        if (wall.group_id !== undefined){                        // paroi membre d'un groupe persistant : voir/masquer sa coloration
+        if (wall.group_id !== undefined){                        // wall member of a persistent group: show/hide its coloring
               bool_row($f, 'coloration groupe',
                     function(){ return !!group_highlighted[wall.group_id] },
                     function(v){ if (typeof highlight_group === 'function'){ highlight_group(wall.group_id, v) } })
         }
         position_ctx(x, y, 220, 260)
   }
-  window.show_lid_context_menu = function(lid, x, y){           // clic droit sur un couvercle
+  window.show_lid_context_menu = function(lid, x, y){           // right-click on a lid
         $('#ctx_obj_title').text('lid (couvercle)')
         var $f = $('#ctx_obj_fields').empty()
         opacity_row($f, lid)
@@ -442,13 +442,13 @@ function bs_prompt(title, message, defaultValue, onOk){
   function hide_ctx(){ $('#obj_context_menu').hide() }
   $('#ctx_obj_close').on('click', hide_ctx)
 
-  // Clic droit : ÉLASTIQUE -> menu raideur ; sinon OBJET VERT (sélectionné) -> menu attributs
+  // Right-click: ELASTIC -> stiffness menu; otherwise GREEN OBJECT (selected) -> attributes menu
   renderer.domElement.addEventListener('contextmenu', function(event){
-        var ray = make_raycaster(event)            // preventDefault() interne -> pas de menu natif
+        var ray = make_raycaster(event)            // internal preventDefault() -> no native menu
         var hits = ray.intersectObjects(objects)
         if (hits.length){
               var obj = hits[0].object
-              if (obj.type === 'elastic'){                       // clic droit sur un élastique -> sa raideur
+              if (obj.type === 'elastic'){                       // right-click on an elastic -> its stiffness
                     for (var i in list_paired_harmonic){
                           if (list_paired_harmonic[i][2] === obj){
                                 show_elastic_context_menu(list_paired_harmonic[i], event.clientX, event.clientY)
@@ -456,20 +456,20 @@ function bs_prompt(title, message, defaultValue, onOk){
                           }
                     }
               }
-              if (obj.type === 'wall_box'){                      // clic droit sur une paroi -> menu boîte
+              if (obj.type === 'wall_box'){                      // right-click on a wall -> box menu
                     show_wall_context_menu(obj, event.clientX, event.clientY); return
               }
-              if (obj.type === 'lid'){                           // clic droit sur un couvercle -> opacité
+              if (obj.type === 'lid'){                           // right-click on a lid -> opacity
                     show_lid_context_menu(obj, event.clientX, event.clientY); return
               }
-              if (obj.material && obj.material.color){            // objet ordinaire (boule, cube…) -> menu attributs
+              if (obj.material && obj.material.color){            // ordinary object (ball, cube…) -> attributes menu
                     show_object_context_menu(obj, event.clientX, event.clientY)
                     return
               }
         }
         hide_ctx()
   })
-  // Fermer le menu en cliquant ailleurs
+  // Close the menu by clicking elsewhere
   $(document).on('mousedown', function(e){
         if (!$(e.target).closest('#obj_context_menu').length){ hide_ctx() }
   })

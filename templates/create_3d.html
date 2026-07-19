@@ -61,9 +61,9 @@
 
 		function render() {
 				controls.update();
-				update_all_elastics();   // les ressorts suivent les boules (drag inclus, même animation à l'arrêt)
-				if (typeof update_speed_arrows === 'function'){ update_speed_arrows() }   // flèches de vitesse (show_speeds)
-				if (typeof vdrag_check_alive === 'function'){ vdrag_check_alive() }       // mode altitude : sortir si l'objet a été supprimé
+				update_all_elastics();   // the springs follow the balls (drag included, same animation at rest)
+				if (typeof update_speed_arrows === 'function'){ update_speed_arrows() }   // velocity arrows (show_speeds)
+				if (typeof vdrag_check_alive === 'function'){ vdrag_check_alive() }       // altitude mode: exit if the object has been deleted
 				renderer.render( scene, camera );
 		}
 

@@ -39,19 +39,19 @@ function link_toggle(event, namekey, nameparam){
 function toggle_tool(key){
 
       /*
-      Active/désactive un outil de création (boule, chaîne...).
-      Un appui active l'outil (et désactive les autres) ; un second appui le coupe.
+      Enable/disable a creation tool (ball, chain...).
+      One press enables the tool (and disables the others); a second press turns it off.
       */
 
       var flag = 'new_' + key + '_ok'
-      if (window[flag]){                     // déjà actif -> on le coupe
+      if (window[flag]){                     // already active -> turn it off
             reinit_params_ok()
-            if (key == 'string'){ list_string = [] }  // repartir sur une nouvelle chaîne au prochain usage
+            if (key == 'string'){ list_string = [] }  // start a new chain on next use
             $('#curr_tool').text('aucun outil')
-            $('#active_obj_navbar').text('')   // plus d'outil actif -> navbar vidée
+            $('#active_obj_navbar').text('')   // no active tool -> navbar cleared
       } else {
-            if (key == 'string'){ list_string = [] }  // chaque activation démarre une chaîne indépendante
-            tool_key(key)                    // active cet outil (et réinitialise les autres)
+            if (key == 'string'){ list_string = [] }  // each activation starts an independent chain
+            tool_key(key)                    // enable this tool (and reset the others)
       }
 
 }
@@ -81,8 +81,8 @@ function keyDownTextField1(event){
 
       */
 
-      var _t = event.target || event.srcElement                 // si on tape dans un champ (modale, nom de scène...),
-      if (_t){                                                   // ne pas déclencher les raccourcis de la scène 3D
+      var _t = event.target || event.srcElement                 // if typing in a field (modal, scene name...),
+      if (_t){                                                   // don't trigger the 3D scene shortcuts
             var _tag = (_t.tagName || '').toLowerCase()
             if (_tag === 'input' || _tag === 'textarea' || _tag === 'select' || _t.isContentEditable){ return }
       }
@@ -99,28 +99,28 @@ function keyDownTextField1(event){
 
       if (event.keyCode == 38 ){ apply_to_one_obj_or_group(move_obj_up, false)  }  // Up
       if (event.keyCode == 40 ){ apply_to_one_obj_or_group(move_obj_down, false) } // Down
-      // Copier / coller (Ctrl+C / Ctrl+V) — remplace l'ancien clone sur « c » seul
+      // Copy / paste (Ctrl+C / Ctrl+V) — replaces the old clone on « c » alone
       if (event.ctrlKey && (event.keyCode === 67 || event.key === 'c' || event.key === 'C')){ event.preventDefault(); do_copy(); return }
       if (event.ctrlKey && (event.keyCode === 86 || event.key === 'v' || event.key === 'V')){ event.preventDefault(); do_paste(); return }
 
-      if ( keyev('a', event) ){ scene_animation_ok = true; apply_to_one_obj_or_group(apply_movement, false) } // démarre l'animation (+ enregistre l'objet survolé)
-      if ( keyev('d', event) && !event.shiftKey ){ delete_object() }   				  // Delete object selected (seul « d » supprime ; Maj+D ne fait rien)
+      if ( keyev('a', event) ){ scene_animation_ok = true; apply_to_one_obj_or_group(apply_movement, false) } // starts the animation (+ records the hovered object)
+      if ( keyev('d', event) && !event.shiftKey ){ delete_object() }   				  // Delete object selected (only « d » deletes; Shift+D does nothing)
       //if ( keyev('b', event) ){ delete_area() }               // Delete selection area
       if ( keyev('r', event) ){ apply_to_one_obj_or_group(rotate_obj, true) } 						// Rotation
 
       //--------------------- Change variables
 
-      // --- Sélection / groupes (avec Ctrl, pour ne pas gêner la frappe) ---
-      if (event.ctrlKey && keyev('s', event)){                // Ctrl+S : zone de sélection (toggle ; efface une sélection existante)
+      // --- Selection / groups (with Ctrl, so as not to interfere with typing) ---
+      if (event.ctrlKey && keyev('s', event)){                // Ctrl+S: selection area (toggle; clears an existing selection)
             event.preventDefault(); toggle_area_selection(); return
       }
-      if (event.ctrlKey && event.shiftKey && keyev('g', event)){   // Ctrl+Maj+G : groupe PERSISTANT (toggle)
+      if (event.ctrlKey && event.shiftKey && keyev('g', event)){   // Ctrl+Shift+G: PERSISTENT group (toggle)
             event.preventDefault(); toggle_persistent_group(); return
       }
-      if (event.ctrlKey && keyev('g', event)){                // Ctrl+G : déplacer le groupe (toggle ; ré-appui = dégroupe)
+      if (event.ctrlKey && keyev('g', event)){                // Ctrl+G: move the group (toggle; press again = ungroup)
             event.preventDefault(); toggle_group_move(); return
       }
-      // Ctrl+K : affiche/masque la carte des raccourcis clavier (intercepté AVANT « k » seul = position caméra)
+      // Ctrl+K: show/hide the keyboard shortcuts card (intercepted BEFORE « k » alone = camera position)
       if (event.ctrlKey && (event.keyCode === 75 || event.key === 'k' || event.key === 'K')){
             event.preventDefault(); $('.panel_keys').toggle(); return
       }
@@ -131,10 +131,10 @@ function keyDownTextField1(event){
       link_toggle(event, 't', 'new_track_ok')               // create a track
       link_toggle(event, 'u', 'paire_harmonic')             //
       link_toggle(event, 'x', 'scene_animation_ok')         //
-      if ( keyev('o', event) ){ toggle_tool('sphere') }     // outil boule : appui = on, second appui = off
-      if ( keyev('e', event) ){ toggle_tool('string') }     // outil chaîne : appui = on, second appui = off
-      if ( keyev('n', event) ){ toggle_tool('wall') }       // outil mur : appui = on, second appui = off
-      if ( keyev('w', event) ){ toggle_tool('box') }        // outil boîte (enceinte de murs réfléchissants)
+      if ( keyev('o', event) ){ toggle_tool('sphere') }     // ball tool: press = on, second press = off
+      if ( keyev('e', event) ){ toggle_tool('string') }     // chain tool: press = on, second press = off
+      if ( keyev('n', event) ){ toggle_tool('wall') }       // wall tool: press = on, second press = off
+      if ( keyev('w', event) ){ toggle_tool('box') }        // box tool (enclosure of reflecting walls)
       if (keyev('b', event)){ reinit_params_ok() } // dict_obj_param_false()
 
   } // end keyDownTextField1

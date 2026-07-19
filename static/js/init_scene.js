@@ -95,14 +95,14 @@ function load_params(name, msg, curr_tex_addr){
                           'magnet', 'friction', 'group_id']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
-          if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> ne pas écraser)
+          if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
     }
     if (listorig[name].group_id !== undefined && listorig[name].group_id > group_id_counter){
-          group_id_counter = listorig[name].group_id             // évite les collisions d'id de groupe
+          group_id_counter = listorig[name].group_id             // avoids group id collisions
     }
     if (msg[name]['color'] !== undefined && listorig[name].material && listorig[name].material.color){
-          listorig[name].material.color.setHex(msg[name]['color'])   // couleur sauvegardée
-          listorig[name].currentHex = msg[name]['color']             // + couleur "réelle" mémorisée
+          listorig[name].material.color.setHex(msg[name]['color'])   // saved color
+          listorig[name].currentHex = msg[name]['color']             // + "real" color stored
     }
     load_speed(msg,name)
 
@@ -144,21 +144,21 @@ function load_cube_mult_tex(name, msg){
 function load_sphere(name, msg){
 
       /*
-      Recharge une sphère (boule de chaîne incluse) avec sa vitesse/masse/etc.
+      Reload a sphere (chain ball included) with its velocity/mass/etc.
       */
 
       curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
       listorig[name] = basic_sphere( name, msg[name]['pos'], msg[name]['rot'], color_sphere_default )
       load_params(name, msg, curr_tex_addr)
-      if (msg[name]['radius'] !== undefined){ set_sphere_radius(listorig[name], msg[name]['radius']) }  // rayon sauvegardé
-      list_moving_objects.push(listorig[name])   // redevient dynamique (anime au prochain 'a')
+      if (msg[name]['radius'] !== undefined){ set_sphere_radius(listorig[name], msg[name]['radius']) }  // saved radius
+      list_moving_objects.push(listorig[name])   // becomes dynamic again (animates on next 'a')
 
 }
 
 function load_wall_box(name, msg){
 
       /*
-      Recharge un mur de boîte (wall_box) : dimensions, orientation, statique.
+      Reload a box wall (wall_box): dimensions, orientation, static.
       */
 
       curr_tex_addr = msg[name]['tex_addr'] || basic_tex_addr;
@@ -168,15 +168,15 @@ function load_wall_box(name, msg){
       var obj = simple_parallelepiped( name, msg[name]['pos'], msg[name]['rot'], listmat[name], dim, 'wall_box' )
       var ori = msg[name]['orientation']
       if (ori){ obj.orientation = new THREE.Vector3(ori.x, ori.y, ori.z) }
-      if (msg[name]['box_id'] !== undefined){    // regroupement des 4 parois d'une même boîte
+      if (msg[name]['box_id'] !== undefined){    // grouping the 4 walls of the same box
             obj.box_id = msg[name]['box_id']
-            if (obj.box_id > box_id_counter){ box_id_counter = obj.box_id }   // évite les collisions d'id
+            if (obj.box_id > box_id_counter){ box_id_counter = obj.box_id }   // avoids id collisions
       }
-      if (msg[name]['movable'] !== undefined){ obj.movable = msg[name]['movable'] }   // boîte déplaçable
+      if (msg[name]['movable'] !== undefined){ obj.movable = msg[name]['movable'] }   // movable box
       listorig[name] = obj
       load_params(name, msg, curr_tex_addr)
-      obj.blocked = true                         // mur statique
-      list_moving_objects.push(obj)              // dans la boucle d'interactions -> les boules rebondissent
+      obj.blocked = true                         // static wall
+      list_moving_objects.push(obj)              // in the interactions loop -> the balls bounce
 
 }
 
@@ -191,14 +191,14 @@ function load_object(name, msg){
       else if (t == "cube_mult_tex"){ load_cube_mult_tex(name, msg) }
       else if (t == "sphere"){ load_sphere(name, msg) }
       else if (t == "wall_box"){ load_wall_box(name, msg) }
-      // 'elastic'/'spring' : ignorés, recréés via load_chains
+      // 'elastic'/'spring': ignored, recreated via load_chains
 
 } // end load_object ...
 
 function load_chains(msg){
 
       /*
-      Reconstruit les liaisons de chaîne (ressorts) à partir des paires sauvegardées.
+      Rebuilds the chain links (springs) from the saved pairs.
       */
 
       if (!msg['_chains']){ return }
@@ -208,7 +208,7 @@ function load_chains(msg){
             if (s0 && s1){
                   var el = create_elastic([s0, s1])
                   var pair = [s0, s1, el]
-                  var ksaved = msg['_chains'][k][2]               // raideur propre sauvegardée (si réglée)
+                  var ksaved = msg['_chains'][k][2]               // saved own stiffness (if set)
                   if (ksaved !== undefined && ksaved !== null){ pair.k_spring = ksaved }
                   list_paired_harmonic.push(pair)
             }
@@ -227,12 +227,12 @@ function load_scene(msg){
               var name = Object.keys(msg)[i]  									// k is the objects name
               load_object(name, msg)                           // load the objects wall..
           } // end for
-      load_chains(msg)                                         // reconstruit les ressorts des chaînes
-      try { if (typeof restore_lids === 'function'){ restore_lids(msg) } }             // couvercles (non bloquant)
+      load_chains(msg)                                         // rebuilds the chain springs
+      try { if (typeof restore_lids === 'function'){ restore_lids(msg) } }             // lids (non-blocking)
       catch(e){ console.warn('restore_lids a échoué :', e) }
-      try { if (msg['_dynamics']){ restore_dynamics(msg['_dynamics']) } }              // réglages Dynamics (non bloquant)
+      try { if (msg['_dynamics']){ restore_dynamics(msg['_dynamics']) } }              // Dynamics settings (non-blocking)
       catch(e){ console.warn('restore_dynamics a échoué :', e) }
-      if (msg['scene_name'] && msg['scene_name'] != 'None'){   // restitue le nom de la scène
+      if (msg['scene_name'] && msg['scene_name'] != 'None'){   // restores the scene name
             scene.name = msg['scene_name']
             $('#scene_name').val(scene.name)
       }
@@ -243,8 +243,8 @@ function load_scene(msg){
 function restore_dynamics(d){
 
       /*
-      Restaure les réglages du panneau Dynamics sauvegardés avec la scène,
-      puis rafraîchit les contrôles du panneau (si présent).
+      Restores the Dynamics panel settings saved with the scene,
+      then refreshes the panel controls (if present).
       */
 
       if (d.gravity_ok !== undefined){ gravity_ok = d.gravity_ok }
@@ -263,7 +263,7 @@ function restore_dynamics(d){
       if (d.show_altitude_hist !== undefined){ show_altitude_hist = d.show_altitude_hist }
       if (d.show_trajectories !== undefined){ show_trajectories = d.show_trajectories }
       if (d.altitude_fit_expr !== undefined){ altitude_fit_expr = d.altitude_fit_expr }
-      if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // met à jour les cases/curseurs
+      if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // updates the checkboxes/sliders
 
 }
 
@@ -312,32 +312,32 @@ function condition_emit(i){
 
       var emit_conditions = objects[i].type != 'pawn' &
                             objects[i].type != null &
-                            objects[i].type != 'elastic' &   // recréés à partir des paires de chaîne (_chains)
+                            objects[i].type != 'elastic' &   // recreated from the chain pairs (_chains)
                             objects[i].type != 'spring' &
-                            objects[i].type != 'lid' &       // couvercles : non persistés (recréés à la volée)
+                            objects[i].type != 'lid' &       // lids: not persisted (recreated on the fly)
                             !objects[i].del
 
       return emit_conditions
 
 }
 
-function make_infos_obj(i){ return make_infos_obj_of(objects[i]) }   // sérialise objects[i]
+function make_infos_obj(i){ return make_infos_obj_of(objects[i]) }   // serializes objects[i]
 
 function make_infos_obj_of(obj){
 
       /*
-      Dictionnaire de recréation d'un objet (même format que load_object) : position,
-      rotation, opacité, attributs et couleur. Réutilisé par le copier/coller.
+      Recreation dictionary of an object (same format as load_object): position,
+      rotation, opacity, attributes and color. Reused by copy/paste.
       */
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
                           'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
-                          'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id']  // utiles pour recréer sphères/boîtes
+                          'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id']  // useful to recreate spheres/boxes
       var x = obj.rotation.x
       var y = obj.rotation.y
       var z = obj.rotation.z
       var mat = obj.material
-      var opacity = (mat && mat._origOpacity !== undefined) ? mat._origOpacity : (mat ? mat.opacity : 1)  // opacité d'origine si objets atténués par les flèches
+      var opacity = (mat && mat._origOpacity !== undefined) ? mat._origOpacity : (mat ? mat.opacity : 1)  // original opacity if objects dimmed by the arrows
       var infos_obj = {
                        "pos": obj.position,
                        "rot": {x,y,z},
@@ -347,7 +347,7 @@ function make_infos_obj_of(obj){
             var key = list_attr_emit[j]
             infos_obj[key] = obj[key]
       }
-      // couleur "réelle" (currentHex si l'objet est sélectionné/vert, sinon la couleur du matériau)
+      // "real" color (currentHex if the object is selected/green, otherwise the material color)
       if (mat && mat.color){
             infos_obj['color'] = (obj.currentHex !== undefined) ? obj.currentHex : mat.color.getHex()
       }
@@ -356,7 +356,7 @@ function make_infos_obj_of(obj){
 
 }
 
-function get_scene_data(){              // construit le JSON de la scène (sans l'envoyer) -- réutilisé par save init
+function get_scene_data(){              // builds the scene JSON (without sending it) -- reused by save init
 
     var listpos = {}         // dictionary of all the informations about the scene to be saved in a json file..
     for (i in objects){
@@ -367,13 +367,13 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
               listpos['scene_name'] = scene.name
             }    // end if
           }    // end for
-    if (list_paired_harmonic.length > 0){              // sauve les liaisons de chaîne (noms des boules + raideur propre)
+    if (list_paired_harmonic.length > 0){              // saves the chain links (ball names + own stiffness)
           listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring] })
     }
-    if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // couvercles (recréés depuis leur box_id au chargement)
+    if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
           listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity } })
     }
-    listpos['_dynamics'] = {                           // réglages du panneau Dynamics (sauvegardés avec la scène)
+    listpos['_dynamics'] = {                           // Dynamics panel settings (saved with the scene)
           gravity_ok: gravity_ok,
           springs_ok: springs_ok,
           one_over_r2: one_over_r2,
@@ -385,7 +385,7 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
           random_initial_speed: random_initial_speed,
           random_speed_module: random_speed_module,
           random_speed_z: random_speed_z,
-          // toggles d'affichage (Monitoring)
+          // display toggles (Monitoring)
           show_energy_graph: show_energy_graph,
           show_velocity_hist: show_velocity_hist,
           show_altitude_hist: show_altitude_hist,
@@ -398,15 +398,15 @@ function get_scene_data(){              // construit le JSON de la scène (sans 
 function json_ascii(data){
 
     /*
-    JSON.stringify + échappement \uXXXX de TOUT caractère non-ASCII.
+    JSON.stringify + \uXXXX escaping of EVERY non-ASCII character.
 
-    Indispensable : python-engineio 3.x décode le transport *polling* en latin-1. Un « è » (U+00E8)
-    émis en clair revient donc en « Ã¨ » — et comme socket.io démarre TOUJOURS en polling avant de
-    basculer en websocket, l'auto-save qui suit le chargement de la page tombait dans ce trou et
-    ajoutait UNE couche de mojibake à CHAQUE ouverture de l'appli (« Archimède » -> « ArchimÃ¨de »
-    -> « ArchimÃÂ¨de » -> ...). En n'envoyant que de l'ASCII, le transport n'a plus rien à
-    corrompre ; \uXXXX est du JSON valide, json.loads() côté serveur restitue les vrais caractères.
-    (Le sens serveur -> client est déjà sûr : python-socketio sérialise avec ensure_ascii=True.)
+    Essential: python-engineio 3.x decodes the *polling* transport as latin-1. An « è » (U+00E8)
+    sent as-is therefore comes back as « Ã¨ » — and since socket.io ALWAYS starts in polling before
+    switching to websocket, the auto-save that follows the page load fell into this trap and
+    added ONE layer of mojibake at EVERY opening of the app (« Archimède » -> « ArchimÃ¨de »
+    -> « ArchimÃÂ¨de » -> ...). By sending only ASCII, the transport has nothing left to
+    corrupt; \uXXXX is valid JSON, json.loads() on the server side restores the real characters.
+    (The server -> client direction is already safe: python-socketio serializes with ensure_ascii=True.)
     */
 
     return JSON.stringify(data).replace(/[\u0080-\uffff]/g, function(c){
@@ -418,14 +418,14 @@ function json_ascii(data){
 function emit_infos_scene(archive_name){          									// emits the positions toward the server to save them
 
     /*
-    Send the informations to the server (-> pos.json, état de travail courant).
-    archive_name (string) : si fourni, demande l'archivage explicite dans scenes/<archive_name>.json.
-    Appelé sans argument par l'auto-save (mouseup) -> pas d'archivage de scène nommée.
+    Send the informations to the server (-> pos.json, current working state).
+    archive_name (string): if provided, requests explicit archiving in scenes/<archive_name>.json.
+    Called without argument by the auto-save (mouseup) -> no named scene archiving.
     */
 
     var data = get_scene_data()
-    if (typeof history_record === 'function'){ history_record(data) }   // undo/redo : enregistre l'état (ignoré pendant une restauration)
-    if (typeof archive_name === 'string' && archive_name){ data['_archive'] = archive_name }  // sauvegarde explicite
+    if (typeof history_record === 'function'){ history_record(data) }   // undo/redo: records the state (ignored during a restore)
+    if (typeof archive_name === 'string' && archive_name){ data['_archive'] = archive_name }  // explicit save
     socket.emit( 'message', JSON.stringify(data));
   }    // end emit_infos_scene
 
@@ -440,9 +440,9 @@ function init() {
 
   //------------------------- Camera
 
-  // near=10 / far=60000 : on voit de bien plus loin sans que la scène soit coupée au dézoom.
-  // Monter near (1 -> 10) en même temps que far garde le rapport far/near BAS (6000 < 10000
-  // d'avant), donc la précision du buffer de profondeur reste bonne (pas de z-fighting).
+  // near=10 / far=60000: we see much farther without the scene being clipped when zooming out.
+  // Raising near (1 -> 10) together with far keeps the far/near ratio LOW (6000 < 10000
+  // from before), so the depth buffer precision stays good (no z-fighting).
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 10, 60000 );
   camera.position.set(0,-2000,2000)
 
@@ -488,7 +488,7 @@ function init() {
   socket.emit( 'begin',  "hello from client"); // send mess to server for ping pong..
   socket.on('server_pos', function(msg) {
         load_scene(msg)             // When receiving the scene from the server (pos.json), load it in the client..
-        if (typeof history_seed === 'function'){ history_seed() }   // undo/redo : reprend l'historique de la scène (ou pose la baseline)
+        if (typeof history_seed === 'function'){ history_seed() }   // undo/redo: resumes the scene history (or sets the baseline)
       });// end socket.on
 
   // var gjson ;
@@ -522,7 +522,7 @@ function init() {
   renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
   renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
   renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
-  init_vertical_drag();       // plan vertical + double-clic (mode altitude) — après renderer : a besoin de domElement
+  init_vertical_drag();       // vertical plane + double-click (altitude mode) — after renderer: needs domElement
 
   //------------------
 

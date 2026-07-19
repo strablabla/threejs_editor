@@ -55,86 +55,86 @@ function newview(selpos){
 }
 
 //======================================================================
-// Positionnement caméra par GLISSER (touche k)
-//   mousedown : fixe A (future position caméra)
-//   déplacement : flèche orientée de A vers la souris + ligne pointillée
-//   mouseup : place la caméra en A regardant vers B (le relâcher), puis efface les repères
+// Camera positioning by DRAGGING (key k)
+//   mousedown: sets A (future camera position)
+//   drag: arrow pointing from A toward the mouse + dashed line
+//   mouseup: places the camera at A looking toward B (the release point), then clears the markers
 //======================================================================
 
-var POSCAM_Z = 8                                   // légère hauteur des repères pour ne pas z-fighter avec le sol
-var POSCAM_COLOR = 0xff6600                         // orange (flèche, marqueur, pointillés)
-var POSCAM_MIN_DRAG = 20                            // glisser minimal (unités scène) pour valider une vue (évite A=B -> vue figée)
+var POSCAM_Z = 8                                   // slight height of the markers to avoid z-fighting with the ground
+var POSCAM_COLOR = 0xff6600                         // orange (arrow, marker, dashes)
+var POSCAM_MIN_DRAG = 20                            // minimal drag (scene units) to validate a view (avoids A=B -> frozen view)
 
-function poscam_plane_point(event){                // intersection du curseur avec le plan du sol (z ≈ 0)
+function poscam_plane_point(event){                // intersection of the cursor with the ground plane (z ≈ 0)
       var raycaster = make_raycaster(event)
       var hits = raycaster.intersectObject(plane)
       return hits.length ? hits[0].point.clone() : null
 }
 
-function poscam_clear(){                            // retire marqueur A, flèche et ligne pointillée
+function poscam_clear(){                            // removes marker A, arrow and dashed line
       if (poscam_marker){ scene.remove(poscam_marker); poscam_marker = null }
       if (poscam_arrow){ scene.remove(poscam_arrow); poscam_arrow = null }
       if (poscam_line){ scene.remove(poscam_line);  poscam_line  = null }
 }
 
-function poscam_draw(B){                            // (re)dessine flèche A->B + pointillés (repères NON ajoutés à objects[])
+function poscam_draw(B){                            // (re)draws arrow A->B + dashes (markers NOT added to objects[])
       var from = new THREE.Vector3(poscam_A.x, poscam_A.y, POSCAM_Z)
       var to   = new THREE.Vector3(B.x, B.y, POSCAM_Z)
       var d = to.clone().sub(from)
       var len = d.length()
-      //--- flèche (recréée à chaque déplacement)
+      //--- arrow (recreated on each move)
       if (poscam_arrow){ scene.remove(poscam_arrow); poscam_arrow = null }
       if (len > 1e-3){
             var head = Math.min(60, len * 0.3)
             poscam_arrow = new THREE.ArrowHelper(d.clone().normalize(), from, len, POSCAM_COLOR, head, head * 0.6)
             scene.add(poscam_arrow)
       }
-      //--- ligne pointillée
+      //--- dashed line
       if (poscam_line){ scene.remove(poscam_line); poscam_line = null }
       var geom = new THREE.Geometry()
       geom.vertices.push(from.clone(), to.clone())
-      geom.computeLineDistances()                  // requis pour LineDashedMaterial
+      geom.computeLineDistances()                  // required for LineDashedMaterial
       poscam_line = new THREE.Line(geom, new THREE.LineDashedMaterial({ color: POSCAM_COLOR, dashSize: 18, gapSize: 12 }))
       scene.add(poscam_line)
 }
 
-function poscam_begin(event){                      // clic : fixe A et amorce le glisser
+function poscam_begin(event){                      // click: sets A and starts the drag
       var P = poscam_plane_point(event)
       if (!P){ return }
       poscam_clear()
       poscam_A = P
       poscam_dragging = true
-      controls.enabled = false                     // pas de rotation trackball pendant le glisser
+      controls.enabled = false                     // no trackball rotation during the drag
       poscam_marker = new THREE.Mesh(new THREE.SphereGeometry(12, 12, 12),
                                      new THREE.MeshBasicMaterial({ color: POSCAM_COLOR }))
       poscam_marker.position.set(poscam_A.x, poscam_A.y, POSCAM_Z)
       scene.add(poscam_marker)
-      poscam_draw(poscam_A)                         // flèche de longueur nulle au départ
+      poscam_draw(poscam_A)                         // zero-length arrow at the start
 }
 
-function poscam_update(event){                     // déplacement : flèche/pointillés suivent la souris
+function poscam_update(event){                     // drag: arrow/dashes follow the mouse
       if (!poscam_dragging){ return }
       var B = poscam_plane_point(event)
       if (B){ poscam_draw(B) }
 }
 
-function poscam_end(event){                         // relâcher : applique la vue puis efface les repères
+function poscam_end(event){                         // release: applies the view then clears the markers
       if (!poscam_dragging){ return }
       var A = poscam_A
       var B = poscam_plane_point(event)
-      //--- on restaure TOUJOURS l'état (repères, contrôles, drapeaux), quoi qu'il arrive
+      //--- we ALWAYS restore the state (markers, controls, flags), whatever happens
       poscam_clear()
       poscam_dragging = false
       select_poscam = false
       controls.enabled = true
       $('#curr_func').css('background-color','blue')
       poscam_A = null
-      //--- on n'applique la vue QUE si le glisser a une direction exploitable
-      //    (un clic sans glisser donnerait A=B -> caméra = cible -> TrackballControls figé)
+      //--- we apply the view ONLY if the drag has a usable direction
+      //    (a click without dragging would give A=B -> camera = target -> TrackballControls frozen)
       if (A && B){
             var dx = B.x - A.x, dy = B.y - A.y
             if (dx*dx + dy*dy >= POSCAM_MIN_DRAG * POSCAM_MIN_DRAG){
-                  camera_pos_orient(A, B, 250)       // caméra en A, regarde vers B (altitude 250, comme avant)
+                  camera_pos_orient(A, B, 250)       // camera at A, looks toward B (altitude 250, as before)
             }
       }
 }

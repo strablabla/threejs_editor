@@ -51,7 +51,7 @@ function basic_sphere(name,p,r,col){
         object = obj_basics(object,p,r,name)
         object.type = 'sphere'
         object.height = radius // useful for gravity
-        object.radius = radius // rayon réel (détection de collision boule-boule)
+        object.radius = radius // real radius (ball-to-ball collision detection)
         scene.add( object );
         objects.push( object )
 
@@ -62,15 +62,15 @@ function basic_sphere(name,p,r,col){
 function set_sphere_radius(obj, R){
 
       /*
-      Change le rayon RÉEL d'une sphère : met à l'échelle le mesh (relativement au
-      rayon courant, sans stocker de rayon de base), et met à jour le rayon de
-      collision (obj.radius) et la hauteur (rebond sol).
+      Change the REAL radius of a sphere: scale the mesh (relative to the
+      current radius, without storing a base radius), and update the collision
+      radius (obj.radius) and the height (ground bounce).
       */
 
       if (obj.type !== 'sphere' || !obj.radius || R <= 0){ return }
-      obj.scale.multiplyScalar(R / obj.radius)                 // facteur relatif au rayon actuel
-      obj.radius = R                                           // rayon de collision boule-boule
-      obj.height = R                                           // cohérence du rebond au sol
+      obj.scale.multiplyScalar(R / obj.radius)                 // factor relative to the current radius
+      obj.radius = R                                           // ball-to-ball collision radius
+      obj.height = R                                           // consistency of the ground bounce
 
 }
 

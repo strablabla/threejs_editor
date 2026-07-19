@@ -94,8 +94,8 @@ function random_coord_speed(){
       Random speed coordinate
       */
 
-      if (!random_initial_speed){ return 0 }                  // mode « vitesse de départ à 0 »
-      return random_speed_module * (gaussianRand() - 0.5) * 2 // aléatoire SYMÉTRIQUE, centré sur 0, dans [-module, +module]
+      if (!random_initial_speed){ return 0 }                  // « initial speed at 0 » mode
+      return random_speed_module * (gaussianRand() - 0.5) * 2 // SYMMETRIC random, centered on 0, in [-module, +module]
 }
 
 function select_coord_random_speed(obj,coord){
@@ -126,18 +126,18 @@ function random_speed_chose_xyz(obj, list_coord){
 function reinitialize_speeds(){
 
       /*
-      Réattribue la vitesse de TOUTES les boules mobiles selon les paramètres courants
-      d'Initial speeds (Random, Strength, z component). Permet de relancer une simulation
-      « de zéro » à tout moment sans recréer la scène. Si « Random » est décoché (ou
-      Strength = 0), toutes les boules repartent à l'arrêt.
+      Reassigns the velocity of ALL moving balls according to the current Initial speeds
+      parameters (Random, Strength, z component). Lets a simulation be restarted
+      « from scratch » at any time without recreating the scene. If « Random » is unchecked (or
+      Strength = 0), all balls start again at rest.
       */
 
       var coords = random_speed_z ? ['x','y','z'] : ['x','y']
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
-            if (o.type !== 'sphere' || o.blocked){ continue }   // boules dynamiques uniquement
-            o.speed.set(0, 0, 0)                                 // remise à zéro (z inclus si non tiré)
-            random_speed_chose_xyz(o, coords)                   // vitesse selon les params courants
+            if (o.type !== 'sphere' || o.blocked){ continue }   // dynamic balls only
+            o.speed.set(0, 0, 0)                                 // reset to zero (z included if not drawn)
+            random_speed_chose_xyz(o, coords)                   // velocity according to the current params
       }
 
 }
@@ -145,10 +145,10 @@ function reinitialize_speeds(){
 function flatten_z(){
 
       /*
-      Projette toutes les boules sur le plan z = 0 et annule leur vitesse en z.
-      Nettoie une scène dont les positions z ont dérivé : en 3D pur, un nuage
-      coplanaire reste coplanaire (normale de choc sans composante z), donc le gaz
-      redevient parfaitement plan sans aucun « mode » spécial.
+      Projects all balls onto the z = 0 plane and cancels their z velocity.
+      Cleans up a scene whose z positions have drifted: in pure 3D, a coplanar
+      cloud stays coplanar (collision normal with no z component), so the gas
+      becomes perfectly planar again without any special « mode ».
       */
 
       for (var i in list_moving_objects){
@@ -168,9 +168,9 @@ function make_new_sphere(){
 
       var [newname, interptsub] = random_name_mousepos()
       var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},color_sphere_default)
-      random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // add random speed (z optionnel)
+      random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // add random speed (z optional)
       sph.magnet = false        // remove magnet
-      list_moving_objects.push(sph)                  // rend la boule dynamique (gravité, ressorts, collisions)
+      list_moving_objects.push(sph)                  // makes the ball dynamic (gravity, springs, collisions)
 
 }
 
@@ -182,9 +182,9 @@ function make_new_string(){
 
       var [newname, interptsub] = random_name_mousepos()
       var sph = basic_sphere(newname,interptsub,{"x":0, "y":0, "z":0},color_sphere_default)
-      random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // add random speed (z optionnel)
+      random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // add random speed (z optional)
       sph.magnet = false        // remove magnet
-      list_moving_objects.push(sph)                  // rend la boule dynamique (gravité, ressorts, collisions)
+      list_moving_objects.push(sph)                  // makes the ball dynamic (gravity, springs, collisions)
       list_string.push(sph)
       if ( list_string.length > 1 ){
           var list_interm_pair = list_string.slice(-2) //[list_string.slice(-1),list_string.slice(-2,-1)]
@@ -224,7 +224,7 @@ function mouse_create_object_or_action(){
       link(new_select_ok, limits_and_action, null)
       link(new_track_ok, make_marks_and_track, null)
       link(new_plane_ok, limits_and_action, make_horizontal_area)
-      // select_poscam (touche k) : désormais géré par glisser (poscam_begin/update/end dans mouse_interact.js)
+      // select_poscam (key k): now handled by dragging (poscam_begin/update/end in mouse_interact.js)
       link(new_box_ok, limits_and_action, make_new_box)
       link(paire_harmonic, select_two_obj_and_action, null)
 
@@ -232,18 +232,18 @@ function mouse_create_object_or_action(){
 
 
 /* ============================================================================
-   Population par couleur (sphères) — régler le NOMBRE d'objets de même type et
-   même couleur qu'une sphère cliquée.
-   - réduire  : retire des membres tirés au hasard (jamais la sphère cliquée, sauf
-                si la cible est 0), pour que le menu contextuel reste valide ;
-   - augmenter: ajoute des sphères clonées (mêmes attributs + même couleur), à des
-                positions aléatoires DANS le volume englobant de la population — donc
-                sans référence à une boîte : on se cale sur l'espace déjà occupé.
-   Un axe « plat » (span nul, ex. z=0 pour un gaz plan) reste plat : les nouvelles
-   sphères y prennent la même valeur.
+   Population by color (spheres) — set the NUMBER of objects of the same type and
+   same color as a clicked sphere.
+   - decrease : removes members drawn at random (never the clicked sphere, unless
+                the target is 0), so the context menu stays valid;
+   - increase : adds cloned spheres (same attributes + same color), at random
+                positions INSIDE the bounding volume of the population — so
+                without reference to a box: we align on the already occupied space.
+   A « flat » axis (zero span, e.g. z=0 for a planar gas) stays flat: the new
+   spheres take the same value there.
    ============================================================================ */
 
-function color_population(obj){                       // sphères de MÊME type + MÊME couleur que obj (obj inclus)
+function color_population(obj){                       // spheres of the SAME type + SAME color as obj (obj included)
       var hex = obj_hex(obj), a = []
       for (var k in objects){
             var t = objects[k]
@@ -254,7 +254,7 @@ function color_population(obj){                       // sphères de MÊME type 
       return a
 }
 
-function population_bounds(list){                     // boîte englobante (min/max sur x,y,z) des positions
+function population_bounds(list){                     // bounding box (min/max on x,y,z) of the positions
       var b = { xmin:Infinity, xmax:-Infinity, ymin:Infinity, ymax:-Infinity, zmin:Infinity, zmax:-Infinity }
       for (var i=0;i<list.length;i++){
             var p = list[i].position
@@ -265,7 +265,7 @@ function population_bounds(list){                     // boîte englobante (min/
       return b
 }
 
-function remove_single_object(o){                     // retrait propre d'un objet : scène + toutes les listes + sélection
+function remove_single_object(o){                     // clean removal of an object: scene + all lists + selection
       scene.remove(o)
       var i = objects.indexOf(o);            if (i>=0){ objects.splice(i,1) }
       i = list_moving_objects.indexOf(o);    if (i>=0){ list_moving_objects.splice(i,1) }
@@ -273,7 +273,7 @@ function remove_single_object(o){                     // retrait propre d'un obj
       if (typeof list_string !== 'undefined'){ i = list_string.indexOf(o); if (i>=0){ list_string.splice(i,1) } }
       if (typeof list_obj_inside !== 'undefined'){ i = list_obj_inside.indexOf(o); if (i>=0){ list_obj_inside.splice(i,1) } }
       if (o.name && typeof listorig !== 'undefined'){ delete listorig[o.name] }
-      // retire les ressorts qui référencent o (sinon la boucle harmonique planterait)
+      // removes the springs that reference o (otherwise the harmonic loop would crash)
       if (typeof list_paired_harmonic !== 'undefined'){
             for (var k=list_paired_harmonic.length-1;k>=0;k--){
                   var pr = list_paired_harmonic[k]
@@ -288,8 +288,8 @@ function remove_single_object(o){                     // retrait propre d'un obj
 
 function set_color_population(template, targetN){
       /*
-      Ajuste à targetN le nombre de sphères de même type+couleur que 'template'.
-      Renvoie l'effectif obtenu. Ne fait rien pour un objet non-sphère.
+      Adjusts to targetN the number of spheres of the same type+color as 'template'.
+      Returns the resulting count. Does nothing for a non-sphere object.
       */
       if (template.type !== 'sphere'){ return 0 }
       var pop = color_population(template)
@@ -298,7 +298,7 @@ function set_color_population(template, targetN){
       if (targetN === cur){ return cur }
 
       if (targetN < cur){
-            // retire au hasard, en préservant la sphère cliquée (sauf si cible = 0)
+            // removes at random, preserving the clicked sphere (unless target = 0)
             var pool = []
             for (var pi=0; pi<pop.length; pi++){ if (pop[pi] !== template){ pool.push(pop[pi]) } }
             var toRemove = cur - targetN
@@ -307,22 +307,22 @@ function set_color_population(template, targetN){
                   var j = Math.floor(Math.random()*pool.length)
                   remove_single_object(pool[j]); pool.splice(j,1)
             }
-            if (toRemove > n){ remove_single_object(template) }   // cible = 0 : on retire aussi la cliquée
+            if (toRemove > n){ remove_single_object(template) }   // target = 0: the clicked one is removed too
       } else {
             var b = population_bounds(pop)
             var hexNum = (template.currentHex !== undefined) ? template.currentHex : template.material.color.getHex()
             var R = template.radius || radius_spring
-            var flat_xy = (b.xmax <= b.xmin && b.ymax <= b.ymin)      // population ponctuelle (1 sphère) -> petit étalement
+            var flat_xy = (b.xmax <= b.xmin && b.ymax <= b.ymin)      // point-like population (1 sphere) -> small spread
             var jit = flat_xy ? R*4 : 0
             var coords = random_speed_z ? ['x','y','z'] : ['x','y']
             var add = targetN - cur
             for (var a2=0;a2<add;a2++){
                   var x = b.xmin + Math.random()*(b.xmax-b.xmin) + (jit ? (Math.random()-0.5)*jit : 0)
                   var y = b.ymin + Math.random()*(b.ymax-b.ymin) + (jit ? (Math.random()-0.5)*jit : 0)
-                  var z = b.zmin + Math.random()*(b.zmax-b.zmin)     // span z = 0 -> les nouvelles restent dans le plan
+                  var z = b.zmin + Math.random()*(b.zmax-b.zmin)     // span z = 0 -> the new ones stay in the plane
                   var sph = basic_sphere(random_name(), {x:x, y:y, z:z}, {x:0, y:0, z:0}, hexNum)
-                  sph.currentHex = hexNum                            // couleur "réelle" -> comptée dans le bon groupe
-                  set_sphere_radius(sph, R)                          // même taille que la population
+                  sph.currentHex = hexNum                            // "real" color -> counted in the right group
+                  set_sphere_radius(sph, R)                          // same size as the population
                   sph.mass = template.mass
                   sph.friction = template.friction
                   sph.radius_interact = template.radius_interact
@@ -332,7 +332,7 @@ function set_color_population(template, targetN){
                         sph.material.opacity = template.material.opacity
                         sph.material.needsUpdate = true
                   }
-                  if (template.blocked){ sph.blocked = true }        // clone bloqué : reste statique
+                  if (template.blocked){ sph.blocked = true }        // blocked clone: stays static
                   else { random_speed_chose_xyz(sph, coords); list_moving_objects.push(sph) }
             }
       }

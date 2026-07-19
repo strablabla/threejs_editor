@@ -35,8 +35,8 @@ function onDocumentMouseMove( event ) {
       Mouse moving
       */
 
-      if (poscam_dragging){ poscam_update(event); return }   // glisser « position caméra » (touche k) : flèche + pointillés
-      if (vdrag_dragging){ vdrag_mouse_move(event); return } // mode altitude (double-clic) : seul z suit la souris
+      if (poscam_dragging){ poscam_update(event); return }   // "camera position" drag (k key): arrow + dotted line
+      if (vdrag_dragging){ vdrag_mouse_move(event); return } // altitude mode (double-click): only z follows the mouse
       var raycaster = make_raycaster(event)
       if (new_select_ok){ refresh_dotted_area() } // refresh the dotted line
       if ( SELECTED ) {
@@ -56,9 +56,9 @@ function onDocumentMouseDown( event ) {
       Mouse down
       */
 
-      if ( event.button === 2 ){ return }   // clic droit -> menu contextuel seulement (pas de sélection/attrape)
-      if (vdrag_mouse_down(event)){ return }              // mode altitude : glisser vertical (pas de sélection/glisser horizontal)
-      if (select_poscam){ poscam_begin(event); return }   // touche k : amorce le glisser « position caméra » (A fixé ici)
+      if ( event.button === 2 ){ return }   // right click -> context menu only (no selection/grab)
+      if (vdrag_mouse_down(event)){ return }              // altitude mode: vertical drag (no selection/horizontal drag)
+      if (select_poscam){ poscam_begin(event); return }   // k key: start the "camera position" drag (A fixed here)
 
       var raycaster = make_raycaster(event)
       var intersects = raycaster.intersectObjects( objects );
@@ -75,16 +75,16 @@ function onDocumentMouseUp( event ) {
       */
 
       event.preventDefault();
-      if (poscam_dragging){ poscam_end(event); return }   // fin du glisser « position caméra » : applique la vue + nettoie
-      if (vdrag_dragging){ vdrag_mouse_up() }             // fin du glisser vertical (on reste en mode altitude) -> nettoyage commun ci-dessous
+      if (poscam_dragging){ poscam_end(event); return }   // end of the "camera position" drag: apply the view + clean up
+      if (vdrag_dragging){ vdrag_mouse_up() }             // end of the vertical drag (we stay in altitude mode) -> common cleanup below
       controls.enabled = true;
-      if (dragging_box){ box_drag_end() }       // fin de déplacement d'une boîte -> persiste
+      if (dragging_box){ box_drag_end() }       // end of moving a box -> persist
       if (nearest_elem){ magnet_between_objects(nearest_elem) }  // attraction between walls.. by the sides..
-      restore_yellow()                          // rend sa vraie couleur au dernier objet en jaune
+      restore_yellow()                          // restore the true color of the last yellow object
       nearest_elem = null
-      if ( SELECTED && selpos.length === 0 ) { // relâcher l'objet attrapé, SAUF pendant la définition d'une zone
-          LAST_SELECTED = SELECTED;            // (les coins de zone doivent suivre la souris jusqu'au 2e clic).
-          SELECTED = null;                     // selpos vide => drag d'objet réel : on lâche (corrige le « collé à la souris »).
+      if ( SELECTED && selpos.length === 0 ) { // release the grabbed object, EXCEPT while defining an area
+          LAST_SELECTED = SELECTED;            // (area corners must follow the mouse until the 2nd click).
+          SELECTED = null;                     // selpos empty => real object drag: we release it (fixes the "stuck to the mouse").
       }
       container.style.cursor = 'auto';
       color_pick()                          // Color the picked objects..

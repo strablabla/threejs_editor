@@ -1,4 +1,4 @@
-<!-- Interaction : pilotage de la physique en direct -->
+<!-- Interaction: live physics control -->
 
     <div class="panel_interaction input_interface" hidden >
 
@@ -6,23 +6,23 @@
 
           <br><br>
 
-          <!-- Onglets -->
+          <!-- Tabs -->
           <div class="dyn_tabs">
             <button type="button" class="dyn_tab_btn active" data-tab="tab_interactions">Interactions</button>
             <button type="button" class="dyn_tab_btn" data-tab="tab_speeds">Initial speeds</button>
             <button type="button" class="dyn_tab_btn" data-tab="tab_monitoring">Monitoring</button>
           </div>
 
-          <!-- ===== Page : Interactions ===== -->
+          <!-- ===== Page: Interactions ===== -->
           <div id="tab_interactions" class="dyn_tab">
 
-            <!-- Sous-onglets : réglages physiques vs optimisations de calcul -->
+            <!-- Sub-tabs: physics settings vs computation optimizations -->
             <div class="dyn_subtabs">
               <button type="button" class="dyn_subtab_btn active" data-subtab="sub_basic">Basic settings</button>
               <button type="button" class="dyn_subtab_btn" data-subtab="sub_optim">Optimisation</button>
             </div>
 
-            <!-- ----- Sous-page : Basic settings ----- -->
+            <!-- ----- Sub-page: Basic settings ----- -->
             <div id="sub_basic" class="dyn_subtab">
 
               <div class="help">
@@ -60,7 +60,7 @@
 
             </div>
 
-            <!-- ----- Sous-page : Optimisation ----- -->
+            <!-- ----- Sub-page: Optimisation ----- -->
             <div id="sub_optim" class="dyn_subtab" style="display:none">
 
               <div class="help">
@@ -80,7 +80,7 @@
 
           </div>
 
-          <!-- ===== Page : Initial speeds ===== -->
+          <!-- ===== Page: Initial speeds ===== -->
           <div id="tab_speeds" class="dyn_tab" style="display:none">
 
             <div class="help">
@@ -107,7 +107,7 @@
             </div><br>
 
             <hr>
-            <!-- Aperçu de la distribution des vitesses (module + dispersion angulaire) -->
+            <!-- Preview of the velocity distribution (magnitude + angular spread) -->
             <div class="help" style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap">
               <div style="text-align:center">
                 <div style="color:#888; margin-bottom:2px">|v| (count)</div>
@@ -121,7 +121,7 @@
 
           </div>
 
-          <!-- ===== Page : Monitoring ===== -->
+          <!-- ===== Page: Monitoring ===== -->
           <div id="tab_monitoring" class="dyn_tab" style="display:none">
 
             <div class="help">
@@ -150,36 +150,36 @@
 
     <script>
 
-    // --- Initialise les contrôles à partir des variables globales (scene_params.js) ---
+    // --- Initialize the controls from the global variables (scene_params.js) ---
     $('#chk_gravity').prop('checked', gravity_ok)
     $('#chk_springs').prop('checked', springs_ok)
     $('#chk_attract').prop('checked', one_over_r2)
     $('#rad_attract').prop('checked', attract_strength_one_over_r2 >= 0)
     $('#rad_repulse').prop('checked', attract_strength_one_over_r2 < 0)
-    // Applique une intensité (module) : synchronise curseur + champ, étend le max du curseur si dépassé
+    // Apply an intensity (magnitude): syncs slider + field, extends the slider max if exceeded
     function apply_strength(mag){
         mag = Math.abs(mag); if (isNaN(mag)){ mag = 0 }
         var $sl = $('#attract_strength_input')
-        if (mag > parseFloat($sl.attr('max'))){ $sl.attr('max', mag) }   // le curseur peut aller au-delà de 100000
+        if (mag > parseFloat($sl.attr('max'))){ $sl.attr('max', mag) }   // the slider can go beyond 100000
         $sl.val(mag)
         $('#attract_strength_num').val(mag)
-        var sign = $('#rad_repulse').is(':checked') ? -1 : 1             // répulsion = signe négatif
+        var sign = $('#rad_repulse').is(':checked') ? -1 : 1             // repulsion = negative sign
         attract_strength_one_over_r2 = sign * mag
     }
     apply_strength(Math.abs(attract_strength_one_over_r2))
 
-    // La case "deactivate" est cochée quand AUCUNE interaction n'est active
+    // The "deactivate" checkbox is checked when NO interaction is active
     function sync_deactivate_all(){
         $('#chk_deactivate_all').prop('checked', !gravity_ok && !springs_ok && !one_over_r2)
     }
     sync_deactivate_all()
 
-    // --- Câblage : chaque contrôle écrit dans le drapeau physique correspondant ---
+    // --- Wiring: each control writes to the corresponding physics flag ---
     $('#chk_gravity').change(function(){ gravity_ok = this.checked; sync_deactivate_all() })
     $('#chk_springs').change(function(){ springs_ok = this.checked; sync_deactivate_all() })
     $('#chk_attract').change(function(){ one_over_r2 = this.checked; sync_deactivate_all() })
 
-    // Case maîtresse : cochée = désactive TOUTES les interactions ; décochée = les réactive
+    // Master checkbox: checked = disables ALL interactions; unchecked = re-enables them
     $('#chk_deactivate_all').change(function(){
         var on = !this.checked
         gravity_ok = on; springs_ok = on; one_over_r2 = on
@@ -188,11 +188,11 @@
         $('#chk_attract').prop('checked', on)
     })
 
-    // Collisions accélérées (grille spatiale O(n)) : bascule exact <-> optimisé
+    // Accelerated collisions (spatial grid O(n)): toggle exact <-> optimized
     $('#chk_cell_lists').prop('checked', use_cell_lists)
     $('#chk_cell_lists').change(function(){ use_cell_lists = this.checked })
 
-    // Attraction accélérée (Barnes-Hut O(n log n)) + précision θ
+    // Accelerated attraction (Barnes-Hut O(n log n)) + precision θ
     $('#chk_barnes_hut').prop('checked', use_barnes_hut)
     $('#chk_barnes_hut').change(function(){ use_barnes_hut = this.checked })
     $('#bh_theta_input').val(barnes_hut_theta)
@@ -202,13 +202,13 @@
         $('#bh_theta_val').text(barnes_hut_theta)
     })
 
-    $('#rad_attract').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })  // recalcule le signe
+    $('#rad_attract').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })  // recompute the sign
     $('#rad_repulse').change(function(){ apply_strength(Math.abs(attract_strength_one_over_r2)) })
-    $('#attract_strength_input').on('input change', function(){ apply_strength(this.value) })       // curseur
-    $('#attract_strength_num').on('input change', function(){ apply_strength(this.value) })          // saisie libre
+    $('#attract_strength_input').on('input change', function(){ apply_strength(this.value) })       // slider
+    $('#attract_strength_num').on('input change', function(){ apply_strength(this.value) })          // free input
     $('#attract_strength_num').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
-    // --- Softening ε de la gravité (F = G·m·m/(r²+ε²)) : ε=0 -> 1/r² pur ---
+    // --- Gravity softening ε (F = G·m·m/(r²+ε²)): ε=0 -> pure 1/r² ---
     $('#softening_input').val(attract_softening)
     $('#softening_val').text(attract_softening)
     $('#softening_input').on('input change', function(){
@@ -216,7 +216,7 @@
         $('#softening_val').text(attract_softening)
     })
 
-    // --- Vitesse de départ des boules : mode aléatoire/zéro + intensité ---
+    // --- Ball starting velocity: random/zero mode + intensity ---
     $('#chk_random_speed').prop('checked', random_initial_speed)
     $('#chk_random_speed_z').prop('checked', random_speed_z)
     $('#rng_speed_intensity').val(random_speed_module)
@@ -228,15 +228,15 @@
         $('#speed_intensity_val').text(random_speed_module)
     })
 
-    // Flèches 3D de vitesse : la boucle render() les crée/actualise ; décoché -> nettoyage immédiat
+    // 3D velocity arrows: the render() loop creates/updates them; unchecked -> immediate cleanup
     $('#chk_show_speeds').prop('checked', show_speeds)
     $('#chk_show_speeds').change(function(){
         show_speeds = this.checked
         if (!show_speeds && typeof clear_speed_arrows === 'function'){ clear_speed_arrows() }
     })
 
-    // Rafraîchit TOUS les contrôles du panneau depuis les variables globales
-    // (appelé au chargement d'une scène qui restaure les réglages Dynamics).
+    // Refresh ALL panel controls from the global variables
+    // (called when loading a scene that restores the Dynamics settings).
     window.refresh_dynamics_panel = function(){
         $('#chk_gravity').prop('checked', gravity_ok)
         $('#chk_springs').prop('checked', springs_ok)
@@ -256,7 +256,7 @@
         $('#speed_intensity_val').text(random_speed_module)
         $('#chk_show_speeds').prop('checked', show_speeds).trigger('change')
         sync_deactivate_all()
-        // Monitoring : régler la case ET déclencher son handler (affiche/masque la fenêtre)
+        // Monitoring: set the checkbox AND trigger its handler (shows/hides the window)
         if (typeof altitude_fit_expr !== 'undefined'){ $('#altitude_fit_expr').val(altitude_fit_expr || '') }
         $('#chk_energy_graph').prop('checked', show_energy_graph).trigger('change')
         $('#chk_velocity_hist').prop('checked', show_velocity_hist).trigger('change')
@@ -267,53 +267,53 @@
         $('#chk_report').prop('checked', show_report).trigger('change')
     }
 
-    // Redessine les aperçus |v| + rose angulaire de l'onglet Initial speeds (mise à jour "sur action")
+    // Redraw the |v| previews + angular rose of the Initial speeds tab (updated "on action")
     function refresh_speed_panels(){
         if (typeof draw_speed_panels === 'function'){ draw_speed_panels() }
     }
 
-    // Réinitialise la vitesse de TOUTES les boules selon les params courants (relance une simu de zéro)
+    // Reset the velocity of ALL balls according to the current params (restarts a simulation from scratch)
     $('#btn_reinit_speeds').on('click', function(){
         reinitialize_speeds()
-        if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // rafraîchit l'histogramme si affiché
+        if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // refresh the histogram if shown
         refresh_speed_panels()
     })
-    $('#btn_flatten_z').on('click', function(){                 // aplatit les boules sur z=0 (nettoie la dérive z)
+    $('#btn_flatten_z').on('click', function(){                 // flatten the balls onto z=0 (cleans up the z drift)
         flatten_z()
-        if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste les positions aplaties
+        if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persist the flattened positions
         refresh_speed_panels()
     })
 
-    // --- Monitoring : graphe d'énergie ---
+    // --- Monitoring: energy graph ---
     $('#chk_energy_graph').prop('checked', show_energy_graph)
     $('#chk_energy_graph').change(function(){
         show_energy_graph = this.checked
         if (show_energy_graph){
-              energy_hist = { tot: [], kin: [], pot: [] }   // repart d'un historique vierge
+              energy_hist = { tot: [], kin: [], pot: [] }   // restart from a blank history
               $('#energy_graph_box').show()
         } else {
               $('#energy_graph_box').hide()
         }
     })
 
-    // --- Monitoring : histogramme des vitesses ---
+    // --- Monitoring: velocity histogram ---
     $('#chk_velocity_hist').prop('checked', show_velocity_hist)
     $('#chk_velocity_hist').change(function(){
         show_velocity_hist = this.checked
         if (show_velocity_hist){
               $('#velocity_hist_box').show()
-              draw_velocity_hist()                          // dessin immédiat (sans attendre l'animation)
+              draw_velocity_hist()                          // immediate draw (without waiting for the animation)
         } else {
               $('#velocity_hist_box').hide()
         }
     })
 
-    // --- Monitoring : trajectoires + MSD ---
+    // --- Monitoring: trajectories + MSD ---
     $('#chk_trajectories').prop('checked', show_trajectories)
     $('#chk_trajectories').change(function(){
         show_trajectories = this.checked
         if (show_trajectories){
-              reset_all_trajectories()                      // repart d'un tracé vierge
+              reset_all_trajectories()                      // restart from a blank plot
               $('#trajectories_box').show()
               if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
               draw_trajectories()
@@ -321,9 +321,9 @@
               $('#trajectories_box').hide()
         }
     })
-    // Tracés affichés : bascules indépendantes x–y / z(t) / MSD (toutes combinaisons ; boutons -> pas de focus/typeahead comme un <select>)
-    if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true } }  // garde-fou (JS servi depuis le cache)
-    window.highlight_traj_mode = function(){                    // surligne chaque bouton actif
+    // Displayed plots: independent toggles x–y / z(t) / MSD (all combinations; buttons -> no focus/typeahead like a <select>)
+    if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true } }  // safeguard (JS served from cache)
+    window.highlight_traj_mode = function(){                    // highlight each active button
         $('.traj_mode_btn').each(function(){
             var on = !!traj_show[this.getAttribute('data-mode')]
             $(this).css({'font-weight': on ? 'bold' : 'normal', 'background': on ? '#cfe3ff' : ''})
@@ -331,14 +331,14 @@
     }
     $('.traj_mode_btn').on('click', function(){
         var m = this.getAttribute('data-mode')
-        traj_show[m] = !traj_show[m]                           // bascule ce tracé indépendamment des autres
-        this.blur()                                            // rend le focus clavier à la scène (le raccourci 'x' reste fonctionnel)
+        traj_show[m] = !traj_show[m]                           // toggle this plot independently of the others
+        this.blur()                                            // return keyboard focus to the scene (the 'x' shortcut stays functional)
         highlight_traj_mode()
         if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
     })
     highlight_traj_mode()
-    // z(t) : n'afficher que les moyennes ⟨z⟩ (masque les courbes)
+    // z(t): only show the ⟨z⟩ means (hides the curves)
     if (typeof z_means_only === 'undefined'){ z_means_only = false }
     window.highlight_z_means = function(){
         $('#btn_z_means').css({'font-weight': z_means_only ? 'bold' : 'normal', 'background': z_means_only ? '#cfe3ff' : ''})
@@ -350,23 +350,23 @@
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
     })
     highlight_z_means()
-    $('#btn_reset_traj').on('click', function(){            // réinitialise toutes les trajectoires (origine = position courante)
+    $('#btn_reset_traj').on('click', function(){            // reset all trajectories (origin = current position)
         reset_all_trajectories()
         draw_trajectories()
     })
-    // --- Monitoring : compte rendu (fenêtre éditeur + snapshots) ---
+    // --- Monitoring: report (editor window + snapshots) ---
     $('#chk_report').prop('checked', show_report)
     $('#chk_report').change(function(){
         show_report = this.checked
         if (show_report){
               $('#report_box').show()
-              if (typeof report_init === 'function'){ report_init() }   // (idempotent) : câble et charge le contenu persisté
+              if (typeof report_init === 'function'){ report_init() }   // (idempotent): wires up and loads the persisted content
         } else {
               $('#report_box').hide()
         }
     })
-    // Liste dépliable des couleurs à suivre (grille défilable : une scène peut avoir beaucoup de couleurs)
-    if (typeof traj_colors_open === 'undefined'){ traj_colors_open = true }   // garde-fou (JS servi depuis le cache)
+    // Collapsible list of colors to track (scrollable grid: a scene can have many colors)
+    if (typeof traj_colors_open === 'undefined'){ traj_colors_open = true }   // safeguard (JS served from cache)
     window.apply_traj_colors_open = function(){
         $('#traj_color_filters').toggle(!!traj_colors_open)
         $('#traj_colors_caret').text(traj_colors_open ? '▾' : '▸')
@@ -376,75 +376,75 @@
         apply_traj_colors_open()
     })
     apply_traj_colors_open()
-    // Isole TOUTE la fenêtre de TrackballControls (branché sur document, il capte chaque mousedown et
-    // ferait pivoter la caméra quand on coche une case, qu'on fait défiler la liste ou qu'on trace un
-    // rectangle de zoom sur un graphe ; la molette au-dessus de la fenêtre zoomait la scène).
-    // On ne bloque PAS 'click' : la croix de fermeture .mon_close est un handler DÉLÉGUÉ sur document.
+    // Isolate the WHOLE window from TrackballControls (bound to document, it captures every mousedown and
+    // would rotate the camera when checking a box, scrolling the list or drawing a zoom
+    // rectangle on a graph; the wheel over the window used to zoom the scene).
+    // We do NOT block 'click': the .mon_close close cross is a DELEGATED handler on document.
     $('#trajectories_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
 
-    // --- Monitoring : histogramme d'altitude (N vs z) ---
+    // --- Monitoring: altitude histogram (N vs z) ---
     $('#chk_altitude_hist').prop('checked', show_altitude_hist)
     $('#chk_altitude_hist').change(function(){
         show_altitude_hist = this.checked
         if (show_altitude_hist){
               $('#altitude_hist_box').show()
-              draw_altitude_hist()                            // dessin immédiat (fixe la plage z)
+              draw_altitude_hist()                            // immediate draw (fixes the z range)
               if (typeof altitude_fit_expr !== 'undefined' && altitude_fit_expr){
-                    request_altitude_fit(altitude_fit_expr)   // ré-évalue l'ajustement sauvegardé sur la plage courante
+                    request_altitude_fit(altitude_fit_expr)   // re-evaluate the saved fit over the current range
               }
         } else {
               $('#altitude_hist_box').hide()
         }
     })
-    // Filtre de couleur : ne compter que les objets d'une couleur (« all » = tous).
-    // Les options sont (re)peuplées par refresh_alt_color_options() depuis draw_altitude_hist.
+    // Color filter: only count objects of one color (« all » = all).
+    // The options are (re)populated by refresh_alt_color_options() from draw_altitude_hist.
     $('#alt_color_sel').on('change', function(){
         alt_color_filter = this.value
-        this.blur()                                        // un <select> gardé au focus capte les raccourcis de scène (typeahead : « x »…)
-        if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }   // dessin immédiat, sans attendre l'animation
+        this.blur()                                        // a <select> kept focused captures scene shortcuts (typeahead: « x »…)
+        if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }   // immediate draw, without waiting for the animation
     })
-    // INDISPENSABLE pour que la liste déroulante s'ouvre : TrackballControls est construit sans domElement
-    // (init_scene.js) -> il s'attache à DOCUMENT et fait preventDefault() sur CHAQUE mousedown de la page.
-    // Or ouvrir un <select> est justement l'action par défaut du mousedown : sans ce stopPropagation,
-    // l'événement remonte jusqu'à lui et le menu ne s'ouvre jamais. Même parade que le champ « fit ».
+    // ESSENTIAL for the dropdown list to open: TrackballControls is built without a domElement
+    // (init_scene.js) -> it attaches to DOCUMENT and does preventDefault() on EVERY mousedown of the page.
+    // But opening a <select> is precisely the default action of mousedown: without this stopPropagation,
+    // the event bubbles up to it and the menu never opens. Same workaround as the « fit » field.
     $('#alt_color_sel').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
-    // Ajustement Python de N(z) : bouton "fit" ou Entrée dans le champ
-    // Après validation, on DÉFOCALISE le champ -> le clavier repart à la scène.
+    // Python fit of N(z): "fit" button or Enter in the field
+    // After validation, we UNFOCUS the field -> the keyboard returns to the scene.
     $('#altitude_fit_btn').on('click', function(){
         if (typeof request_altitude_fit === 'function'){ request_altitude_fit($('#altitude_fit_expr').val()) }
         $('#altitude_fit_expr').blur()
         if (renderer && renderer.domElement && renderer.domElement.focus){ renderer.domElement.focus() }
     })
     $('#altitude_fit_expr').on('keydown', function(e){
-        if ((e.which === 13 || e.which === 27) && typeof request_altitude_fit === 'function'){   // Entrée ou Échap
+        if ((e.which === 13 || e.which === 27) && typeof request_altitude_fit === 'function'){   // Enter or Escape
               if (e.which === 13){ request_altitude_fit(this.value) }
               this.blur()
               e.preventDefault()
         }
     })
-    // Ne pas laisser les touches/clics du champ déclencher les raccourcis de scène TANT qu'il a le focus
+    // Do not let the field's keys/clicks trigger scene shortcuts WHILE it has focus
     $('#altitude_fit_expr').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
 
-    // Croix de fermeture des fenêtres de suivi : décoche la case Monitoring correspondante
-    // et déclenche son handler 'change' (masque la fenêtre + met à jour le drapeau global).
+    // Close cross of the monitoring windows: unchecks the corresponding Monitoring box
+    // and triggers its 'change' handler (hides the window + updates the global flag).
     $(document).on('click', '.mon_close', function(){
         $('#' + $(this).data('chk')).prop('checked', false).trigger('change')
     })
 
-    // Onglets (générique, pour TOUS les panneaux à onglets : Dynamics, Tools…)
-    // Délégué + scopé au panneau courant pour ne pas interférer entre panneaux.
+    // Tabs (generic, for ALL tabbed panels: Dynamics, Tools…)
+    // Delegated + scoped to the current panel so as not to interfere between panels.
     $(document).on('click', '.dyn_tab_btn', function(){
         var $panel = $(this).closest('.input_interface')
         $panel.find('.dyn_tab_btn').removeClass('active')
         $(this).addClass('active')
         $panel.find('.dyn_tab').hide()
         $panel.find('#' + $(this).data('tab')).show()
-        if ($(this).data('tab') === 'tab_speeds'){ refresh_speed_panels() }   // aperçus à jour à l'ouverture
+        if ($(this).data('tab') === 'tab_speeds'){ refresh_speed_panels() }   // previews up to date on opening
     })
 
-    // Sous-onglets (Basic settings / Optimisation dans Interactions).
-    // Scopé au .dyn_tab parent pour ne pas toucher aux onglets de niveau supérieur.
+    // Sub-tabs (Basic settings / Optimisation in Interactions).
+    // Scoped to the parent .dyn_tab so as not to affect the higher-level tabs.
     $(document).on('click', '.dyn_subtab_btn', function(){
         var $group = $(this).closest('.dyn_tab')
         $group.find('.dyn_subtab_btn').removeClass('active')
@@ -453,7 +453,7 @@
         $group.find('#' + $(this).data('subtab')).show()
     })
 
-    // Ne pas faire pivoter la caméra quand on manipule le panneau
+    // Do not rotate the camera when manipulating the panel
     $('.panel_interaction').hover(
         function(){ controls.enabled = false },
         function(){ controls.enabled = true }

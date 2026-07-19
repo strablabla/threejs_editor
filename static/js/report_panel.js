@@ -1,40 +1,40 @@
 /*
-  Compte rendu (report) — fenêtre d'édition légère avec aperçu et snapshots des graphes.
+  Report (compte rendu) — lightweight editing window with preview and graph snapshots.
 
-  Objectif : rédiger un compte rendu d'expérience et y intégrer les IMAGES produites dans
-  la fenêtre « Trajectories » (graphes x–y, z(t), MSD). Chaque snapshot est FIGÉ : on capture
-  le canvas tel qu'il est à l'instant du clic (PNG en data-URL), de sorte qu'on peut conserver
-  plusieurs instants d'un même graphe au fil de l'expérience.
+  Goal: write an experiment report and embed in it the IMAGES produced in
+  the « Trajectories » window (x–y, z(t), MSD graphs). Each snapshot is FROZEN: we capture
+  the canvas as it is at the instant of the click (PNG as a data-URL), so that we can keep
+  several instants of the same graph over the course of the experiment.
 
-  Stack : vanilla JS + jQuery (comme le reste du projet). Pas de dépendance markdown externe —
-  un mini-rendu maison suffit pour un compte rendu de labo (titres, gras/italique, listes, figures).
+  Stack: vanilla JS + jQuery (like the rest of the project). No external markdown dependency —
+  a small in-house renderer is enough for a lab report (headings, bold/italic, lists, figures).
 
-  Persistance : texte + figures sont sauvegardés dans localStorage, PAR SCÈNE — clé
-  `report::<scene.name>` (scène sans nom : bucket `__unnamed__`). Chaque expérience a donc
-  son propre compte rendu : charger/créer une autre scène bascule sur SON rapport, aucun
-  rapport ne migre d'une expérience à l'autre. Même convention que l'historique undo/redo
-  (`scene_history::<nom>`), migré au renommage dans panel_scene.html.
+  Persistence: text + figures are saved in localStorage, PER SCENE — key
+  `report::<scene.name>` (unnamed scene: bucket `__unnamed__`). Each experiment therefore has
+  its own report: loading/creating another scene switches to ITS report, no
+  report migrates from one experiment to another. Same convention as the undo/redo history
+  (`scene_history::<name>`), migrated on rename in panel_scene.html.
 
-  Inspiré du ReportPanel de sam3_exp (directives !fig / !img), adapté au contexte : ici les
-  figures sont des snapshots de canvas référencés par un jeton [[fig:ID|légende]].
+  Inspired by the ReportPanel from sam3_exp (!fig / !img directives), adapted to the context: here the
+  figures are canvas snapshots referenced by a [[fig:ID|caption]] token.
 */
 
 var REPORT_LS_PREFIX = 'report::'
-var REPORT_LS_OLD_KEY = 'threejs_report_v1'   // ancienne clé unique (avant le rapport par scène) — migrée une fois
-var report_state = { md: '', figs: {}, seq: 0 }   // figs: { id -> {kind, url} } ; seq : compteur d'id
+var REPORT_LS_OLD_KEY = 'threejs_report_v1'   // old single key (before the per-scene report) — migrated once
+var report_state = { md: '', figs: {}, seq: 0 }   // figs: { id -> {kind, url} } ; seq: id counter
 var _report_wired = false
-var _report_scene_key = null                  // clé localStorage de la scène actuellement chargée dans l'éditeur
+var _report_scene_key = null                  // localStorage key of the scene currently loaded in the editor
 
-// Clé localStorage du rapport de la scène courante (scène sans nom -> bucket dédié).
+// localStorage key of the current scene's report (unnamed scene -> dedicated bucket).
 function report_scene_key(){
       var nm = (typeof scene !== 'undefined' && scene && scene.name) ? scene.name : ''
       return REPORT_LS_PREFIX + (nm || '__unnamed__')
 }
 
-// --- Persistance (par scène) ------------------------------------------------
+// --- Persistence (per scene) ------------------------------------------------
 
 function report_load(){
-      report_state = { md: '', figs: {}, seq: 0 }        // repart vierge : sinon un rapport migrerait entre scènes
+      report_state = { md: '', figs: {}, seq: 0 }        // starts blank: otherwise a report would migrate between scenes
       try {
             var raw = localStorage.getItem(_report_scene_key)
             if (raw){
@@ -43,40 +43,40 @@ function report_load(){
                   report_state.figs = (s.figs && typeof s.figs === 'object') ? s.figs : {}
                   report_state.seq  = s.seq | 0
             }
-      } catch(e){ /* localStorage indisponible ou JSON cassé : on repart vierge */ }
+      } catch(e){ /* localStorage unavailable or JSON broken: we start blank */ }
 }
 
 function report_save(){
       if (!_report_scene_key){ return }
       try { localStorage.setItem(_report_scene_key, JSON.stringify(report_state)) }
-      catch(e){ /* quota dépassé (beaucoup de figures) : on n'interrompt pas l'édition */ }
+      catch(e){ /* quota exceeded (many figures): we do not interrupt editing */ }
 }
 
-// Bascule l'éditeur sur le rapport de la scène courante (appelé quand la scène change :
-// load / new / clear / rename, via update_scene_name_display). Les éditions en cours sont
-// déjà persistées (sauvegarde à chaque frappe), donc on peut charger l'autre rapport sans risque.
+// Switches the editor to the current scene's report (called when the scene changes:
+// load / new / clear / rename, via update_scene_name_display). The edits in progress are
+// already persisted (saved on each keystroke), so we can load the other report without risk.
 function report_bind_scene(){
-      if (!_report_wired){ return }                      // pas encore initialisé : report_init chargera la bonne scène
+      if (!_report_wired){ return }                      // not yet initialized: report_init will load the right scene
       var key = report_scene_key()
-      if (key === _report_scene_key){ return }           // même scène : rien à faire
+      if (key === _report_scene_key){ return }           // same scene: nothing to do
       _report_scene_key = key
       report_load()
       var ta = document.getElementById('report_md'); if (ta){ ta.value = report_state.md }
       report_render()
 }
 
-// --- Snapshots des graphes de trajectoires ----------------------------------
+// --- Snapshots of the trajectory graphs -------------------------------------
 
 var REPORT_CANVAS = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas' }
 var REPORT_LABEL  = { xy:'x–y', z:'z(t)', msd:'MSD' }
 
-// Compose le canvas source sur un fond blanc (les graphes sont dessinés en transparent :
-// sans fond, le PNG serait transparent et illisible à l'impression) et renvoie un data-URL.
+// Composes the source canvas on a white background (the graphs are drawn transparent:
+// without a background, the PNG would be transparent and unreadable when printed) and returns a data-URL.
 function report_capture(kind){
       var src = document.getElementById(REPORT_CANVAS[kind])
       if (!src || !src.width || !src.height){ return null }
       if (typeof show_trajectories !== 'undefined' && show_trajectories && typeof draw_trajectories === 'function'){
-            draw_trajectories()                            // s'assure que le canvas reflète l'état courant
+            draw_trajectories()                            // ensures the canvas reflects the current state
       }
       var off = document.createElement('canvas')
       off.width = src.width; off.height = src.height
@@ -86,7 +86,7 @@ function report_capture(kind){
       return off.toDataURL('image/png')
 }
 
-// Capture le graphe et insère un jeton figure dans le texte, à la position du curseur.
+// Captures the graph and inserts a figure token in the text, at the cursor position.
 function report_snapshot(kind){
       var url = report_capture(kind)
       if (!url){ alert('Graphe « ' + REPORT_LABEL[kind] + ' » indisponible.\nOuvre la fenêtre Trajectories et lance l’animation.'); return }
@@ -97,7 +97,7 @@ function report_snapshot(kind){
       var token = '[[fig:' + id + '|' + REPORT_LABEL[kind] + ' — t = ' + t + ']]'
 
       var ta = document.getElementById('report_md')
-      // Insère au curseur si on est en édition, sinon on ajoute à la fin.
+      // Inserts at the cursor if editing, otherwise appends at the end.
       var before = report_state.md, after = ''
       if (ta && $('#report_md').is(':visible')){
             var p = ta.selectionStart != null ? ta.selectionStart : report_state.md.length
@@ -109,16 +109,16 @@ function report_snapshot(kind){
       report_state.md = before + sep_before + token + sep_after + after
       if (ta){ ta.value = report_state.md }
       report_save()
-      report_render()                                      // reflète immédiatement l'insertion en aperçu
+      report_render()                                      // immediately reflects the insertion in the preview
 }
 
-// --- Rendu markdown léger ---------------------------------------------------
+// --- Lightweight markdown rendering -----------------------------------------
 
 function report_esc(s){
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
 
-// Formatage en ligne : gras, italique, code, sur du texte DÉJÀ échappé.
+// Inline formatting: bold, italic, code, on ALREADY escaped text.
 function report_inline(s){
       return s
             .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -126,7 +126,7 @@ function report_inline(s){
             .replace(/`([^`]+)`/g, '<code style="background:#f0f0f0; padding:0 3px; border-radius:3px">$1</code>')
 }
 
-// Transforme un jeton figure en <figure><img><figcaption> ; renvoie '' si l'id est inconnu.
+// Transforms a figure token into <figure><img><figcaption> ; returns '' if the id is unknown.
 function report_fig_html(id, caption){
       var f = report_state.figs[id]
       if (!f){ return '<p style="color:#c00">[figure ' + report_esc(id) + ' manquante]</p>' }
@@ -136,14 +136,14 @@ function report_fig_html(id, caption){
              cap + '</figure>'
 }
 
-// Remplace les jetons [[fig:ID|légende]] d'une ligne par leur HTML (les captures sûres restent inline).
+// Replaces the [[fig:ID|caption]] tokens of a line with their HTML (safe captures stay inline).
 function report_apply_figs(line){
       return line.replace(/\[\[fig:(\d+)(?:\|([^\]]*))?\]\]/g, function(_m, id, cap){
             return report_fig_html(parseInt(id, 10), cap || '')
       })
 }
 
-// Mini markdown : titres (#/##/###), listes (-, 1.), séparateur (---), paragraphes, + figures.
+// Mini markdown: headings (#/##/###), lists (-, 1.), separator (---), paragraphs, + figures.
 function report_to_html(md){
       var lines = md.split('\n')
       var out = [], list = null   // list = 'ul' | 'ol' | null
@@ -153,7 +153,7 @@ function report_to_html(md){
             var raw = lines[i]
             var line = raw.trim()
 
-            // Figure seule sur sa ligne -> bloc (hors paragraphe)
+            // Figure alone on its line -> block (outside paragraph)
             if (/^\[\[fig:\d+(?:\|[^\]]*)?\]\]$/.test(line)){
                   close_list(); out.push(report_apply_figs(line)); continue
             }
@@ -190,7 +190,7 @@ function report_render(){
       if (box){ box.innerHTML = report_to_html(report_state.md) || '<p style="color:#aaa">Compte rendu vide — passe en édition et écris, ou insère un graphe.</p>' }
 }
 
-// --- Bascule édition / aperçu -----------------------------------------------
+// --- Toggle edit / preview --------------------------------------------------
 
 function report_set_mode(edit){
       var ta = $('#report_md'), pv = $('#report_preview'), btn = $('#report_mode_btn')
@@ -201,7 +201,7 @@ function report_set_mode(edit){
       }
 }
 
-// --- Export PDF (fenêtre imprimable autonome) -------------------------------
+// --- PDF export (standalone printable window) -------------------------------
 
 function report_print(){
       var w = window.open('', '_blank')
@@ -212,17 +212,17 @@ function report_print(){
             '<style>body{font-family:sans-serif; max-width:760px; margin:24px auto; padding:0 16px; color:#222; line-height:1.55}' +
             'img{max-width:100%}</style></head><body>' + body + '</body></html>')
       w.document.close()
-      // Laisse les images (data-URL) se décoder avant d'ouvrir le dialogue d'impression.
+      // Lets the images (data-URL) decode before opening the print dialog.
       w.onload = function(){ w.focus(); w.print() }
 }
 
-// --- Câblage (idempotent) ---------------------------------------------------
+// --- Wiring (idempotent) ----------------------------------------------------
 
 function report_init(){
       if (_report_wired){ return }
       _report_wired = true
 
-      // Migration unique : l'ancien rapport à clé unique devient celui de la scène « sans nom ».
+      // One-time migration: the old single-key report becomes that of the « sans nom » (unnamed) scene.
       try {
             var old = localStorage.getItem(REPORT_LS_OLD_KEY)
             if (old !== null){
@@ -230,7 +230,7 @@ function report_init(){
                   if (localStorage.getItem(unnamed) === null){ localStorage.setItem(unnamed, old) }
                   localStorage.removeItem(REPORT_LS_OLD_KEY)
             }
-      } catch(e){ /* pas grave si la migration échoue */ }
+      } catch(e){ /* no problem if the migration fails */ }
 
       _report_scene_key = report_scene_key()
       report_load()
@@ -238,9 +238,9 @@ function report_init(){
       var ta = document.getElementById('report_md')
       if (ta){ ta.value = report_state.md }
 
-      // Édition -> état + persistance (aperçu recalculé à la bascule)
+      // Edit -> state + persistence (preview recomputed on toggle)
       $('#report_md').on('input', function(){ report_state.md = this.value; report_save() })
-      // Les frappes ne doivent pas déclencher les raccourcis clavier de la scène pendant l'édition.
+      // Keystrokes must not trigger the scene's keyboard shortcuts during editing.
       $('#report_md').on('keydown keypress keyup', function(e){ e.stopPropagation() })
 
       $('#report_mode_btn').on('click', function(){ report_set_mode(!$('#report_md').is(':visible')) })
@@ -254,11 +254,11 @@ function report_init(){
       })
 
       report_make_draggable()
-      report_set_mode(false)                               // s'ouvre en aperçu
+      report_set_mode(false)                               // opens in preview
 }
 
-// Rend la fenêtre déplaçable par sa barre de titre (les autres fenêtres sont fixes ;
-// un compte rendu profite d'être repositionnable pour dégager les graphes).
+// Makes the window draggable by its title bar (the other windows are fixed;
+// a report benefits from being repositionable to clear the graphs).
 function report_make_draggable(){
       var box = document.getElementById('report_box')
       var head = document.getElementById('report_header')

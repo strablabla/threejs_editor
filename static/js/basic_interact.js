@@ -112,7 +112,7 @@ function getDistance(mesh1, mesh2) {
 function restore_yellow(){
 
       /*
-      Rend au dernier objet colorié en jaune (surbrillance "plus proche") sa VRAIE couleur.
+      Restore the TRUE color of the last object colored yellow (the "nearest" highlight).
       */
 
       if (yellow_obj){
@@ -125,23 +125,23 @@ function restore_yellow(){
 function nearest_object(currobj){
 
       /*
-      Trouve l'objet le plus proche et le colorie en jaune (surbrillance de magnétisme).
-      NE colorie QUE cet objet et restaure le précédent — ne repeint pas tous les objets
-      (l'ancienne version forçait la couleur de TOUS les objets à INTERSECTED.currentHex).
+      Find the nearest object and color it yellow (magnetism highlight).
+      Color ONLY this object and restore the previous one — do not repaint all objects
+      (the old version forced the color of ALL objects to INTERSECTED.currentHex).
       */
 
       var mindist = 200, mini = -1
       for ( var i in objects ){
           if (objects[i] === currobj){ continue }
-          if (list_obj_inside.indexOf(objects[i]) >= 0){ continue }   // ignore les membres de la sélection/groupe (évite de corrompre leur couleur)
+          if (list_obj_inside.indexOf(objects[i]) >= 0){ continue }   // ignore members of the selection/group (avoids corrupting their color)
           var dist = getDistance(currobj, objects[i])
           if ( dist < mindist ){ mindist = dist; mini = i }
       }
       var target = (mini != -1) ? objects[mini] : null
-      if (yellow_obj !== target){                                    // le plus proche a changé
-            restore_yellow()                                         // restaure l'ancien
+      if (yellow_obj !== target){                                    // the nearest one changed
+            restore_yellow()                                         // restore the previous one
             if (target){
-                  target.currentHex = target.material.color.getHex() // mémorise sa vraie couleur
+                  target.currentHex = target.material.color.getHex() // store its true color
                   target.material.color.setHex(color_near_object_yellow)
                   yellow_obj = target
             }
@@ -158,10 +158,10 @@ function corner(col){
 
       var [newname, interptsub] = random_name_mousepos()
       var creobj = make_mark( newname, interptsub, {"x":0, "y":0, "z":0}, col )
-      var s = size_elem_dotted_line / 30                 // make_mark fait un cube de 30 -> ramené à la taille d'un pointillé
+      var s = size_elem_dotted_line / 30                 // make_mark creates a cube of 30 -> scaled down to the size of a dotted mark
       creobj.scale.set(s, s, s)
       selpos.push(creobj)
-      list_sel_corners.push(creobj)                      // suivi pour le nettoyage (Ctrl+S)
+      list_sel_corners.push(creobj)                      // tracked for cleanup (Ctrl+S)
 
       return creobj
 
@@ -173,7 +173,7 @@ function color_corner(){
       Color of the marks
       */
 
-      col = color_dotted_line_black                       // coins = marques noires (comme les pointillés)
+      col = color_dotted_line_black                       // corners = black marks (like the dotted line)
 
       return col
 

@@ -109,8 +109,8 @@ function update_all_pos(delta){
 function check_change_color(obj,col0){
 
       /*
-      Suivi des objets en interaction (sans changer leur couleur : on préserve les
-      couleurs personnalisées pendant l'animation).
+      Tracking of interacting objects (without changing their color: we preserve the
+      custom colors during the animation).
       */
 
       if (list_interact.indexOf(obj) == -1){
@@ -122,41 +122,41 @@ function check_change_color(obj,col0){
 function change_speed_after_center_center_collision(i,j){
 
       /*
-      Collision élastique 3D par impulsion le long de la ligne des centres.
-      On n'inverse que la composante NORMALE de la vitesse relative ; les composantes
-      tangentielles restent inchangées. C'est indispensable pour la thermalisation :
-      un simple échange des vecteurs vitesse complets (masses égales) ne ferait que
-      permuter les vitesses -> distribution des |v| figée (pas d'équilibre statistique).
+      3D elastic collision via impulse along the line of centers.
+      Only the NORMAL component of the relative velocity is reversed; the tangential
+      components stay unchanged. This is essential for thermalization:
+      a simple swap of the full velocity vectors (equal masses) would merely
+      permute the velocities -> frozen |v| distribution (no statistical equilibrium).
 
-      Impulsion (restitution e = 1) :  J = -2·v_n / (w_i + w_j)   (w = 1/m, 0 si bloqué)
-            v_i += J·w_i·n     v_j -= J·w_j·n     avec n = normale unitaire j->i
-      De plus : DÉ-PÉNÉTRATION — les billes sont écartées jusqu'à la distance de contact
-      (somme des rayons), pour que le rebond ait toujours lieu à la même profondeur du
-      puits attractif (sinon l'interpénétration variable pompe de l'énergie).
+      Impulse (restitution e = 1):  J = -2·v_n / (w_i + w_j)   (w = 1/m, 0 if blocked)
+            v_i += J·w_i·n     v_j -= J·w_j·n     with n = unit normal j->i
+      Also: DE-PENETRATION — the balls are pushed apart to the contact distance
+      (sum of the radii), so the bounce always happens at the same depth of the
+      attractive well (otherwise varying interpenetration pumps energy).
       */
 
       var oi = list_moving_objects[i], oj = list_moving_objects[j]
       var n = new THREE.Vector3().subVectors(oi.position, oj.position)
       var d = n.length()
-      if (d === 0){ return }                                   // centres confondus : pas de normale définie
-      n.divideScalar(d)                                        // normale unitaire j->i
-      var wi = oi.blocked ? 0 : 1/oi.mass                      // inverse-masse (0 = figé/ancre)
+      if (d === 0){ return }                                   // coincident centers: no defined normal
+      n.divideScalar(d)                                        // unit normal j->i
+      var wi = oi.blocked ? 0 : 1/oi.mass                      // inverse-mass (0 = frozen/anchor)
       var wj = oj.blocked ? 0 : 1/oj.mass
       var wsum = wi + wj
-      if (wsum === 0){ return }                                // deux objets figés
+      if (wsum === 0){ return }                                // two frozen objects
 
-      // --- dé-pénétration : ramène à la distance de contact (r_i + r_j) ---
+      // --- de-penetration: bring back to the contact distance (r_i + r_j) ---
       var contact = collision_radius(oi) + collision_radius(oj)
       if (d < contact){
             var push = contact - d
-            oi.position.addScaledVector(n,  push * wi/wsum)     // chacun écarté selon son inverse-masse
+            oi.position.addScaledVector(n,  push * wi/wsum)     // each pushed apart according to its inverse-mass
             oj.position.addScaledVector(n, -push * wj/wsum)
       }
 
-      // --- impulsion élastique (composante normale) ---
-      var vn = new THREE.Vector3().subVectors(oi.speed, oj.speed).dot(n)  // vitesse relative normale
-      if (vn >= 0){ return }                                   // objets déjà en éloignement : pas de choc
-      var imp = -2 * vn / wsum                                 // impulsion scalaire (élastique)
+      // --- elastic impulse (normal component) ---
+      var vn = new THREE.Vector3().subVectors(oi.speed, oj.speed).dot(n)  // normal relative velocity
+      if (vn >= 0){ return }                                   // objects already separating: no collision
+      var imp = -2 * vn / wsum                                 // scalar impulse (elastic)
       oi.speed.addScaledVector(n,  imp*wi)
       oj.speed.addScaledVector(n, -imp*wj)
 
@@ -192,41 +192,41 @@ function objj_obji(i,j){
 function interaction_obj_plane(i,j){
 
       /*
-      Rebond bille-mur ROBUSTE (mur dur, anti-tunneling) :
-        - détection CONTINUE : si le centre a franchi le plan du mur entre l'ancienne
-          (_ppos) et la nouvelle position, dans l'emprise latérale, c'est une traversée ;
-        - correction de POSITION : la bille est ramenée du bon côté, à distance = rayon ;
-        - réflexion élastique de la composante NORMALE de la vitesse.
-      => une bille ne peut jamais terminer une frame de l'autre côté d'une paroi.
+      ROBUST ball-wall bounce (hard wall, anti-tunneling):
+        - CONTINUOUS detection: if the center crossed the wall plane between the old
+          (_ppos) and the new position, within the lateral footprint, it's a crossing;
+        - POSITION correction: the ball is brought back to the right side, at distance = radius;
+        - elastic reflection of the NORMAL component of the velocity.
+      => a ball can never end a frame on the other side of a wall.
       */
 
       var [obji, objj] = objj_obji(i,j)
-      var [obj, wall] = find_obj_wall(objj,obji)               // identifie bille / mur
+      var [obj, wall] = find_obj_wall(objj,obji)               // identify ball / wall
 
-      var n = new THREE.Vector3().copy(wall.orientation)       // normale du mur
+      var n = new THREE.Vector3().copy(wall.orientation)       // wall normal
       var nlen = n.length()
       if (nlen === 0){ return }
-      n.divideScalar(nlen)                                     // normalisée
+      n.divideScalar(nlen)                                     // normalized
 
-      //--- emprise latérale (dans le plan du mur) : la bille est-elle en face du mur ?
+      //--- lateral footprint (in the wall plane): is the ball facing the wall?
       var vec_lat = new THREE.Vector3().crossVectors(new THREE.Vector3(0,0,1), n).normalize()
       var lat = Math.abs(obj.position.dot(vec_lat) - wall.position.dot(vec_lat))
       var rad = (obj.radius !== undefined) ? obj.radius : dist_inter_wall_obj
-      if (lat > wall.width/2 + rad){ return }                  // hors du mur -> pas de collision
+      if (lat > wall.width/2 + rad){ return }                  // outside the wall -> no collision
 
-      //--- distances signées au plan (avant / après le pas)
-      var contact = rad + (wall.thickness ? wall.thickness/2 : 0)  // surface bille au ras de la paroi
+      //--- signed distances to the plane (before / after the step)
+      var contact = rad + (wall.thickness ? wall.thickness/2 : 0)  // ball surface flush with the wall
       var wp = wall.position.dot(n)
       var sd_now  = obj.position.dot(n) - wp
       var sd_prev = obj._ppos ? (obj._ppos.dot(n) - wp) : sd_now
-      var crossed = (sd_prev > 0) !== (sd_now > 0)             // changement de côté = traversée
-      if (!crossed && Math.abs(sd_now) >= contact){ return }   // ni traversée ni contact
+      var crossed = (sd_prev > 0) !== (sd_now > 0)             // side change = crossing
+      if (!crossed && Math.abs(sd_now) >= contact){ return }   // neither crossing nor contact
 
-      //--- côté à préserver = celui d'AVANT le pas (l'intérieur de la boîte)
+      //--- side to preserve = the one BEFORE the step (the inside of the box)
       var side = (sd_prev !== 0) ? Math.sign(sd_prev) : (Math.sign(sd_now) || 1)
-      obj.position.addScaledVector(n, side*contact - sd_now)   // repositionne à 'contact' du plan, bon côté
+      obj.position.addScaledVector(n, side*contact - sd_now)   // reposition at 'contact' from the plane, correct side
       var vn = obj.speed.dot(n)
-      obj.speed.addScaledVector(n, side*Math.abs(vn) - vn)     // renvoie la vitesse normale vers l'intérieur (élastique)
+      obj.speed.addScaledVector(n, side*Math.abs(vn) - vn)     // send the normal velocity back inward (elastic)
       check_change_color(obj, 0xff0000)
 
 }
@@ -246,49 +246,49 @@ function conditions_interaction_obj_plane(i,j){
 
 }
 
-// ---- Rebond des billes sur les boîtes pleines (cubes/pavés) : collision sphère-boîte ----
+// ---- Bounce of balls on solid boxes (cubes/blocks): sphere-box collision ----
 
-var SOLID_BOX_TYPES = ['simple_cube', 'pavement', 'cube_mult_tex']   // boîtes pleines -> rebond sur les 6 faces
+var SOLID_BOX_TYPES = ['simple_cube', 'pavement', 'cube_mult_tex']   // solid boxes -> bounce on the 6 faces
 function is_solid_box(o){ return o && SOLID_BOX_TYPES.indexOf(o.type) >= 0 }
 
 function interaction_obj_cube(ball, cube){
 
       /*
-      Rebond d'une bille sur une boîte pleine (cube/pavé). On travaille dans le repère
-      LOCAL du cube (gère sa rotation) : on trouve le point de la boîte le plus proche du
-      centre de la bille ; s'il est à moins d'un rayon, on dé-pénètre la bille le long de
-      la normale de la face et on réfléchit la composante normale de sa vitesse (paroi
-      immobile, rebond élastique — comme le sol/les murs).
+      Bounce of a ball on a solid box (cube/block). We work in the LOCAL frame
+      of the cube (handles its rotation): we find the point of the box closest to the
+      center of the ball; if it's within one radius, we de-penetrate the ball along
+      the face normal and reflect the normal component of its velocity (immobile
+      wall, elastic bounce — like the ground/the walls).
       */
 
       if (!ball || ball.type !== 'sphere' || ball.blocked){ return }
       var R = (ball.radius !== undefined) ? ball.radius : collision_radius(ball)
       var hx = cube.thickness/2, hy = cube.width/2, hz = cube.height/2   // CubeGeometry(thickness, width, height)
 
-      cube.updateMatrixWorld()                                    // matrice à jour (le cube est déplaçable à la souris)
-      var local = cube.worldToLocal(ball.position.clone())        // centre de la bille en repère cube
-      var cx = Math.max(-hx, Math.min(hx, local.x))               // point le plus proche sur la boîte (clamp)
+      cube.updateMatrixWorld()                                    // matrix up to date (the cube is draggable with the mouse)
+      var local = cube.worldToLocal(ball.position.clone())        // ball center in the cube frame
+      var cx = Math.max(-hx, Math.min(hx, local.x))               // closest point on the box (clamp)
       var cy = Math.max(-hy, Math.min(hy, local.y))
       var cz = Math.max(-hz, Math.min(hz, local.z))
       var dx = local.x - cx, dy = local.y - cy, dz = local.z - cz
       var d2 = dx*dx + dy*dy + dz*dz
-      if (d2 >= R*R){ return }                                    // pas de contact
+      if (d2 >= R*R){ return }                                    // no contact
 
       var nlx, nly, nlz, push
-      if (d2 > 1e-9){                                             // centre HORS de la boîte : normale = vers la bille
+      if (d2 > 1e-9){                                             // center OUTSIDE the box: normal = toward the ball
             var d = Math.sqrt(d2)
             nlx = dx/d; nly = dy/d; nlz = dz/d
             push = R - d
-      } else {                                                   // centre DANS la boîte : ressortir par la face la plus proche
+      } else {                                                   // center INSIDE the box: exit through the nearest face
             var px = hx - Math.abs(local.x), py = hy - Math.abs(local.y), pz = hz - Math.abs(local.z)
             if (px <= py && px <= pz){ nlx = (local.x < 0 ? -1 : 1); nly = 0; nlz = 0; push = px + R }
             else if (py <= pz){        nlx = 0; nly = (local.y < 0 ? -1 : 1); nlz = 0; push = py + R }
             else {                     nlx = 0; nly = 0; nlz = (local.z < 0 ? -1 : 1); push = pz + R }
       }
-      var n = new THREE.Vector3(nlx, nly, nlz).applyQuaternion(cube.quaternion).normalize()  // normale LOCAL -> MONDE
-      ball.position.addScaledVector(n, push)                     // dé-pénétration : bille ramenée à la surface
+      var n = new THREE.Vector3(nlx, nly, nlz).applyQuaternion(cube.quaternion).normalize()  // normal LOCAL -> WORLD
+      ball.position.addScaledVector(n, push)                     // de-penetration: ball brought back to the surface
       var vn = ball.speed.dot(n)
-      if (vn < 0){ ball.speed.addScaledVector(n, -2*vn) }        // réflexion élastique si la bille rentre (v' = v - 2(v·n)n)
+      if (vn < 0){ ball.speed.addScaledVector(n, -2*vn) }        // elastic reflection if the ball is entering (v' = v - 2(v·n)n)
       check_change_color(ball, 0xff0000)
 
 }
@@ -296,9 +296,9 @@ function interaction_obj_cube(ball, cube){
 function bounce_balls_on_cubes(){
 
       /*
-      Fait rebondir toutes les billes sur toutes les boîtes pleines (cubes/pavés).
-      Les cubes ne sont PAS dans list_moving_objects (ils restent statiques et déplaçables
-      à la souris) : on les parcourt depuis `objects`. O(billes × cubes) — cubes peu nombreux.
+      Bounces all balls off all solid boxes (cubes/blocks).
+      The cubes are NOT in list_moving_objects (they stay static and draggable
+      with the mouse): we iterate over them from `objects`. O(balls × cubes) — few cubes.
       */
 
       var cubes = []
@@ -329,8 +329,8 @@ function attraction(i,j,dist){
 function collision_radius(o){
 
       /*
-      Rayon de collision d'un objet : son rayon réel s'il en a un (sphères),
-      sinon repli sur dist_min_center_center/2 (compat. anciens objets sans .radius).
+      Collision radius of an object: its actual radius if it has one (spheres),
+      otherwise fall back to dist_min_center_center/2 (compat. old objects without .radius).
       */
 
       return (o.radius !== undefined) ? o.radius : dist_min_center_center/2
@@ -340,9 +340,9 @@ function collision_radius(o){
 function collision(i,j,dist){
 
       /*
-      Collision interaction : contact quand la distance centre-centre passe sous la
-      SOMME DES RAYONS réels des deux billes (sphères dures), et non plus sous une
-      constante fixe.
+      Collision interaction: contact when the center-center distance drops below the
+      SUM OF the actual RADII of the two balls (hard spheres), rather than below a
+      fixed constant.
       */
 
       var [obji, objj] = objj_obji(i,j)
@@ -364,7 +364,7 @@ function interaction_center_center(i,j){
       var [obji, objj] = objj_obji(i,j)
       var dist = getDistance(obji, objj) // distance center-center
       collision(i,j,dist)  // collision interaction (impulsive)
-      // attraction : déplacée dans compute_accelerations (force lisse intégrée en Verlet)
+      // attraction: moved to compute_accelerations (smooth force integrated in Verlet)
 
 }
 
@@ -430,7 +430,7 @@ function change_elastic(obj){
       */
 
       var new_elastic = obj[2]
-      new_elastic.position.copy(obj[0].position); // stick spring to object (position locale = monde, objets non imbriqués)
+      new_elastic.position.copy(obj[0].position); // stick spring to object (local position = world, non-nested objects)
       var new_elastic_scale = getDistance(obj[0], obj[1])/420
       new_elastic.scale.set(1,1,new_elastic_scale)
       new_elastic.lookAt(obj[1].position)
@@ -440,9 +440,9 @@ function change_elastic(obj){
 function update_all_elastics(){
 
       /*
-      Recale tous les ressorts/élastiques sur la position courante des boules.
-      Appelé à chaque frame (y compris pendant un drag, animation à l'arrêt)
-      pour que la chaîne suive visuellement les boules déplacées.
+      Realigns all springs/elastics on the current position of the balls.
+      Called each frame (including during a drag, with animation stopped)
+      so that the chain visually follows the moved balls.
       */
 
       for (var i in list_paired_harmonic){
@@ -515,30 +515,30 @@ function allow_interaction_ij(i,j){
 function interactions_between_objects(){
 
       /*
-      Interactions impulsives (non issues d'un potentiel lisse) :
-          * rebond objet-mur
-          * collision élastique centre-centre
-      (les ressorts et l'attraction sont traités en accélérations -> compute_accelerations)
+      Impulsive interactions (not derived from a smooth potential):
+          * object-wall bounce
+          * elastic center-center collision
+      (springs and attraction are handled as accelerations -> compute_accelerations)
       */
 
       list_interact = []
       if (list_moving_objects.length > 0){
-          if (use_cell_lists){ interactions_between_objects_grid() }   // O(n) : grille spatiale
+          if (use_cell_lists){ interactions_between_objects_grid() }   // O(n): spatial grid
           else {
-              for (var i=0; i< list_moving_objects.length; i++){       // O(n²) : toutes les paires (référence exacte)
+              for (var i=0; i< list_moving_objects.length; i++){       // O(n²): all pairs (exact reference)
                     for (var j=i+1; j <  list_moving_objects.length; j++){
                           if ( allow_interaction_ij(i,j) ) { interaction_between_ij(i,j) } // i j interaction
                       } // end for j
                 } // end for i
           }
       } // end if in moving_objects
-      // (plus de recoloration rose/rouge : on préserve les couleurs des objets)
+      // (no more pink/red recoloring: we preserve the objects' colors)
 
 }
 
-// Stencil « demi-voisinage » 3D : la cellule courante + 13 cellules « en avant ».
-// Balayer ces 14 offsets pour chaque cellule visite chaque paire de cellules adjacentes
-// exactement une fois (l'offset inverse n'est jamais dans la liste) -> pas de doublon de paire.
+// 3D "half-neighborhood" stencil: the current cell + 13 "forward" cells.
+// Sweeping these 14 offsets for each cell visits each pair of adjacent cells
+// exactly once (the reverse offset is never in the list) -> no duplicate pair.
 var HALF_NEIGHBORS = [
       [0,0,0],
       [1,0,0],
@@ -551,20 +551,20 @@ var HALF_NEIGHBORS = [
 function interactions_between_objects_grid(){
 
       /*
-      Version O(n) des interactions impulsives par « cell lists » (grille spatiale).
-      Physiquement IDENTIQUE à la double boucle : on appelle les MÊMES fonctions
-      (interaction_center_center / interaction_between_ij), seul le filtrage des
-      paires change — deux billes ne sont testées que si un contact est géométriquement
-      possible (même cellule ou cellule voisine).
+      O(n) version of the impulsive interactions via "cell lists" (spatial grid).
+      Physically IDENTICAL to the double loop: we call the SAME functions
+      (interaction_center_center / interaction_between_ij), only the pair
+      filtering changes — two balls are tested only if a contact is geometrically
+      possible (same cell or neighboring cell).
 
-        * billes ↔ billes : filtrées par la grille (contact = R_i + R_j) ;
-        * murs (wall_box) : trop grands pour une grille uniforme -> boucle objets × murs.
+        * balls ↔ balls: filtered by the grid (contact = R_i + R_j);
+        * walls (wall_box): too large for a uniform grid -> objects × walls loop.
       */
 
       var objs = list_moving_objects
       var n = objs.length
 
-      // 1) sépare murs / non-murs et calcule le rayon de collision max (dimensionne la cellule)
+      // 1) separate walls / non-walls and compute the max collision radius (sizes the cell)
       var wall_idx = [], cell_idx = [], rmax = 0
       for (var i=0; i<n; i++){
             if (objs[i].type === 'wall_box'){ wall_idx.push(i) }
@@ -575,8 +575,8 @@ function interactions_between_objects_grid(){
             }
       }
 
-      // 2) range les non-murs dans la grille. Cellule = 2·rmax : garantit que tout couple
-      //    en contact (dist < R_i+R_j <= 2·rmax) tombe dans des cellules au plus voisines.
+      // 2) place the non-walls into the grid. Cell = 2·rmax: guarantees that any pair
+      //    in contact (dist < R_i+R_j <= 2·rmax) falls into at most neighboring cells.
       var cell = (rmax > 0) ? 2*rmax : dist_min_center_center
       var inv = 1 / cell
       var grid = new Map()
@@ -591,7 +591,7 @@ function interactions_between_objects_grid(){
             bucket.push(cell_idx[k])
       }
 
-      // 3) paires bille ↔ bille : cellule courante + 13 voisines « en avant »
+      // 3) ball ↔ ball pairs: current cell + 13 "forward" neighbors
       for (var k=0; k<cell_idx.length; k++){
             var ia = cell_idx[k], o = objs[ia]
             for (var s=0; s<HALF_NEIGHBORS.length; s++){
@@ -601,14 +601,14 @@ function interactions_between_objects_grid(){
                   var same_cell = (off[0]===0 && off[1]===0 && off[2]===0)
                   for (var b=0; b<bucket.length; b++){
                         var ib = bucket[b]
-                        if (same_cell){ if (ib <= ia){ continue } }   // même cellule : chaque paire une seule fois
+                        if (same_cell){ if (ib <= ia){ continue } }   // same cell: each pair only once
                         var i = (ia < ib) ? ia : ib, j = (ia < ib) ? ib : ia
-                        if ( allow_interaction_ij(i,j) ){ interaction_center_center(i,j) }  // les deux non-murs -> centre-centre
+                        if ( allow_interaction_ij(i,j) ){ interaction_center_center(i,j) }  // both non-walls -> center-center
                   }
             }
       }
 
-      // 4) murs : peu nombreux -> boucle directe murs × billes (rebonds bille-mur)
+      // 4) walls: few in number -> direct walls × balls loop (ball-wall bounces)
       for (var w=0; w<wall_idx.length; w++){
             for (var k=0; k<cell_idx.length; k++){
                   var i = (wall_idx[w] < cell_idx[k]) ? wall_idx[w] : cell_idx[k]
@@ -637,12 +637,12 @@ function initialize_energies(){
 function attraction_potential_energy(){
 
       /*
-      Énergie potentielle de gravité newtonienne ADOUCIE (cohérente avec accel_attraction) :
-      U = - Σ G·m_i·m_j / √(r² + ε²)   (softening de Plummer, ε = attract_softening).
+      SOFTENED Newtonian gravity potential energy (consistent with accel_attraction):
+      U = - Σ G·m_i·m_j / √(r² + ε²)   (Plummer softening, ε = attract_softening).
       */
 
-      // Court-circuit : cette somme est en O(n²) et ne sert QU'au graphe d'énergie.
-      // Graphe masqué -> aucune raison de la calculer (U=0, n'affecte que #curr_func, caché).
+      // Short-circuit: this sum is O(n²) and serves ONLY the energy graph.
+      // Graph hidden -> no reason to compute it (U=0, only affects #curr_func, hidden).
       if (!show_energy_graph){ return 0 }
 
       var U = 0
@@ -651,7 +651,7 @@ function attraction_potential_energy(){
                   for (var j=i+1; j< list_moving_objects.length; j++){
                         if ( allow_interaction_ij(i,j) ){
                               var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
-                              if ( !(cnd1 & cnd2 & cnd3) ){                 // paires centre-centre (comme accel_attraction)
+                              if ( !(cnd1 & cnd2 & cnd3) ){                 // center-center pairs (like accel_attraction)
                                     var oi = list_moving_objects[i], oj = list_moving_objects[j]
                                     var dist = getDistance(oi, oj)
                                     var soft = Math.sqrt(dist*dist + attract_softening*attract_softening)  // √(r²+ε²)
@@ -672,21 +672,21 @@ function energy_calculation(){
       */
 
       initialize_energies()
-      for (var i in list_moving_objects){                                  // cinétique + gravité uniforme (z) des objets mobiles
+      for (var i in list_moving_objects){                                  // kinetic + uniform gravity (z) of the moving objects
             var obj = list_moving_objects[i]
-            if (obj.blocked){ continue }                                   // objets statiques (murs, ancres) exclus
-            if (list_forbid_obj_for_interact.indexOf(obj.type) == -1){     // objet avec masse (pas ressort/élastique)
+            if (obj.blocked){ continue }                                   // static objects (walls, anchors) excluded
+            if (list_forbid_obj_for_interact.indexOf(obj.type) == -1){     // object with mass (not spring/elastic)
                   kin_energy += 0.5*obj.mass*obj.speed.dot(obj.speed)
                   grav_energy += obj.mass*9.81*obj.position.z*0.1
             }
       }
-      for (var k in list_paired_harmonic){                                 // élastique des ressorts : ½·k·(L-L0)²
+      for (var k in list_paired_harmonic){                                 // spring elastic energy: ½·k·(L-L0)²
             var dx = getDistance(list_paired_harmonic[k][0], list_paired_harmonic[k][1]) - lenght_spring
             var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const
             elast_energy += 0.5 * kc * dx * dx
       }
-      attract_energy = attraction_potential_energy()                       // PE gravité newtonienne (paires)
-      grav_energy += attract_energy                                        // gravité = uniforme (z) + newtonienne
+      attract_energy = attraction_potential_energy()                       // Newtonian gravity PE (pairs)
+      grav_energy += attract_energy                                        // gravity = uniform (z) + Newtonian
       tot_energy = elast_energy + kin_energy + grav_energy
 
       return [elast_energy, kin_energy, grav_energy, tot_energy]
@@ -732,14 +732,14 @@ function calculate_total_energy(){
       var [txt_max_kin,txt_max_elast] = max_energies_and_text()
       //$('#curr_func').text( txt_elast + txt_kin + txt_grav + txt_tot )
       $('#curr_func').text( txt_max_elast + txt_max_kin + txt_grav + txt_tot )
-      record_energy()                                        // graphe temporel (si activé)
-      draw_velocity_hist()                                   // histogramme des vitesses (si activé)
-      draw_altitude_hist()                                   // histogramme d'altitude (si activé)
-      record_trajectories()                                  // trajectoires + MSD (si activé)
+      record_energy()                                        // time graph (if enabled)
+      draw_velocity_hist()                                   // velocity histogram (if enabled)
+      draw_altitude_hist()                                   // altitude histogram (if enabled)
+      record_trajectories()                                  // trajectories + MSD (if enabled)
 
 }
 
-//===================================================================== Graphe d'énergie
+//===================================================================== Energy graph
 
 var energy_hist = { tot: [], kin: [], pot: [] }
 var ENERGY_HIST_MAX = 400
@@ -747,13 +747,13 @@ var ENERGY_HIST_MAX = 400
 function record_energy(){
 
       /*
-      Mémorise l'énergie courante et redessine le graphe (uniquement si activé).
+      Stores the current energy and redraws the graph (only if enabled).
       */
 
       if (!show_energy_graph){ return }
       energy_hist.tot.push(tot_energy)
       energy_hist.kin.push(kin_energy)
-      energy_hist.pot.push(grav_energy + elast_energy)        // potentielle = gravité (uniforme+newton) + élastique
+      energy_hist.pot.push(grav_energy + elast_energy)        // potential = gravity (uniform+Newton) + elastic
       if (energy_hist.tot.length > ENERGY_HIST_MAX){
             energy_hist.tot.shift(); energy_hist.kin.shift(); energy_hist.pot.shift()
       }
@@ -761,7 +761,7 @@ function record_energy(){
 
 }
 
-function fmt_energy(v){                                       // format compact d'une valeur d'énergie
+function fmt_energy(v){                                       // compact format of an energy value
 
       var a = Math.abs(v)
       if (a !== 0 && (a >= 1e5 || a < 1e-2)){ return v.toExponential(1) }
@@ -779,9 +779,9 @@ function draw_energy_graph(){
       ctx.clearRect(0, 0, W, H)
       var n = energy_hist.tot.length
       if (n < 2){ return }
-      var ML = 48, MT = 6, MB = 6                             // marges (gauche = labels d'axe)
+      var ML = 48, MT = 6, MB = 6                             // margins (left = axis labels)
       var plotW = W - ML, plotH = H - MT - MB
-      //--- échelle verticale automatique sur les 3 courbes
+      //--- automatic vertical scale over the 3 curves
       var lo = Infinity, hi = -Infinity
       function scan(a){ for (var k=0;k<a.length;k++){ if (a[k]<lo) lo=a[k]; if (a[k]>hi) hi=a[k] } }
       scan(energy_hist.tot); scan(energy_hist.kin); scan(energy_hist.pot)
@@ -789,7 +789,7 @@ function draw_energy_graph(){
       var pad = (hi - lo) * 0.1; lo -= pad; hi += pad
       function X(i){ return ML + i / (ENERGY_HIST_MAX - 1) * plotW }
       function Y(v){ return MT + (1 - (v - lo) / (hi - lo)) * plotH }
-      //--- grille + graduations chiffrées (axe Y = énergie, unités arbitraires)
+      //--- grid + numeric ticks (Y axis = energy, arbitrary units)
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
       var NT = 4
@@ -800,32 +800,32 @@ function draw_energy_graph(){
             ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W, y); ctx.stroke()
             ctx.fillText(fmt_energy(val), ML - 4, y)
       }
-      //--- ligne du zéro (marquée) si elle est dans la plage
+      //--- zero line (marked) if it's within the range
       if (lo < 0 && hi > 0){
             ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1
             ctx.beginPath(); ctx.moveTo(ML, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke()
       }
-      //--- courbes
+      //--- curves
       function line(a, color){
             ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5
             for (var i=0;i<a.length;i++){ var x = X(i), y = Y(a[i]); if (i === 0){ ctx.moveTo(x, y) } else { ctx.lineTo(x, y) } }
             ctx.stroke()
       }
-      line(energy_hist.pot, '#1e88e5')   // potentielle (bleu)
-      line(energy_hist.kin, '#e53935')   // cinétique (rouge)
-      line(energy_hist.tot, '#000000')   // totale (noir)
+      line(energy_hist.pot, '#1e88e5')   // potential (blue)
+      line(energy_hist.kin, '#e53935')   // kinetic (red)
+      line(energy_hist.tot, '#000000')   // total (black)
 
 }
 
-//===================================================================== Histogramme des vitesses
+//===================================================================== Velocity histogram
 
-var VELO_HIST_BINS = 20                                       // nombre de classes de |v|
+var VELO_HIST_BINS = 20                                       // number of |v| bins
 
 function collect_speeds(){
 
       /*
-      Normes des vitesses des objets massifs mobiles (mêmes exclusions que l'énergie
-      cinétique : ni statiques/ancres, ni ressorts/élastiques/pions).
+      Speed magnitudes of the moving massive objects (same exclusions as the kinetic
+      energy: neither static/anchors, nor springs/elastics/pawns).
       */
 
       var speeds = []
@@ -839,13 +839,13 @@ function collect_speeds(){
 
 }
 
-//===================================================================== Flèches de vitesse 3D (show_speeds)
+//===================================================================== 3D velocity arrows (show_speeds)
 
-var speed_arrows = []                                        // flèches actives : liste de { obj, arrow }
-var SPEED_ARROW_SCALE = 1.0                                  // longueur flèche = |v| * échelle (ajustable)
-var SPEED_ARROW_COLOR = 0x00b0ff                             // bleu clair
+var speed_arrows = []                                        // active arrows: list of { obj, arrow }
+var SPEED_ARROW_SCALE = 1.0                                  // arrow length = |v| * scale (adjustable)
+var SPEED_ARROW_COLOR = 0x00b0ff                             // light blue
 
-function speed_arrow_objects(){                              // objets mobiles porteurs d'une vitesse (mêmes exclusions que l'énergie cinétique)
+function speed_arrow_objects(){                              // moving objects carrying a velocity (same exclusions as the kinetic energy)
       var res = []
       for (var i in list_moving_objects){
             var obj = list_moving_objects[i]
@@ -857,7 +857,7 @@ function speed_arrow_objects(){                              // objets mobiles p
       return res
 }
 
-function clear_speed_arrows(){                               // retire toutes les flèches de la scène
+function clear_speed_arrows(){                               // removes all arrows from the scene
       for (var i=0;i<speed_arrows.length;i++){
             scene.remove(speed_arrows[i].arrow)
             if (speed_arrows[i].obj){ speed_arrows[i].obj._speed_arrow = null }
@@ -868,8 +868,8 @@ function clear_speed_arrows(){                               // retire toutes le
 function update_speed_arrows(){
 
       /*
-      Dessine/actualise une flèche 3D de vitesse sur chaque objet mobile (appelée chaque frame
-      depuis render()). Les flèches ne sont PAS ajoutées à objects[] : ni sélectionnables ni persistées.
+      Draws/updates a 3D velocity arrow on each moving object (called each frame
+      from render()). The arrows are NOT added to objects[]: neither selectable nor persisted.
       */
 
       if (!show_speeds){ if (speed_arrows.length){ clear_speed_arrows() } return }
@@ -878,11 +878,11 @@ function update_speed_arrows(){
       var present = {}
       for (var k=0;k<objs.length;k++){
             var obj = objs[k]
-            present[obj.id] = true                          // .id : identifiant unique THREE
+            present[obj.id] = true                          // .id: unique THREE identifier
             var v = obj.speed
             var len = Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
             var arrow = obj._speed_arrow
-            if (len < 1e-6){                                 // vitesse nulle -> pas de direction : masque la flèche
+            if (len < 1e-6){                                 // zero velocity -> no direction: hide the arrow
                   if (arrow){ arrow.visible = false }
                   continue
             }
@@ -901,7 +901,7 @@ function update_speed_arrows(){
                   arrow.setLength(alen, Math.min(alen*0.25, 30), Math.min(alen*0.15, 18))
             }
       }
-      //--- retire les flèches des objets disparus ou devenus inéligibles
+      //--- remove the arrows of objects that disappeared or became ineligible
       for (var i = speed_arrows.length - 1; i >= 0; i--){
             var rec = speed_arrows[i]
             if (!present[rec.obj.id]){
@@ -915,8 +915,8 @@ function update_speed_arrows(){
 function draw_velocity_hist(){
 
       /*
-      Histogramme (instantané) de la distribution des normes de vitesse.
-      Axe X = |v| (0 -> max courant), axe Y = nombre d'objets par classe.
+      (Instantaneous) histogram of the distribution of speed magnitudes.
+      X axis = |v| (0 -> current max), Y axis = number of objects per bin.
       */
 
       if (!show_velocity_hist){ return }
@@ -927,16 +927,16 @@ function draw_velocity_hist(){
       ctx.clearRect(0, 0, W, H)
       var speeds = collect_speeds()
       var n = speeds.length
-      //--- nombre total d'objets comptés (toujours affiché, coin haut-droit)
+      //--- total number of counted objects (always displayed, top-right corner)
       ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'
       ctx.textAlign = 'right'; ctx.textBaseline = 'top'
       ctx.fillText('N = ' + n, W - 4, 2)
       if (n === 0){ return }
-      //--- max de vitesse -> échelle horizontale
+      //--- max speed -> horizontal scale
       var vmax = 0
       for (var k=0;k<n;k++){ if (speeds[k] > vmax) vmax = speeds[k] }
       if (vmax <= 0){ vmax = 1 }
-      //--- remplissage des classes
+      //--- filling the bins
       var bins = new Array(VELO_HIST_BINS).fill(0)
       for (var k=0;k<n;k++){
             var b = Math.floor(speeds[k] / vmax * VELO_HIST_BINS)
@@ -946,10 +946,10 @@ function draw_velocity_hist(){
       var cmax = 0
       for (var b=0;b<VELO_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
       if (cmax <= 0){ cmax = 1 }
-      //--- géométrie
-      var ML = 26, MT = 6, MB = 16                             // marges (gauche = comptes, bas = |v|)
+      //--- geometry
+      var ML = 26, MT = 6, MB = 16                             // margins (left = counts, bottom = |v|)
       var plotW = W - ML - 6, plotH = H - MT - MB
-      //--- axe Y : graduations entières (comptes)
+      //--- Y axis: integer ticks (counts)
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
       var NT = Math.min(cmax, 4)
@@ -960,29 +960,29 @@ function draw_velocity_hist(){
             ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W - 6, y); ctx.stroke()
             ctx.fillText(val, ML - 4, y)
       }
-      //--- barres
+      //--- bars
       var bw = plotW / VELO_HIST_BINS
-      ctx.fillStyle = '#43a047'                                // vert
+      ctx.fillStyle = '#43a047'                                // green
       for (var b=0;b<VELO_HIST_BINS;b++){
             var h = bins[b] / cmax * plotH
             ctx.fillRect(ML + b * bw + 1, MT + plotH - h, bw - 2, h)
       }
-      //--- axe X : bornes 0 et vmax
+      //--- X axis: bounds 0 and vmax
       ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
       ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
       ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vmax), W - 6, MT + plotH + 3)
 
 }
 
-//===================================================================== Aperçus (onglet Initial speeds)
+//===================================================================== Previews (Initial speeds tab)
 
-var PANEL_ANGLE_BINS = 24                                    // secteurs de la rose angulaire (x-y)
+var PANEL_ANGLE_BINS = 24                                    // sectors of the angular rose (x-y)
 
 function collect_velocities(){
 
       /*
-      Vitesses (Vector3) des objets massifs mobiles, mêmes exclusions que collect_speeds().
-      Renvoie la liste des vecteurs vitesse pour dériver module ET direction.
+      Velocities (Vector3) of the moving massive objects, same exclusions as collect_speeds().
+      Returns the list of velocity vectors to derive magnitude AND direction.
       */
 
       var vels = []
@@ -999,8 +999,8 @@ function collect_velocities(){
 function draw_panel_speed_hist(){
 
       /*
-      Petit histogramme des normes de vitesse embarqué dans l'onglet "Initial speeds".
-      Même donnée que la fenêtre Monitoring mais indépendant de son toggle.
+      Small histogram of the speed magnitudes embedded in the "Initial speeds" tab.
+      Same data as the Monitoring window but independent of its toggle.
       */
 
       var cv = document.getElementById('panel_speed_hist')
@@ -1043,9 +1043,9 @@ function draw_panel_speed_hist(){
 function draw_panel_angle_hist(){
 
       /*
-      Rose de dispersion angulaire des vitesses dans le plan x-y (angle = atan2(vy, vx)).
-      Chaque secteur a un rayon proportionnel au nombre d'objets dont la vitesse pointe
-      dans cette direction : révèle l'anisotropie (ex : jet dirigé vs gaz isotrope).
+      Angular dispersion rose of the velocities in the x-y plane (angle = atan2(vy, vx)).
+      Each sector has a radius proportional to the number of objects whose velocity points
+      in that direction: reveals the anisotropy (e.g.: directed jet vs isotropic gas).
       */
 
       var cv = document.getElementById('panel_angle_hist')
@@ -1056,7 +1056,7 @@ function draw_panel_angle_hist(){
       var cx = W / 2, cy = H / 2
       var R = Math.min(W, H) / 2 - 8
       var vels = collect_velocities()
-      //--- répartition des directions (on ignore les vitesses ~nulles : pas de direction définie)
+      //--- distribution of directions (we ignore ~zero velocities: no defined direction)
       var bins = new Array(PANEL_ANGLE_BINS).fill(0)
       var counted = 0
       for (var i=0;i<vels.length;i++){
@@ -1068,7 +1068,7 @@ function draw_panel_angle_hist(){
             if (b >= PANEL_ANGLE_BINS){ b = PANEL_ANGLE_BINS - 1 }
             bins[b]++; counted++
       }
-      //--- cercle de référence
+      //--- reference circle
       ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke()
       ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy)
@@ -1077,7 +1077,7 @@ function draw_panel_angle_hist(){
       var cmax = 0
       for (var b=0;b<PANEL_ANGLE_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
       if (cmax <= 0){ cmax = 1 }
-      //--- secteurs (rose) ; y à l'écran vers le bas -> on inverse l'angle pour un repère mathématique
+      //--- sectors (rose); screen y goes downward -> we invert the angle for a mathematical frame
       var dA = 2 * Math.PI / PANEL_ANGLE_BINS
       ctx.fillStyle = 'rgba(67,160,71,0.55)'
       ctx.strokeStyle = '#2e7d32'; ctx.lineWidth = 0.5
@@ -1087,26 +1087,26 @@ function draw_panel_angle_hist(){
             var a0 = b * dA, a1 = (b + 1) * dA
             ctx.beginPath()
             ctx.moveTo(cx, cy)
-            ctx.arc(cx, cy, r, -a0, -a1, true)               // -angle : sens trigo à l'écran
+            ctx.arc(cx, cy, r, -a0, -a1, true)               // -angle: counterclockwise on screen
             ctx.closePath()
             ctx.fill(); ctx.stroke()
       }
 
 }
 
-function draw_speed_panels(){                                 // les deux aperçus de l'onglet Initial speeds
+function draw_speed_panels(){                                 // the two previews of the Initial speeds tab
       draw_panel_speed_hist()
       draw_panel_angle_hist()
 }
 
-//===================================================================== Couleurs (filtres de suivi)
+//===================================================================== Colors (tracking filters)
 
 function obj_hex(obj){
 
       /*
-      Couleur RÉELLE d'un objet, en '#rrggbb'.
-      On lit currentHex et non material.color : ce dernier est écrasé temporairement par les
-      surbrillances (jaune = plus proche, vert = cliqué, orange = piqué, violet = groupe).
+      ACTUAL color of an object, as '#rrggbb'.
+      We read currentHex and not material.color: the latter is temporarily overwritten by the
+      highlights (yellow = nearest, green = clicked, orange = picked, purple = group).
       */
 
       var hex = (obj.currentHex !== undefined) ? obj.currentHex : obj.material.color.getHex()
@@ -1114,7 +1114,7 @@ function obj_hex(obj){
 
 }
 
-function distinct_colors(list){                               // couleurs distinctes présentes, triées (ordre stable d'une frame à l'autre)
+function distinct_colors(list){                               // distinct colors present, sorted (stable order from one frame to the next)
       var seen = {}, out = []
       for (var i=0;i<list.length;i++){
             var h = obj_hex(list[i])
@@ -1124,22 +1124,22 @@ function distinct_colors(list){                               // couleurs distin
       return out
 }
 
-//===================================================================== Histogramme d'altitude
+//===================================================================== Altitude histogram
 
-var ALT_HIST_BINS = 24                                        // nombre de tranches d'altitude
-var altitude_fit = null                                      // courbe d'ajustement { z:[], y:[] } (overlay), évaluée en Python
-var altitude_fit_expr = ''                                   // expression Python de l'ajustement (sauvegardée avec la scène)
-var alt_zmin = 0, alt_zmax = 1                               // plage d'altitude courante (pour la requête d'ajustement)
+var ALT_HIST_BINS = 24                                        // number of altitude slices
+var altitude_fit = null                                      // fit curve { z:[], y:[] } (overlay), evaluated in Python
+var altitude_fit_expr = ''                                   // Python expression of the fit (saved with the scene)
+var alt_zmin = 0, alt_zmax = 1                               // current altitude range (for the fit request)
 
 function request_altitude_fit(expr){
 
       /*
-      Envoie une expression Python de z au serveur (/eval_fit) et superpose la courbe
-      obtenue à l'histogramme d'altitude. Expression vide -> retire l'ajustement.
+      Sends a Python expression of z to the server (/eval_fit) and overlays the resulting
+      curve on the altitude histogram. Empty expression -> removes the fit.
       */
 
       expr = (expr || '').trim()
-      altitude_fit_expr = expr                               // mémorisé (persisté avec la scène)
+      altitude_fit_expr = expr                               // stored (persisted with the scene)
       $('#altitude_fit_err').text('')
       if (!expr){ altitude_fit = null; draw_altitude_hist(); return }
       $.ajax({ url:'/eval_fit', method:'POST', contentType:'application/json',
@@ -1153,7 +1153,7 @@ function request_altitude_fit(expr){
        .fail(function(){ $('#altitude_fit_err').text('serveur injoignable') })
 }
 
-function altitude_objects(){                                  // objets massifs mobiles (mêmes exclusions que l'énergie cinétique)
+function altitude_objects(){                                  // moving massive objects (same exclusions as the kinetic energy)
       var a = []
       for (var i in list_moving_objects){
             var obj = list_moving_objects[i]
@@ -1164,7 +1164,7 @@ function altitude_objects(){                                  // objets massifs 
       return a
 }
 
-function collect_altitudes(){                                 // z des objets retenus, filtrés par le select de couleur du panneau
+function collect_altitudes(){                                 // z of the retained objects, filtered by the panel's color select
       var a = altitude_objects(), zs = []
       for (var i=0;i<a.length;i++){
             if (alt_color_filter !== 'all' && obj_hex(a[i]) !== alt_color_filter){ continue }
@@ -1173,14 +1173,14 @@ function collect_altitudes(){                                 // z des objets re
       return zs
 }
 
-var _alt_colors_sig = null                                    // signature des couleurs présentes -> ne reconstruit le <select> que si elle change
+var _alt_colors_sig = null                                    // signature of the present colors -> only rebuilds the <select> if it changes
 
 function refresh_alt_color_options(){
 
       /*
-      Peuple le select de couleurs (« all » + une entrée par couleur présente).
-      Appelé à chaque frame depuis draw_altitude_hist : on compare une signature avant de toucher au
-      DOM, sinon on détruirait le menu 60 fois par seconde (impossible à ouvrir).
+      Populates the color select ("all" + one entry per present color).
+      Called each frame from draw_altitude_hist: we compare a signature before touching the
+      DOM, otherwise we'd destroy the menu 60 times per second (impossible to open).
       */
 
       var sel = document.getElementById('alt_color_sel')
@@ -1192,7 +1192,7 @@ function refresh_alt_color_options(){
       var sig = cols.map(function(h){ return h + ':' + counts[h] }).join(',')
       if (sig === _alt_colors_sig){ return }
       _alt_colors_sig = sig
-      if (alt_color_filter !== 'all' && cols.indexOf(alt_color_filter) < 0){ alt_color_filter = 'all' }  // la couleur filtrée a disparu
+      if (alt_color_filter !== 'all' && cols.indexOf(alt_color_filter) < 0){ alt_color_filter = 'all' }  // the filtered color has disappeared
       while (sel.firstChild){ sel.removeChild(sel.firstChild) }
       var o = document.createElement('option')
       o.value = 'all'; o.textContent = 'all (' + a.length + ')'
@@ -1200,8 +1200,8 @@ function refresh_alt_color_options(){
       for (var i=0;i<cols.length;i++){
             o = document.createElement('option')
             o.value = cols[i]
-            o.textContent = cols[i] + '  (' + counts[cols[i]] + ')'   // le hex seul est illisible : on donne l'effectif
-            o.style.background = cols[i]                      // pastille : l'option prend la couleur qu'elle désigne
+            o.textContent = cols[i] + '  (' + counts[cols[i]] + ')'   // the hex alone is unreadable: we give the count
+            o.style.background = cols[i]                      // swatch: the option takes the color it designates
             sel.appendChild(o)
       }
       sel.value = alt_color_filter
@@ -1211,14 +1211,14 @@ function refresh_alt_color_options(){
 function draw_altitude_hist(){
 
       /*
-      Nombre de particules en fonction de l'altitude (z).
-      Axe VERTICAL = altitude (haut = z max), barres horizontales = comptage par tranche.
+      Number of particles as a function of altitude (z).
+      VERTICAL axis = altitude (top = z max), horizontal bars = count per slice.
       */
 
       if (!show_altitude_hist){ return }
       var cv = document.getElementById('altitude_hist')
       if (!cv){ return }
-      refresh_alt_color_options()                             // met à jour le select si les couleurs de la scène ont changé
+      refresh_alt_color_options()                             // updates the select if the scene's colors have changed
       var ctx = cv.getContext('2d')
       var W = cv.width, H = cv.height
       ctx.clearRect(0, 0, W, H)
@@ -1228,12 +1228,12 @@ function draw_altitude_hist(){
       ctx.textAlign = 'right'; ctx.textBaseline = 'top'
       ctx.fillText('N = ' + n, W - 4, 2)
       if (n === 0){ return }
-      //--- plage d'altitude
+      //--- altitude range
       var zmin = Infinity, zmax = -Infinity
       for (var k=0;k<n;k++){ if (zs[k]<zmin) zmin=zs[k]; if (zs[k]>zmax) zmax=zs[k] }
       if (zmin === zmax){ zmax = zmin + 1; zmin = zmin - 1 }
-      alt_zmin = zmin; alt_zmax = zmax                        // mémorisé pour la requête d'ajustement Python
-      //--- classes
+      alt_zmin = zmin; alt_zmax = zmax                        // stored for the Python fit request
+      //--- bins
       var bins = new Array(ALT_HIST_BINS).fill(0)
       for (var k=0;k<n;k++){
             var b = Math.floor((zs[k]-zmin)/(zmax-zmin)*ALT_HIST_BINS)
@@ -1244,11 +1244,11 @@ function draw_altitude_hist(){
       var cmax = 0
       for (var b=0;b<ALT_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
       if (cmax <= 0){ cmax = 1 }
-      //--- géométrie : altitude en Y (haut = zmax), comptage en X (barres horizontales)
-      //    ML laisse la place aux graduations + au titre « z » ; MB aux bornes + au titre « N »
+      //--- geometry: altitude on Y (top = zmax), count on X (horizontal bars)
+      //    ML leaves room for the ticks + the "z" title; MB for the bounds + the "N" title
       var ML = 56, MT = 6, MB = 30, MR = 6
       var plotW = W - ML - MR, plotH = H - MT - MB
-      //--- axe Y : graduations d'altitude (haut = zmax, bas = zmin)
+      //--- Y axis: altitude ticks (top = zmax, bottom = zmin)
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
       for (var t=0; t<=4; t++){
@@ -1258,34 +1258,34 @@ function draw_altitude_hist(){
             ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W - MR, y); ctx.stroke()
             ctx.fillText(fmt_energy(zval), ML - 4, y)
       }
-      //--- barres horizontales (classe 0 = altitude basse -> en bas)
+      //--- horizontal bars (bin 0 = low altitude -> at the bottom)
       var bh = plotH / ALT_HIST_BINS
       ctx.fillStyle = '#3949ab'                                // indigo
       for (var b=0;b<ALT_HIST_BINS;b++){
             var w = bins[b] / cmax * plotW
-            var y = MT + plotH - (b + 1) * bh                  // b croissant -> vers le haut
+            var y = MT + plotH - (b + 1) * bh                  // b increasing -> upward
             ctx.fillRect(ML, y + 1, w, bh - 2)
       }
-      //--- courbe d'ajustement Python (overlay N(z), en rouge)
+      //--- Python fit curve (overlay N(z), in red)
       if (altitude_fit && altitude_fit.z && altitude_fit.z.length > 1){
             ctx.strokeStyle = '#c62828'; ctx.lineWidth = 1.8; ctx.beginPath()
             for (var k=0;k<altitude_fit.z.length;k++){
                   var zz = altitude_fit.z[k], yy = altitude_fit.y[k]
-                  var X = ML + Math.max(0, Math.min(1, yy / cmax)) * plotW    // comptage -> X (comme les barres)
-                  var Y = MT + (1 - (zz - zmin) / (zmax - zmin)) * plotH      // altitude -> Y (haut = zmax)
+                  var X = ML + Math.max(0, Math.min(1, yy / cmax)) * plotW    // count -> X (like the bars)
+                  var Y = MT + (1 - (zz - zmin) / (zmax - zmin)) * plotH      // altitude -> Y (top = zmax)
                   if (k === 0){ ctx.moveTo(X, Y) } else { ctx.lineTo(X, Y) }
             }
             ctx.stroke()
       }
-      //--- axe X : bornes 0 et cmax (comptage)
+      //--- X axis: bounds 0 and cmax (count)
       ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
       ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
       ctx.textAlign = 'right'; ctx.fillText(cmax, W - MR, MT + plotH + 3)
-      //--- noms des axes : z (altitude, vertical) et N (comptage, horizontal)
+      //--- axis names: z (altitude, vertical) and N (count, horizontal)
       ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#333'
       ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-      ctx.fillText('N', ML + plotW / 2, MT + plotH + 15)      // sous les bornes 0/cmax
-      ctx.save()                                              // « z » écrit verticalement le long de l'axe des altitudes
+      ctx.fillText('N', ML + plotW / 2, MT + plotH + 15)      // below the bounds 0/cmax
+      ctx.save()                                              // "z" written vertically along the altitude axis
       ctx.translate(9, MT + plotH / 2)
       ctx.rotate(-Math.PI / 2)
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
@@ -1294,13 +1294,13 @@ function draw_altitude_hist(){
 
 }
 
-//===================================================================== Trajectoires + MSD
+//===================================================================== Trajectories + MSD
 
-var TRAJ_MAX = 200000                                       // échantillons max par trajectoire (borne mémoire, ~1h @60fps)
-var TRAJ_DRAW_MAX = 2000                                    // points max tracés par courbe (décimation -> rendu rapide)
-function traj_color(obj){ return obj_hex(obj) }             // couleur RÉELLE de la boule (currentHex = teinte hors surbrillance)
+var TRAJ_MAX = 200000                                       // max samples per trajectory (memory bound, ~1h @60fps)
+var TRAJ_DRAW_MAX = 2000                                    // max points plotted per curve (decimation -> fast rendering)
+function traj_color(obj){ return obj_hex(obj) }             // ACTUAL color of the ball (currentHex = tint outside highlight)
 
-function tracked_objects(){                                 // objets dont la trajectoire est suivie
+function tracked_objects(){                                 // objects whose trajectory is tracked
       var a = []
       for (var k in objects){ if (objects[k] && objects[k].track_trajectory){ a.push(objects[k]) } }
       return a
@@ -1309,9 +1309,9 @@ function tracked_objects(){                                 // objets dont la tr
 function traj_candidate_objects(){
 
       /*
-      Objets qu'on peut proposer au suivi : les objets mobiles (mêmes exclusions que l'altitude)
-      + tout objet DÉJÀ suivi via le menu contextuel, même s'il n'est pas mobile (cube, paroi...),
-      pour que sa couleur apparaisse quand même dans la liste et reste décochable.
+      Objects that can be offered for tracking: the moving objects (same exclusions as altitude)
+      + any object ALREADY tracked via the context menu, even if it's not moving (cube, wall...),
+      so that its color still appears in the list and can still be unchecked.
       */
 
       var a = altitude_objects()
@@ -1321,7 +1321,7 @@ function traj_candidate_objects(){
 
 }
 
-function color_is_tracked(hex){                             // au moins un objet de cette couleur est-il suivi ?
+function color_is_tracked(hex){                             // is at least one object of this color tracked?
       var a = traj_candidate_objects()
       for (var i=0;i<a.length;i++){
             if (obj_hex(a[i]) === hex && a[i].track_trajectory){ return true }
@@ -1332,8 +1332,8 @@ function color_is_tracked(hex){                             // au moins un objet
 function set_track_by_color(hex, on){
 
       /*
-      Active/coupe le suivi de TOUS les objets d'une couleur — c'est l'action des cases à cocher
-      de la fenêtre Trajectories : on choisit les objets à suivre par leur couleur.
+      Enables/disables tracking of ALL objects of a color — this is the action of the checkboxes
+      in the Trajectories window: we choose the objects to track by their color.
       */
 
       var a = traj_candidate_objects(), n = 0
@@ -1347,22 +1347,22 @@ function set_track_by_color(hex, on){
 
 }
 
-function traj_mass_label(lo, hi){                           // « masse 1.0 », ou « masse 1.0…5.0 » si la couleur mélange des masses
+function traj_mass_label(lo, hi){                           // "masse 1.0", or "masse 1.0…5.0" if the color mixes masses
       if (lo === undefined){ return 'masse inconnue' }
       var a = fmt_energy(lo), b = fmt_energy(hi)
       return 'masse ' + (a === b ? a : a + '…' + b)
 }
 
-var _traj_colors_sig = null                                 // signature (couleurs + état coché + masses) -> ne reconstruit les cases que si elle change
+var _traj_colors_sig = null                                 // signature (colors + checked state + masses) -> only rebuilds the checkboxes if it changes
 
 function refresh_traj_color_filters(){
 
       /*
-      Une case à cocher par couleur présente dans la scène : cocher = suivre les objets de cette
-      couleur. On compare une signature avant de toucher au DOM (ce code tourne à chaque frame :
-      recréer les cases en continu les rendrait impossibles à cliquer).
-      La signature inclut l'état coché -> la case reste synchro si le suivi est changé ailleurs
-      (case « trajectory » du menu clic droit).
+      One checkbox per color present in the scene: checking = track the objects of that
+      color. We compare a signature before touching the DOM (this code runs each frame:
+      recreating the checkboxes continuously would make them impossible to click).
+      The signature includes the checked state -> the checkbox stays in sync if tracking is changed elsewhere
+      (the "trajectory" checkbox of the right-click menu).
       */
 
       var box = document.getElementById('traj_color_filters')
@@ -1373,7 +1373,7 @@ function refresh_traj_color_filters(){
       for (var i=0;i<a.length;i++){
             var h = obj_hex(a[i])
             counts[h] = (counts[h] || 0) + 1
-            var m = a[i].mass                             // masses min/max de la couleur (une couleur peut mélanger des masses)
+            var m = a[i].mass                             // min/max masses of the color (a color can mix masses)
             if (typeof m === 'number' && isFinite(m)){
                   if (mmin[h] === undefined || m < mmin[h]){ mmin[h] = m }
                   if (mmax[h] === undefined || m > mmax[h]){ mmax[h] = m }
@@ -1396,12 +1396,12 @@ function refresh_traj_color_filters(){
                   var $cb = $('<input type="checkbox" style="margin:0">').prop('checked', !!tracked[hex])
                   $cb.on('change', function(){
                         set_track_by_color(hex, $cb.is(':checked'))
-                        this.blur()                                     // rend le focus clavier à la scène (le raccourci 'x' reste actif)
-                        _traj_colors_sig = null                         // l'état coché a changé -> laisser les cases se resynchroniser
+                        this.blur()                                     // returns keyboard focus to the scene (the 'x' shortcut stays active)
+                        _traj_colors_sig = null                         // the checked state changed -> let the checkboxes resynchronize
                         draw_trajectories()
                   })
-                  // (l'isolation vis-à-vis de TrackballControls est posée une fois pour toutes
-                  //  sur #traj_colors_wrap, cf. panel_interaction.html — inutile de la répéter ici)
+                  // (the isolation from TrackballControls is set once and for all
+                  //  on #traj_colors_wrap, cf. panel_interaction.html — no need to repeat it here)
                   var $sw = $('<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; vertical-align:middle; margin:0 2px">')
                               .css('background', hex)
                   $(box).append($('<label style="cursor:pointer; white-space:nowrap; display:flex; align-items:center">')
@@ -1413,66 +1413,66 @@ function refresh_traj_color_filters(){
 
 }
 
-function fmt_hms(sec){                                      // secondes -> H:MM:SS (heures omises si nulles)
+function fmt_hms(sec){                                      // seconds -> H:MM:SS (hours omitted if zero)
       var s = Math.floor(sec % 60), m = Math.floor(sec / 60) % 60, h = Math.floor(sec / 3600)
       var mm = (m < 10 && h > 0 ? '0' : '') + m
       return (h > 0 ? h + ':' : '') + mm + ':' + (s < 10 ? '0' : '') + s
 }
 
-function update_traj_time(){                                // temps de simulation écoulé depuis le dernier reset / début du suivi
+function update_traj_time(){                                // simulation time elapsed since the last reset / start of tracking
       var el = document.getElementById('traj_time')
       if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a. (' + fmt_hms(sim_time / 10) + ')' }
-}                                                          // 1 u.a. = 100 ms de temps réel (cf. animate_physics)
+}                                                          // 1 u.a. = 100 ms of real time (cf. animate_physics)
 
-// traj_show = { xy, z, msd } (bascules indépendantes) est déclaré dans scene_params.js (réglages Monitoring)
+// traj_show = { xy, z, msd } (independent toggles) is declared in scene_params.js (Monitoring settings)
 
-function apply_traj_mode(){                                 // montre/masque chaque tracé selon traj_show
+function apply_traj_mode(){                                 // shows/hides each plot according to traj_show
       var wxy = document.getElementById('traj_xy_wrap');  if (wxy){ wxy.style.display = traj_show.xy  ? '' : 'none' }
       var wz  = document.getElementById('traj_z_wrap');   if (wz){  wz.style.display  = traj_show.z   ? '' : 'none' }
       var wm  = document.getElementById('traj_msd_wrap'); if (wm){  wm.style.display  = traj_show.msd ? '' : 'none' }
 }
 
-function reset_trajectory(obj){                             // (re)démarre l'enregistrement à partir de la position courante
-      obj.traj = { x:[], y:[], z:[], msd:[], x0:null, y0:null, z0:null, zsum:0, zcount:0 }  // zsum/zcount : ⟨z⟩ depuis le reset (indépendant de la fenêtre glissante)
+function reset_trajectory(obj){                             // (re)starts recording from the current position
+      obj.traj = { x:[], y:[], z:[], msd:[], x0:null, y0:null, z0:null, zsum:0, zcount:0 }  // zsum/zcount: ⟨z⟩ since the reset (independent of the sliding window)
 }
 
 function reset_all_trajectories(){
-      if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // repartir sur une vue auto-fit
-      sim_time = 0                                                      // le chrono repart avec les tracés (« depuis le dernier Reset »)
+      if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // restart with an auto-fit view
+      sim_time = 0                                                      // the timer restarts with the plots ("since the last Reset")
       var t = tracked_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }
 }
 
-function record_trajectories(){                             // appelé chaque frame d'animation
+function record_trajectories(){                             // called each animation frame
 
       if (!show_trajectories){ return }
       var t = tracked_objects()
       for (var i=0;i<t.length;i++){
             var o = t[i]; if (!o.traj){ reset_trajectory(o) }
             var tr = o.traj
-            if (tr.x0 === null){ tr.x0 = o.position.x; tr.y0 = o.position.y; tr.z0 = o.position.z }  // origine r0
+            if (tr.x0 === null){ tr.x0 = o.position.x; tr.y0 = o.position.y; tr.z0 = o.position.z }  // origin r0
             var dx = o.position.x-tr.x0, dy = o.position.y-tr.y0, dz = o.position.z-tr.z0
             tr.x.push(o.position.x); tr.y.push(o.position.y); tr.z.push(o.position.z); tr.msd.push(dx*dx+dy*dy+dz*dz)  // |r-r0|²
-            tr.zsum += o.position.z; tr.zcount++            // moyenne z cumulée depuis le reset (tous les points, pas seulement la fenêtre)
+            tr.zsum += o.position.z; tr.zcount++            // cumulative z mean since the reset (all points, not just the window)
             if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift() }
       }
       draw_trajectories()
 
 }
 
-function traj_stride(n){ return Math.max(1, Math.ceil(n / TRAJ_DRAW_MAX)) }  // décimation : au plus TRAJ_DRAW_MAX points
+function traj_stride(n){ return Math.max(1, Math.ceil(n / TRAJ_DRAW_MAX)) }  // decimation: at most TRAJ_DRAW_MAX points
 
 /*
-Zoom "rubber-band" sur les graphes trajectoires. Chaque canvas a :
-  - traj_zoom[key] : null (auto-fit) ou {a0,a1,b0,b1} = domaine imposé en coordonnées DONNÉES
-                     (a = abscisse, b = ordonnée ; pour z(t)/MSD l'abscisse est l'index d'échantillon)
-  - traj_view[key] : dernière transfo affichée {L,T,W,H (rect de tracé en px), a0,a1,b0,b1 (domaine)}
-                     -> permet d'inverser pixel -> donnée au relâchement du rectangle.
-Glisser = zoomer sur le rectangle ; double-clic = revenir à l'auto-fit.
+Rubber-band zoom on the trajectory graphs. Each canvas has:
+  - traj_zoom[key]: null (auto-fit) or {a0,a1,b0,b1} = domain imposed in DATA coordinates
+                     (a = abscissa, b = ordinate; for z(t)/MSD the abscissa is the sample index)
+  - traj_view[key]: last displayed transform {L,T,W,H (plot rect in px), a0,a1,b0,b1 (domain)}
+                     -> allows inverting pixel -> data on release of the rectangle.
+Drag = zoom on the rectangle; double-click = return to auto-fit.
 */
 var traj_zoom = { xy:null, z:null, msd:null }
 var traj_view = { xy:null, z:null, msd:null }
-var traj_drag = null                                        // rectangle en cours : {canvasId, key, x0,y0,x1,y1} (un seul glisser à la fois)
-var traj_z_means = []                                       // lignes ⟨z⟩ du dernier dessin : {y (px canvas), value, mass, color} -> infobulle de survol
+var traj_drag = null                                        // rectangle in progress: {canvasId, key, x0,y0,x1,y1} (only one drag at a time)
+var traj_z_means = []                                       // ⟨z⟩ lines of the last drawing: {y (canvas px), value, mass, color} -> hover tooltip
 var _traj_zoom_setup = false
 
 function clear_traj_zoom(){ traj_zoom = { xy:null, z:null, msd:null } }
@@ -1482,9 +1482,9 @@ function hide_traj_tooltip(){ var el=document.getElementById('traj_tooltip'); if
 function show_traj_tooltip(clientX, clientY, groups){
 
       /*
-      Infobulle au survol d'une ligne de moyenne ⟨z⟩ : une entrée par (couleur, masse) survolée
-      — plusieurs particules d'une même couleur/masse partagent alors une seule ligne récapitulative
-      (moyenne des ⟨z⟩, avec ×N), sinon 2000 boules d'une couleur donneraient 2000 lignes.
+      Tooltip when hovering a ⟨z⟩ mean line: one entry per hovered (color, mass)
+      — several particles of the same color/mass then share a single summary line
+      (mean of the ⟨z⟩, with ×N), otherwise 2000 balls of one color would give 2000 lines.
       */
 
       var el = document.getElementById('traj_tooltip'); if (!el){ return }
@@ -1499,7 +1499,7 @@ function show_traj_tooltip(clientX, clientY, groups){
       }
       el.innerHTML = html
       el.style.display = 'block'
-      // positionne près du curseur, en restant dans la fenêtre (bascule à gauche/au-dessus si ça déborde)
+      // positions near the cursor, staying within the window (flips to the left/above if it overflows)
       var pad = 12, w = el.offsetWidth, h = el.offsetHeight
       var x = clientX + pad; if (x + w > window.innerWidth - 4){ x = clientX - pad - w }
       var y = clientY + pad; if (y + h > window.innerHeight - 4){ y = clientY - pad - h }
@@ -1510,9 +1510,9 @@ function show_traj_tooltip(clientX, clientY, groups){
 function draw_traj_drag_rect(){
 
       /*
-      Rectangle de sélection, dessiné À LA FIN de draw_trajectories() et pas dans le handler
-      mousemove : l'animation appelle draw_trajectories() à chaque frame, ce qui efface le canvas.
-      Peint depuis le handler, le rectangle disparaissait à la frame suivante — donc invisible.
+      Selection rectangle, drawn AT THE END of draw_trajectories() and not in the
+      mousemove handler: the animation calls draw_trajectories() each frame, which clears the canvas.
+      Painted from the handler, the rectangle would disappear on the next frame — hence invisible.
       */
 
       if (!traj_drag){ return }
@@ -1530,13 +1530,13 @@ function _bind_traj_zoom(canvasId, key){
       cv.style.cursor = 'crosshair'
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
       cv.addEventListener('mousedown', function(e){
-            // stopPropagation : TrackballControls est branché sur document et ferait pivoter la caméra
-            // pendant le tracé du rectangle (l'isolation posée sur #trajectories_box couvre déjà ce cas,
-            // on la répète ici pour que le canvas reste sûr même hors de ce conteneur).
+            // stopPropagation: TrackballControls is bound to document and would rotate the camera
+            // during the rectangle drawing (the isolation set on #trajectories_box already covers this case,
+            // we repeat it here so the canvas stays safe even outside that container).
             e.stopPropagation()
             var v = traj_view[key]; if (!v){ return }
             var p = pos(e)
-            if (p.x<v.L || p.x>v.L+v.W || p.y<v.T || p.y>v.T+v.H){ return }   // hors zone de tracé
+            if (p.x<v.L || p.x>v.L+v.W || p.y<v.T || p.y>v.T+v.H){ return }   // outside the plot area
             traj_drag = { canvasId:canvasId, key:key, x0:p.x, y0:p.y, x1:p.x, y1:p.y }
             e.preventDefault()
       })
@@ -1546,7 +1546,7 @@ function _bind_traj_zoom(canvasId, key){
             var v = traj_view[key], p = pos(e)
             traj_drag.x1 = Math.max(v.L, Math.min(v.L+v.W, p.x))
             traj_drag.y1 = Math.max(v.T, Math.min(v.T+v.H, p.y))
-            draw_trajectories()                              // redessine le graphe + le rectangle par-dessus
+            draw_trajectories()                              // redraws the graph + the rectangle on top
       })
       function finish(){
             if (!traj_drag || traj_drag.key !== key){ return }
@@ -1554,10 +1554,10 @@ function _bind_traj_zoom(canvasId, key){
             var x0=Math.min(traj_drag.x0,traj_drag.x1), x1=Math.max(traj_drag.x0,traj_drag.x1)
             var y0=Math.min(traj_drag.y0,traj_drag.y1), y1=Math.max(traj_drag.y0,traj_drag.y1)
             traj_drag = null
-            if (v && (x1-x0)>4 && (y1-y0)>4){                 // ignore les clics/micro-rectangles
+            if (v && (x1-x0)>4 && (y1-y0)>4){                 // ignore clicks/micro-rectangles
                   var a0 = v.a0 + (x0-v.L)/v.W*(v.a1-v.a0)
                   var a1 = v.a0 + (x1-v.L)/v.W*(v.a1-v.a0)
-                  var b1 = v.b0 + (1-(y0-v.T)/v.H)*(v.b1-v.b0)   // haut de l'écran -> grande valeur
+                  var b1 = v.b0 + (1-(y0-v.T)/v.H)*(v.b1-v.b0)   // top of the screen -> large value
                   var b0 = v.b0 + (1-(y1-v.T)/v.H)*(v.b1-v.b0)
                   traj_zoom[key] = { a0:a0, a1:a1, b0:b0, b1:b1 }
             }
@@ -1565,25 +1565,25 @@ function _bind_traj_zoom(canvasId, key){
       }
       cv.addEventListener('mouseup', finish)
       cv.addEventListener('mouseleave', finish)
-      cv.addEventListener('dblclick', function(){ traj_zoom[key]=null; draw_trajectories() })   // reset zoom de ce graphe
+      cv.addEventListener('dblclick', function(){ traj_zoom[key]=null; draw_trajectories() })   // reset zoom of this graph
 }
 
 function _bind_traj_z_means_hover(){
 
       /*
-      Survol des lignes ⟨z⟩ du graphe z(t) : infobulle couleur + masse + moyenne actuelle.
-      Séparé du handler de zoom (même canvas) : le zoom n'agit que pendant un glisser (traj_drag),
-      le survol que hors glisser. Regroupe les lignes proches par (couleur, masse) — cf. show_traj_tooltip.
+      Hover over the ⟨z⟩ lines of the z(t) graph: tooltip with color + mass + current mean.
+      Separate from the zoom handler (same canvas): the zoom only acts during a drag (traj_drag),
+      the hover only outside a drag. Groups nearby lines by (color, mass) — cf. show_traj_tooltip.
       */
 
       var cv = document.getElementById('z_canvas'); if (!cv){ return }
-      var THRESH = 5                                          // distance verticale de capture (px canvas)
+      var THRESH = 5                                          // vertical capture distance (canvas px)
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
       cv.addEventListener('mousemove', function(e){
-            if (traj_drag){ hide_traj_tooltip(); return }     // en plein zoom -> pas d'infobulle
+            if (traj_drag){ hide_traj_tooltip(); return }     // in the middle of a zoom -> no tooltip
             var v = traj_view.z, p = pos(e)
             if (!v || p.x<v.L || p.x>v.L+v.W){ hide_traj_tooltip(); cv.style.cursor='crosshair'; return }
-            var groups = {}, order = []                       // regroupe les moyennes à portée par (couleur+masse)
+            var groups = {}, order = []                       // groups the means in range by (color+mass)
             for (var i=0;i<traj_z_means.length;i++){
                   var m = traj_z_means[i]
                   if (Math.abs(m.y - p.y) > THRESH){ continue }
@@ -1592,14 +1592,14 @@ function _bind_traj_z_means_hover(){
                   groups[key].sum += m.value; groups[key].count++
             }
             if (!order.length){ hide_traj_tooltip(); cv.style.cursor='crosshair'; return }
-            order.sort()                                       // ordre stable d'un survol à l'autre
+            order.sort()                                       // stable order from one hover to the next
             show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }))
             cv.style.cursor='pointer'
       })
       cv.addEventListener('mouseleave', hide_traj_tooltip)
 }
 
-function setup_traj_zoom(){                                 // idempotent : attache les handlers une seule fois
+function setup_traj_zoom(){                                 // idempotent: attaches the handlers only once
       if (_traj_zoom_setup){ return }
       _traj_zoom_setup = true
       _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd')
@@ -1609,11 +1609,11 @@ function setup_traj_zoom(){                                 // idempotent : atta
 function draw_trajectories(){
 
       setup_traj_zoom()
-      refresh_traj_color_filters()                              // cases à cocher : couleurs à suivre
+      refresh_traj_color_filters()                              // checkboxes: colors to track
       update_traj_time()
       var t = tracked_objects()
 
-      //---- fenêtre 1 : trajectoires (projection x-y, échelle isotrope si pas de zoom) ----
+      //---- window 1: trajectories (x-y projection, isotropic scale if no zoom) ----
       var cv = document.getElementById('traj_canvas')
       if (cv){
             var ctx = cv.getContext('2d'), W = cv.width, H = cv.height
@@ -1624,25 +1624,25 @@ function draw_trajectories(){
                   for (var k=0;k<n;k+=st){ npts++
                         if(tr.x[k]<xmin)xmin=tr.x[k]; if(tr.x[k]>xmax)xmax=tr.x[k]
                         if(tr.y[k]<ymin)ymin=tr.y[k]; if(tr.y[k]>ymax)ymax=tr.y[k] }
-                  var lx=tr.x[n-1], ly=tr.y[n-1]                 // toujours inclure le dernier point
+                  var lx=tr.x[n-1], ly=tr.y[n-1]                 // always include the last point
                   if(lx<xmin)xmin=lx; if(lx>xmax)xmax=lx; if(ly<ymin)ymin=ly; if(ly>ymax)ymax=ly }
             if (npts>0){
                   var dom
                   if (traj_zoom.xy){ dom = traj_zoom.xy }
                   else { var cxx=(xmin+xmax)/2, cyy=(ymin+ymax)/2, half=Math.max((xmax-xmin)||1,(ymax-ymin)||1)*0.55
-                        dom = { a0:cxx-half, a1:cxx+half, b0:cyy-half, b1:cyy+half } }   // domaine carré -> isotrope
+                        dom = { a0:cxx-half, a1:cxx+half, b0:cyy-half, b1:cyy+half } }   // square domain -> isotropic
                   var pad=10, side=Math.min(W,H)-2*pad, L=(W-side)/2, T=(H-side)/2, PW=side, PH=side
                   traj_view.xy = { L:L, T:T, W:PW, H:PH, a0:dom.a0, a1:dom.a1, b0:dom.b0, b1:dom.b1 }
                   var PX=function(x){ return L + (x-dom.a0)/((dom.a1-dom.a0)||1)*PW }
                   var PY=function(y){ return T + (1-(y-dom.b0)/((dom.b1-dom.b0)||1))*PH }
-                  ctx.strokeStyle='#ddd'; ctx.lineWidth=1; ctx.strokeRect(L,T,PW,PH)   // cadre de la zone de tracé
-                  ctx.save(); ctx.beginPath(); ctx.rect(L,T,PW,PH); ctx.clip()          // n'affiche que l'intérieur (utile en zoom)
+                  ctx.strokeStyle='#ddd'; ctx.lineWidth=1; ctx.strokeRect(L,T,PW,PH)   // frame of the plot area
+                  ctx.save(); ctx.beginPath(); ctx.rect(L,T,PW,PH); ctx.clip()          // only shows the interior (useful when zoomed)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.x.length<2)continue
                         var n=tr.x.length, st=traj_stride(n), col=traj_color(t[i])
                         ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath()
                         var first=true
                         for (var k=0;k<n;k+=st){ var X=PX(tr.x[k]),Y=PY(tr.y[k]); if(first){ctx.moveTo(X,Y);first=false}else ctx.lineTo(X,Y) }
-                        ctx.lineTo(PX(tr.x[n-1]),PY(tr.y[n-1]))   // dernier point
+                        ctx.lineTo(PX(tr.x[n-1]),PY(tr.y[n-1]))   // last point
                         ctx.stroke()
                         ctx.fillStyle=col; ctx.beginPath(); ctx.arc(PX(tr.x[n-1]),PY(tr.y[n-1]),3,0,2*Math.PI); ctx.fill()
                   }
@@ -1650,13 +1650,13 @@ function draw_trajectories(){
             } else { traj_view.xy = null }
       }
 
-      //---- fenêtre z(t) : altitude z vs temps (index d'échantillon) ----
+      //---- window z(t): altitude z vs time (sample index) ----
       var cvz = document.getElementById('z_canvas')
       if (cvz){
             var cz = cvz.getContext('2d'), Wz=cvz.width, Hz=cvz.height
             cz.clearRect(0,0,Wz,Hz)
-            traj_z_means = []                                // lignes ⟨z⟩ survolables (repeuplées à chaque dessin)
-            var nz=0, zmax=0                                 // axe y calé sur 0 (zmin = 0)
+            traj_z_means = []                                // hoverable ⟨z⟩ lines (repopulated on each drawing)
+            var nz=0, zmax=0                                 // y axis anchored at 0 (zmin = 0)
             for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.z||!tr.z.length)continue
                   if(tr.z.length>nz)nz=tr.z.length
                   var n=tr.z.length, st=traj_stride(n)
@@ -1675,18 +1675,18 @@ function draw_trajectories(){
                   var means_only = (typeof z_means_only !== 'undefined' && z_means_only)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.z||tr.z.length<2)continue
                         var n=tr.z.length, st=traj_stride(n), col=traj_color(t[i])
-                        //--- z(t) : courbe (masquée en mode "moyennes seules")
+                        //--- z(t): curve (hidden in "means only" mode)
                         if (!means_only){
                               cz.strokeStyle=col; cz.lineWidth=1.5; cz.beginPath()
                               var first=true
                               for (var k=0;k<n;k+=st){ var X=ZX(k),Y=ZY(tr.z[k]); if(first){cz.moveTo(X,Y);first=false}else cz.lineTo(X,Y) }
-                              cz.lineTo(ZX(n-1),ZY(tr.z[n-1]))         // dernier point
+                              cz.lineTo(ZX(n-1),ZY(tr.z[n-1]))         // last point
                               cz.stroke()
                         }
-                        //--- moyenne ⟨z⟩ depuis le reset : pointillé avec la courbe, trait plein si seule affichée
+                        //--- ⟨z⟩ mean since the reset: dashed with the curve, solid if displayed alone
                         if (tr.zcount > 0){
                               var zmean=tr.zsum/tr.zcount, yzmean=ZY(zmean)
-                              traj_z_means.push({ y:yzmean, value:zmean, mass:t[i].mass, color:col })   // pour l'infobulle de survol
+                              traj_z_means.push({ y:yzmean, value:zmean, mass:t[i].mass, color:col })   // for the hover tooltip
                               cz.strokeStyle=col; cz.lineWidth=1.5
                               if (!means_only){ cz.lineWidth=1; cz.setLineDash([4,3]) }
                               cz.beginPath(); cz.moveTo(L,yzmean); cz.lineTo(L+PW,yzmean); cz.stroke()
@@ -1697,7 +1697,7 @@ function draw_trajectories(){
             } else { traj_view.z = null }
       }
 
-      //---- fenêtre 2 : MSD |r-r0|² vs temps (index d'échantillon) ----
+      //---- window 2: MSD |r-r0|² vs time (sample index) ----
       var cv2 = document.getElementById('msd_canvas')
       if (cv2){
             var c2 = cv2.getContext('2d'), W2=cv2.width, H2=cv2.height
@@ -1723,61 +1723,61 @@ function draw_trajectories(){
                         c2.strokeStyle=traj_color(t[i]); c2.lineWidth=1.5; c2.beginPath()
                         var first=true
                         for (var k=0;k<n;k+=st){ var X=MX(k),Y=MY(tr.msd[k]); if(first){c2.moveTo(X,Y);first=false}else c2.lineTo(X,Y) }
-                        c2.lineTo(MX(n-1),MY(tr.msd[n-1]))        // dernier point
+                        c2.lineTo(MX(n-1),MY(tr.msd[n-1]))        // last point
                         c2.stroke()
                   }
                   c2.restore()
             } else { traj_view.msd = null }
       }
 
-      draw_traj_drag_rect()                                     // rectangle de zoom en cours, par-dessus le tracé fraîchement redessiné
+      draw_traj_drag_rect()                                     // zoom rectangle in progress, on top of the freshly redrawn plot
 
 }
 
 //===================================================================== Velocity Verlet
 
 /*
-Intégrateur symplectique Velocity Verlet pour les forces lisses (conservatives) :
-gravité, ressorts harmoniques, attraction. Schéma (par objet, masse m) :
+Symplectic Velocity Verlet integrator for the smooth (conservative) forces:
+gravity, harmonic springs, attraction. Scheme (per object, mass m):
 
       x_{n+1} = x_n + v_n·dt + ½·a_n·dt²
       v_{n+1} = v_n + ½·(a_n + a_{n+1})·dt
 
-avec a = F/m calculé à partir des positions (forces indépendantes de la vitesse).
-Les collisions/rebonds (mur, sol, choc centre-centre) sont des impulsions appliquées
-après le pas Verlet : elles ne dérivent pas d'un potentiel lisse.
+with a = F/m computed from the positions (velocity-independent forces).
+Collisions/bounces (wall, ground, center-center impact) are impulses applied
+after the Verlet step: they do not derive from a smooth potential.
 */
 
 function accel_attraction(i,j){
 
       /*
-      Gravité newtonienne ADOUCIE (softening de Plummer) :
+      SOFTENED Newtonian gravity (Plummer softening):
             F = G·m_i·m_j · r_vec / (r² + ε²)^{3/2}     (ε = attract_softening)
-      Pour ε = 0 on retrouve le 1/r² pur. Le softening supprime la singularité à r→0
-      (accélérations bornées) : le pas Verlet reste précis même en rencontre proche,
-      donc l'énergie se conserve. r_vec (non normalisé) porte déjà la direction.
+      For ε = 0 we recover the pure 1/r². The softening removes the singularity at r→0
+      (bounded accelerations): the Verlet step stays accurate even in a close encounter,
+      so energy is conserved. r_vec (unnormalized) already carries the direction.
       */
 
       if (!one_over_r2){ return }
       var [obji, objj] = objj_obji(i,j)
-      var rvec = new THREE.Vector3().subVectors(obji.position, objj.position)   // j -> i (longueur = r)
+      var rvec = new THREE.Vector3().subVectors(obji.position, objj.position)   // j -> i (length = r)
       var soft2 = rvec.lengthSq() + attract_softening*attract_softening         // r² + ε²
       var g = attract_strength_one_over_r2 / (soft2 * Math.sqrt(soft2))         // G / (r²+ε²)^{3/2}
-      objj.acc.addScaledVector(rvec,  g*obji.mass)             // a_j vers i
-      obji.acc.addScaledVector(rvec, -g*objj.mass)             // a_i vers j
+      objj.acc.addScaledVector(rvec,  g*obji.mass)             // a_j toward i
+      obji.acc.addScaledVector(rvec, -g*objj.mass)             // a_i toward j
 
 }
 
 function accel_spring(k){
 
       /*
-      Force de rappel harmonique (ressort) d'une paire, ajoutée à l'accélération.
-      F = -harmonic_const·(longueur - longueur_au_repos) le long du ressort.
+      Harmonic restoring force (spring) of a pair, added to the acceleration.
+      F = -harmonic_const·(length - rest_length) along the spring.
       */
 
       var p0 = list_paired_harmonic[k][0]
       var p1 = list_paired_harmonic[k][1]
-      var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const  // raideur propre à la paire (repli global)
+      var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const  // stiffness specific to the pair (global fallback)
       var vec = new THREE.Vector3().subVectors(p1.position, p0.position)
       var diff_length = vec.length() - lenght_spring
       vec.normalize().multiplyScalar(diff_length)
@@ -1787,21 +1787,21 @@ function accel_spring(k){
 }
 
 // ===================================================================== Barnes-Hut
-// Attraction newtonienne 1/r² approchée en O(n log n) : un amas lointain est traité
-// comme UNE seule masse à son centre de masse (critère d'ouverture s/d < θ). Derrière
-// la case "Fast attraction". C'est une APPROXIMATION (θ règle précision/vitesse) : les
-// forces ne sont plus exactement antisymétriques -> légère dérive du graphe d'énergie.
+// Newtonian 1/r² attraction approximated in O(n log n): a distant cluster is treated
+// as ONE single mass at its center of mass (opening criterion s/d < θ). Behind
+// the "Fast attraction" checkbox. It's an APPROXIMATION (θ tunes accuracy/speed): the
+// forces are no longer exactly antisymmetric -> slight drift of the energy graph.
 
-var BH_MIN_N     = 64    // en dessous, la double boucle exacte est plus rapide ET exacte -> repli
-var BH_MAX_DEPTH = 24    // garde-fou anti-subdivision infinie (billes quasi superposées)
+var BH_MIN_N     = 64    // below this, the exact double loop is faster AND exact -> fallback
+var BH_MAX_DEPTH = 24    // safeguard against infinite subdivision (nearly overlapping balls)
 
 function bh_new_node(cx, cy, cz, half){
-      return { cx:cx, cy:cy, cz:cz, half:half,        // centre + demi-côté du cube
-               mass:0, comx:0, comy:0, comz:0,         // masse totale + centre de masse (agrégés)
-               body:-1, bucket:null, children:null }   // feuille (1 corps) / feuille saturée / noeud interne
+      return { cx:cx, cy:cy, cz:cz, half:half,        // center + half-side of the cube
+               mass:0, comx:0, comy:0, comz:0,         // total mass + center of mass (aggregated)
+               body:-1, bucket:null, children:null }   // leaf (1 body) / saturated leaf / internal node
 }
 
-function bh_child_index(node, x, y, z){                // dans quel octant tombe (x,y,z) ?
+function bh_child_index(node, x, y, z){                // which octant does (x,y,z) fall into?
       var idx = 0
       if (x >= node.cx){ idx |= 1 }
       if (y >= node.cy){ idx |= 2 }
@@ -1809,7 +1809,7 @@ function bh_child_index(node, x, y, z){                // dans quel octant tombe
       return idx
 }
 
-function bh_ensure_children(node){                     // découpe le cube en 8 sous-cubes
+function bh_ensure_children(node){                     // splits the cube into 8 sub-cubes
       if (node.children){ return }
       var q = node.half/2
       node.children = new Array(8)
@@ -1822,13 +1822,13 @@ function bh_ensure_children(node){                     // découpe le cube en 8 
 }
 
 function bh_insert(node, idx, x, y, z, depth){
-      if (node.children){                              // noeud interne -> descendre
+      if (node.children){                              // internal node -> descend
             bh_insert(node.children[bh_child_index(node, x,y,z)], idx, x,y,z, depth+1)
             return
       }
-      if (node.bucket){ node.bucket.push(idx); return } // feuille saturée (profondeur max) -> empiler
-      if (node.body === -1){ node.body = idx; return }  // feuille vide -> y poser le corps
-      // feuille déjà occupée : subdiviser (ou bucketiser si trop profond = positions ~identiques)
+      if (node.bucket){ node.bucket.push(idx); return } // saturated leaf (max depth) -> push
+      if (node.body === -1){ node.body = idx; return }  // empty leaf -> place the body there
+      // leaf already occupied: subdivide (or bucketize if too deep = ~identical positions)
       if (depth >= BH_MAX_DEPTH){ node.bucket = [node.body, idx]; node.body = -1; return }
       var old = node.body, oo = list_moving_objects[old]
       node.body = -1
@@ -1837,7 +1837,7 @@ function bh_insert(node, idx, x, y, z, depth){
       bh_insert(node.children[bh_child_index(node, x,y,z)], idx, x,y,z, depth+1)
 }
 
-function bh_compute_mass(node){                        // post-ordre : masse + centre de masse
+function bh_compute_mass(node){                        // post-order: mass + center of mass
       if (node.children){
             var m=0, sx=0, sy=0, sz=0
             for (var i=0; i<8; i++){
@@ -1859,15 +1859,15 @@ function bh_compute_mass(node){                        // post-ordre : masse + c
             if (m > 0){ node.comx=sx/m; node.comy=sy/m; node.comz=sz/m }
             return
       }
-      if (node.body !== -1){                           // feuille à 1 corps
+      if (node.body !== -1){                           // leaf with 1 body
             var o = list_moving_objects[node.body]
             node.mass = o.mass
             node.comx = o.position.x; node.comy = o.position.y; node.comz = o.position.z
       }
-      // feuille vide : mass reste 0
+      // empty leaf: mass stays 0
 }
 
-function bh_add_direct(o, src, eps2, G){               // force exacte (softened) d'un corps source sur o
+function bh_add_direct(o, src, eps2, G){               // exact (softened) force of a source body on o
       var dx = src.position.x - o.position.x
       var dy = src.position.y - o.position.y
       var dz = src.position.z - o.position.z
@@ -1877,35 +1877,35 @@ function bh_add_direct(o, src, eps2, G){               // force exacte (softened
 }
 
 function bh_accel_on(node, o, ti, theta2, eps2, G){
-      if (node.mass <= 0){ return }                    // sous-arbre vide
-      if (node.children === null && node.bucket === null){  // feuille à 1 corps
-            if (node.body !== -1 && node.body !== ti){ bh_add_direct(o, list_moving_objects[node.body], eps2, G) }  // jamais sur soi-même
+      if (node.mass <= 0){ return }                    // empty subtree
+      if (node.children === null && node.bucket === null){  // leaf with 1 body
+            if (node.body !== -1 && node.body !== ti){ bh_add_direct(o, list_moving_objects[node.body], eps2, G) }  // never on itself
             return
       }
-      if (node.bucket){                                // feuille saturée : corps un à un
+      if (node.bucket){                                // saturated leaf: bodies one by one
             for (var b=0; b<node.bucket.length; b++){
                   if (node.bucket[b] !== ti){ bh_add_direct(o, list_moving_objects[node.bucket[b]], eps2, G) }
             }
             return
       }
-      var dx = node.comx - o.position.x                // noeud interne : test d'ouverture s/d < θ
+      var dx = node.comx - o.position.x                // internal node: opening test s/d < θ
       var dy = node.comy - o.position.y
       var dz = node.comz - o.position.z
       var d2 = dx*dx + dy*dy + dz*dz
-      var s  = 2*node.half                             // côté du cube
-      if (s*s < theta2 * d2){                          // assez loin -> approxime par le centre de masse
+      var s  = 2*node.half                             // side of the cube
+      if (s*s < theta2 * d2){                          // far enough -> approximate by the center of mass
             var soft2 = d2 + eps2
             var f = G * node.mass / (soft2 * Math.sqrt(soft2))
             o.acc.x += f*dx; o.acc.y += f*dy; o.acc.z += f*dz
             return
       }
-      for (var i=0; i<8; i++){ bh_accel_on(node.children[i], o, ti, theta2, eps2, G) }  // trop proche -> descendre
+      for (var i=0; i<8; i++){ bh_accel_on(node.children[i], o, ti, theta2, eps2, G) }  // too close -> descend
 }
 
 function bh_eligible_indices(){
-      // Mêmes exclusions que la double boucle exacte, restreintes au groupe "toutes paires"
-      // propre : objets NON-murs et NON-interdits (spring/elastic/pawn). Les murs n'attirent
-      // que d'autres murs dans l'exact (cas négligeable, bloqués) : on les écarte de la gravité.
+      // Same exclusions as the exact double loop, restricted to the proper "all pairs"
+      // group: NON-wall and NON-forbidden objects (spring/elastic/pawn). Walls only attract
+      // other walls in the exact version (negligible case, blocked): we exclude them from gravity.
       var elig = []
       for (var i=0; i<list_moving_objects.length; i++){
             if (list_moving_objects[i].type === 'wall_box'){ continue }
@@ -1918,7 +1918,7 @@ function bh_eligible_indices(){
 function barnes_hut_attraction(eligible){
       var n = eligible.length
       if (n === 0){ return }
-      // 1) cube englobant de tous les corps éligibles
+      // 1) bounding cube of all eligible bodies
       var minx=Infinity,miny=Infinity,minz=Infinity,maxx=-Infinity,maxy=-Infinity,maxz=-Infinity
       for (var k=0;k<n;k++){
             var p = list_moving_objects[eligible[k]].position
@@ -1928,16 +1928,16 @@ function barnes_hut_attraction(eligible){
       }
       var cx=(minx+maxx)/2, cy=(miny+maxy)/2, cz=(minz+maxz)/2
       var half = Math.max(maxx-minx, maxy-miny, maxz-minz)/2
-      if (!(half > 0)){ half = 1 }                     // tous au même point / n=1
-      half *= 1.0001                                   // marge pour inclure les bornes
+      if (!(half > 0)){ half = 1 }                     // all at the same point / n=1
+      half *= 1.0001                                   // margin to include the bounds
       var root = bh_new_node(cx,cy,cz,half)
-      // 2) insertion + agrégation masse/centre de masse
+      // 2) insertion + mass/center-of-mass aggregation
       for (var k=0;k<n;k++){
             var p = list_moving_objects[eligible[k]].position
             bh_insert(root, eligible[k], p.x,p.y,p.z, 0)
       }
       bh_compute_mass(root)
-      // 3) force sur chaque corps par parcours de l'arbre
+      // 3) force on each body via tree traversal
       var theta2 = barnes_hut_theta*barnes_hut_theta
       var eps2   = attract_softening*attract_softening
       var G      = attract_strength_one_over_r2
@@ -1947,12 +1947,12 @@ function barnes_hut_attraction(eligible){
       }
 }
 
-function accel_attraction_bruteforce(){                // double boucle O(n²) exacte (référence)
+function accel_attraction_bruteforce(){                // exact O(n²) double loop (reference)
       for (var i=0; i< list_moving_objects.length; i++){
             for (var j=i+1; j< list_moving_objects.length; j++){
                   if ( allow_interaction_ij(i,j) ){
                         var [cnd1, cnd2, cnd3] = conditions_interaction_obj_plane(i,j)
-                        if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // pas une paire mur-objet
+                        if ( !(cnd1 & cnd2 & cnd3) ){ accel_attraction(i,j) } // not a wall-object pair
                   }
             }
       }
@@ -1961,34 +1961,34 @@ function accel_attraction_bruteforce(){                // double boucle O(n²) e
 function compute_accelerations(){
 
       /*
-      Accélération a(x) de chaque objet mobile à partir des forces lisses :
-      gravité (constante en z) + attraction (centre-centre) + ressorts.
+      Acceleration a(x) of each moving object from the smooth forces:
+      gravity (constant in z) + attraction (center-center) + springs.
       */
 
-      for (var i in list_moving_objects){                      // reset + gravité
+      for (var i in list_moving_objects){                      // reset + gravity
             var o = list_moving_objects[i]
             if (!o.acc){ o.acc = new THREE.Vector3() }
-            if (o.blocked || !gravity_ok){ o.acc.set(0, 0, 0) }  // statique/ancre ou gravité coupée
+            if (o.blocked || !gravity_ok){ o.acc.set(0, 0, 0) }  // static/anchor or gravity turned off
             else { o.acc.set(0, 0, -9.81*0.1) }
       }
-      if (one_over_r2){                                        // sinon inutile de parcourir les paires
+      if (one_over_r2){                                        // otherwise no need to iterate over the pairs
             if (use_barnes_hut){
                   var eligible = bh_eligible_indices()
-                  if (eligible.length >= BH_MIN_N){ barnes_hut_attraction(eligible) }  // O(n log n) approché
-                  else { accel_attraction_bruteforce() }         // trop peu de corps -> exact (et plus rapide)
+                  if (eligible.length >= BH_MIN_N){ barnes_hut_attraction(eligible) }  // O(n log n) approximate
+                  else { accel_attraction_bruteforce() }         // too few bodies -> exact (and faster)
             } else {
-                  accel_attraction_bruteforce()                  // O(n²) exact (référence)
+                  accel_attraction_bruteforce()                  // O(n²) exact (reference)
             }
       }
-      if (springs_ok){ for (var k in list_paired_harmonic){ accel_spring(k) } }   // ressorts
+      if (springs_ok){ for (var k in list_paired_harmonic){ accel_spring(k) } }   // springs
 
 }
 
 function verlet_positions(delta){
 
       /*
-      x_{n+1} = x_n + v_n·dt + ½·a_n·dt²  puis premier demi-coup de vitesse (½·a_n·dt).
-      obj.acc contient a_n (calculé à la frame précédente).
+      x_{n+1} = x_n + v_n·dt + ½·a_n·dt²  then first velocity half-kick (½·a_n·dt).
+      obj.acc holds a_n (computed on the previous frame).
       */
 
       var hdt2 = 0.5*delta*delta
@@ -1996,9 +1996,9 @@ function verlet_positions(delta){
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
             if (!o.acc){ o.acc = new THREE.Vector3() }
-            if (o.blocked){ continue }                         // objet statique/ancre : ne bouge pas
+            if (o.blocked){ continue }                         // static/anchor object: does not move
             if (!o._ppos){ o._ppos = new THREE.Vector3() }
-            o._ppos.copy(o.position)                           // position AVANT le pas (détection continue mur)
+            o._ppos.copy(o.position)                           // position BEFORE the step (continuous wall detection)
             o.position.x += o.speed.x*delta + o.acc.x*hdt2
             o.position.y += o.speed.y*delta + o.acc.y*hdt2
             o.position.z += o.speed.z*delta + o.acc.z*hdt2
@@ -2012,13 +2012,13 @@ function verlet_positions(delta){
 function verlet_velocities(delta){
 
       /*
-      Second demi-coup de vitesse avec a_{n+1} : v_{n+1} = v_half + ½·a_{n+1}·dt.
+      Second velocity half-kick with a_{n+1}: v_{n+1} = v_half + ½·a_{n+1}·dt.
       */
 
       var hdt = 0.5*delta
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
-            if (o.blocked){ continue }                         // objet statique/ancre : vitesse figée
+            if (o.blocked){ continue }                         // static/anchor object: frozen velocity
             o.speed.x += o.acc.x*hdt
             o.speed.y += o.acc.y*hdt
             o.speed.z += o.acc.z*hdt
@@ -2029,17 +2029,17 @@ function verlet_velocities(delta){
 function ground_bounce(){
 
       /*
-      Contrainte du sol : rebond élastique quand le centre passe sous height/2.
+      Ground constraint: elastic bounce when the center drops below height/2.
       */
 
-      if (!gravity_ok){ return }                               // pas de gravité -> pas de "bas" -> pas de sol (tout est 3D libre)
+      if (!gravity_ok){ return }                               // no gravity -> no "down" -> no ground (everything is free 3D)
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
-            if (o.blocked){ continue }                         // objet statique : pas de rebond sol
-            var hz = (o.radius !== undefined) ? o.radius : o.height/2   // sphère : repose pile sur le sol (bas = centre - rayon) ; autres : height/2
+            if (o.blocked){ continue }                         // static object: no ground bounce
+            var hz = (o.radius !== undefined) ? o.radius : o.height/2   // sphere: rests exactly on the ground (bottom = center - radius); others: height/2
             if (o.position.z < hz){
-                  o.position.z = hz                            // remonte TOUJOURS la bille au niveau du sol (dé-pénétration)
-                  if (o.speed.z < 0){ o.speed.z = -o.speed.z } // ne réfléchit QUE si elle descend, sinon on la piégeait sous le sol
+                  o.position.z = hz                            // ALWAYS brings the ball back up to ground level (de-penetration)
+                  if (o.speed.z < 0){ o.speed.z = -o.speed.z } // reflects ONLY if it's descending, otherwise we'd trap it under the ground
             }
       }
 
@@ -2048,9 +2048,9 @@ function ground_bounce(){
 function lid_bounce(){
 
       /*
-      Contrainte de couvercle (plafond) : les boules dans l'emprise x-y d'une boîte munie
-      d'un couvercle ne peuvent pas dépasser le haut. Réflexion élastique (seulement si
-      la boule monte), symétrique du rebond au sol.
+      Lid (ceiling) constraint: the balls within the x-y footprint of a box fitted
+      with a lid cannot pass above the top. Elastic reflection (only if
+      the ball is rising), symmetric to the ground bounce.
       */
 
       if (typeof list_lids === 'undefined'){ return }
@@ -2063,7 +2063,7 @@ function lid_bounce(){
                   var rad = (o.radius !== undefined) ? o.radius : 0
                   if (o.position.z + rad > zc){
                         o.position.z = zc - rad
-                        if (o.speed.z > 0){ o.speed.z = -o.speed.z }   // ne réfléchit que si elle monte
+                        if (o.speed.z > 0){ o.speed.z = -o.speed.z }   // reflects only if it's rising
                   }
             }
       }
@@ -2072,21 +2072,21 @@ function lid_bounce(){
 function interactions_and_movement(delta){
 
       /*
-      Un pas de Velocity Verlet + interactions impulsives.
+      One Velocity Verlet step + impulsive interactions.
       */
 
-      verlet_positions(delta)            // x_{n+1} (+ ½ coup de vitesse, avec a_n)
-      compute_accelerations()            // a_{n+1} aux nouvelles positions
-      verlet_velocities(delta)           // ½ coup de vitesse restant (avec a_{n+1})
-      interactions_between_objects()     // collisions + rebonds murs (impulsions) + couleurs
-      bounce_balls_on_cubes()            // rebond des billes sur les cubes/pavés pleins (6 faces)
-      ground_bounce()                    // rebond sur le sol
-      lid_bounce()                       // rebond sur les couvercles (plafonds de boîte)
+      verlet_positions(delta)            // x_{n+1} (+ ½ velocity kick, with a_n)
+      compute_accelerations()            // a_{n+1} at the new positions
+      verlet_velocities(delta)           // remaining ½ velocity kick (with a_{n+1})
+      interactions_between_objects()     // collisions + wall bounces (impulses) + colors
+      bounce_balls_on_cubes()            // bounce of balls on solid cubes/blocks (6 faces)
+      ground_bounce()                    // bounce on the ground
+      lid_bounce()                       // bounce on the lids (box ceilings)
       calculate_total_energy()
 
 }
 
-var MAX_PHYS_DELTA = 0.5    // pas de temps max : évite un pas géant après une pause (onglet en arrière-plan)
+var MAX_PHYS_DELTA = 0.5    // max time step: avoids a giant step after a pause (tab in background)
 
 function animate_physics(){
 
@@ -2097,15 +2097,15 @@ function animate_physics(){
       if (scene_animation_ok){
             var time = performance.now();
             var delta = ( time - prevTime ) / 100;
-            if (delta > MAX_PHYS_DELTA){ delta = MAX_PHYS_DELTA }  // requestAnimationFrame est gelé en arrière-plan
-            interactions_and_movement(delta)                       //  -> au retour, on borne le pas au lieu d'exploser
-            sim_time += delta                                      // temps de simulation (u.a.) : c'est le pas physique qu'on cumule,
-            prevTime = time;                                       // donc il se fige à la pause — cohérent avec z(t) et le MSD
+            if (delta > MAX_PHYS_DELTA){ delta = MAX_PHYS_DELTA }  // requestAnimationFrame is frozen in the background
+            interactions_and_movement(delta)                       //  -> on return, we bound the step instead of blowing up
+            sim_time += delta                                      // simulation time (u.a.): it's the physics step that we accumulate,
+            prevTime = time;                                       // so it freezes on pause — consistent with z(t) and the MSD
         }
         else{ prevTime = performance.now() }
 }
 
-// Quand l'onglet redevient visible, repartir d'un delta ~0 (pas de saut au retour d'arrière-plan)
+// When the tab becomes visible again, restart from a delta ~0 (no jump on return from background)
 if (typeof document !== 'undefined'){
       document.addEventListener('visibilitychange', function(){
             if (!document.hidden){ prevTime = performance.now() }

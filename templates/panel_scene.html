@@ -6,15 +6,15 @@
 
           <br><br>
 
-          <!-- Onglets -->
+          <!-- Tabs -->
           <div class="dyn_tabs">
             <button type="button" class="dyn_tab_btn active" data-tab="tab_handle_scenes">handle scenes</button>
             <button type="button" class="dyn_tab_btn" data-tab="tab_scene_params">parameters</button>
           </div>
 
-          <!-- ===== Page : handle scenes ===== -->
+          <!-- ===== Page: handle scenes ===== -->
           <div id="tab_handle_scenes" class="dyn_tab">
-          <div style="margin-left:-20px">   <!-- partie du haut décalée de 20px vers la gauche -->
+          <div style="margin-left:-20px">   <!-- top part shifted 20px to the left -->
           <div  class="help" > <span style="font-size:0.75em"> Name: </span>
                   <input  value="" placeholder="nom" size=6 id="scene_name" style="font-size:0.75em">
                   <button id="save_as_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="Save as">💾</button>
@@ -39,7 +39,7 @@
           </div>
           </div>
 
-          <!-- ===== Page : parameters ===== -->
+          <!-- ===== Page: parameters ===== -->
           <div id="tab_scene_params" class="dyn_tab" style="display:none">
           <div style="margin-left:-20px">
           <div  class="help" id="scene_sky"    > <span style="font-size:0.6em"> Sky </span> </div><br>
@@ -55,18 +55,18 @@
 
     <script>
 
-    function update_scene_name_display(){         // nom de la scène affiché dans la navbar (à gauche du ?)
+    function update_scene_name_display(){         // scene name shown in the navbar (to the left of the ?)
          $('#scene_name_navbar').text(scene.name || '')
-         if (typeof report_bind_scene === 'function'){ report_bind_scene() }   // bascule le compte rendu sur CETTE scène
+         if (typeof report_bind_scene === 'function'){ report_bind_scene() }   // switch the report to THIS scene
     }
 
-    function archive_scene(name){                 // enregistre la scène courante sous <name> (-> scenes/<name>.json)
-         var oldName = scene.name                 // nom AVANT enregistrement (souvent '' : scène encore sans nom)
+    function archive_scene(name){                 // saves the current scene as <name> (-> scenes/<name>.json)
+         var oldName = scene.name                 // name BEFORE saving (often '': scene still unnamed)
          scene.name = (name || '').trim()
-         // Le compte rendu SUIT la scène quand on la nomme/enregistre : on reporte le bucket
-         // report::<ancien> vers report::<nouveau> (sans jamais écraser un rapport déjà présent à destination).
-         // Depuis une scène SANS nom (bucket scratch __unnamed__) -> déplacement : le prochain vierge repart blanc.
-         // Depuis une scène nommée (Save as = clone) -> copie : la scène d'origine garde son rapport.
+         // The report FOLLOWS the scene when it is named/saved: we carry over the bucket
+         // report::<old> to report::<new> (without ever overwriting a report already present at the destination).
+         // From an UNNAMED scene (scratch bucket __unnamed__) -> move: the next blank one starts clean.
+         // From a named scene (Save as = clone) -> copy: the original scene keeps its report.
          if (scene.name && scene.name !== oldName){
                try {
                      var oldKey = 'report::' + (oldName || '__unnamed__')
@@ -79,13 +79,13 @@
                } catch(e){}
          }
          $('#scene_name').val(scene.name)
-         update_scene_name_display()              // report_bind_scene lit alors la clé (désormais peuplée)
-         emit_infos_scene(scene.name)             // sauvegarde EXPLICITE -> fige scenes/<name>.json
-         setTimeout(populate_scene_list, 400)     // la scène archivée apparaît dans la liste
+         update_scene_name_display()              // report_bind_scene then reads the key (now populated)
+         emit_infos_scene(scene.name)             // EXPLICIT save -> freezes scenes/<name>.json
+         setTimeout(populate_scene_list, 400)     // the archived scene appears in the list
     }
 
     function clear_scene_local(){
-         // retire du graphe 3D tous les objets + ressorts + marques, et réinitialise les listes
+         // remove from the 3D graph all objects + springs + marks, and reset the lists
          for (var i in objects){ scene.remove(objects[i]) }
          for (var i in list_paired_harmonic){
                if (list_paired_harmonic[i][2]){ scene.remove(list_paired_harmonic[i][2]) }
@@ -98,14 +98,14 @@
          list_interact = []
          list_obj_inside = []
          list_dotted_area = []
-         list_lids = []                              // couvercles (les meshes ont déjà été retirés via objects)
+         list_lids = []                              // lids (the meshes have already been removed via objects)
          listorig = {}; listmat = {};
          SELECTED = null; INTERSECTED = null; nearest_elem = null;
     }
 
     function clear_scene(){
          clear_scene_local()
-         emit_infos_scene()                       // sauvegarde la scène vide -> un rafraîchissement reste vide
+         emit_infos_scene()                       // save the empty scene -> a refresh stays empty
     }
 
     $('#clear_scene').click(function(){
@@ -113,21 +113,21 @@
     })
 
     function new_scene(){
-         archive_scene($('#scene_name').val())    // 2e rôle : archive la scène courante (si elle porte un nom)
-         clear_scene_local()                      // puis repart sur une scène vierge
+         archive_scene($('#scene_name').val())    // 2nd role: archive the current scene (if it has a name)
+         clear_scene_local()                      // then start over with a blank scene
          scene.name = ''
          $('#scene_name').val('')
          update_scene_name_display()
          selected_scene = null
          $('#scene_dropdown_label').html('choose&hellip;')
-         emit_infos_scene()                       // pos.json = vide
+         emit_infos_scene()                       // pos.json = empty
     }
 
     $('#new_scene').click(function(){
          bs_confirm('New scene', 'The current scene will be saved if it has a name. Continue?', function(){ new_scene() })
     })
 
-    $('#save_as_scene').click(function(){         // clone : enregistre la scène courante sous un nouveau nom
+    $('#save_as_scene').click(function(){         // clone: saves the current scene under a new name
          bs_prompt('Save as', 'Scene name:', $('#scene_name').val(), function(name){ archive_scene(name) })
     })
 
@@ -144,33 +144,33 @@
          })
     }
 
-    function load_named_scene(name){             // charge une scène sauvegardée depuis le serveur
-         $.ajax({ url: '/scene/' + encodeURIComponent(name), dataType: 'json', cache: false })  // cache:false -> toujours la dernière version
+    function load_named_scene(name){             // loads a saved scene from the server
+         $.ajax({ url: '/scene/' + encodeURIComponent(name), dataType: 'json', cache: false })  // cache:false -> always the latest version
           .done(function(data){
                clear_scene_local()
                scene.name = name
                $('#scene_name').val(name)
                update_scene_name_display()
-               load_scene(data)                   // recrée objets + chaînes
-               scene.name = name                  // le NOM DE FICHIER fait foi : ignore un scene_name interne périmé/corrompu (ex. après un rename)
+               load_scene(data)                   // recreates objects + chains
+               scene.name = name                  // the FILENAME is authoritative: ignore a stale/corrupted internal scene_name (e.g. after a rename)
                $('#scene_name').val(name)
                update_scene_name_display()
-               if (typeof history_seed === 'function'){ history_seed() }   // undo/redo : historique propre à cette scène
+               if (typeof history_seed === 'function'){ history_seed() }   // undo/redo: history specific to this scene
           })
     }
 
-    $('#scene_dropdown_menu').on('click', 'a', function(e){    // sélection d'une scène dans le dropdown
+    $('#scene_dropdown_menu').on('click', 'a', function(e){    // selecting a scene in the dropdown
          e.preventDefault()
          selected_scene = $(this).attr('data-scene')
          $('#scene_dropdown_label').text(selected_scene)
     })
 
-    $('#load_scene').click(function(){           // Load = recharge la scène sélectionnée (état sauvegardé, figé)
+    $('#load_scene').click(function(){           // Load = reloads the selected scene (saved, frozen state)
          if (!selected_scene){ return }
          load_named_scene(selected_scene)
     })
 
-    $('#rename_scene').click(function(){          // renomme la scène sélectionnée (fichier serveur)
+    $('#rename_scene').click(function(){          // renames the selected scene (server file)
          if (!selected_scene){ return }
          var old = selected_scene
          bs_prompt('Rename', 'New name for "' + old + '":', old, function(newname){
@@ -179,17 +179,17 @@
                $.ajax({ url: '/scene_rename/' + encodeURIComponent(old) + '?new=' + encodeURIComponent(newname), dataType: 'json' })
                 .done(function(res){
                       if (!res || !res.ok){ return }
-                      // migre l'historique undo/redo (clé = scene_history::<nom>) pour ne pas le perdre
+                      // migrate the undo/redo history (key = scene_history::<name>) so as not to lose it
                       try {
                             var hk = localStorage.getItem('scene_history::' + old)
                             if (hk !== null){ localStorage.setItem('scene_history::' + newname, hk); localStorage.removeItem('scene_history::' + old) }
                       } catch(e){}
-                      // migre de même le compte rendu (clé = report::<nom>) pour qu'il suive la scène renommée
+                      // likewise migrate the report (key = report::<name>) so it follows the renamed scene
                       try {
                             var rk = localStorage.getItem('report::' + old)
                             if (rk !== null){ localStorage.setItem('report::' + newname, rk); localStorage.removeItem('report::' + old) }
                       } catch(e){}
-                      // si on renomme la scène ACTUELLEMENT chargée, refléter le nouveau nom partout
+                      // if we rename the CURRENTLY loaded scene, reflect the new name everywhere
                       if (scene.name === old){
                             scene.name = newname
                             $('#scene_name').val(newname)
@@ -197,38 +197,38 @@
                       }
                       selected_scene = newname
                       $('#scene_dropdown_label').text(newname)
-                      populate_scene_list()          // rafraîchit la liste déroulante
+                      populate_scene_list()          // refresh the dropdown list
                 })
                 .fail(function(xhr){
                       var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'rename failed'
-                      alert('Rename: ' + msg)         // ex. « name already exists »
+                      alert('Rename: ' + msg)         // e.g. « name already exists »
                 })
          })
     })
 
-    $('#delete_scene').click(function(){          // supprime la scène sélectionnée (fichier serveur)
+    $('#delete_scene').click(function(){          // deletes the selected scene (server file)
          if (!selected_scene){ return }
          var n = selected_scene
          bs_confirm('Remove', 'Remove scene "' + n + '"?', function(){
                $.getJSON('/scene_delete/' + encodeURIComponent(n), function(){
                      selected_scene = null
                      $('#scene_dropdown_label').html('choose&hellip;')
-                     populate_scene_list()        // rafraîchit la liste
+                     populate_scene_list()        // refresh the list
                })
          }, 'btn-danger', 'remove')
     })
 
-    $('#quit_app').click(function(){              // arrête le serveur et tente de fermer l'onglet
+    $('#quit_app').click(function(){              // stops the server and tries to close the tab
          bs_confirm('Quit', 'Stop the server and close the page?', function(){
                $.ajax({ url: '/shutdown', method: 'POST' }).always(function(){
                      document.body.innerHTML = '<h2 style="font-family:sans-serif; padding:40px; color:#555">Server stopped. You can close this tab.</h2>'
-                     window.open('', '_self'); window.close();   // peut être bloqué par le navigateur pour un onglet normal
+                     window.open('', '_self'); window.close();   // may be blocked by the browser for a normal tab
                })
          }, 'btn-danger', 'Quit')
     })
 
-    populate_scene_list()                         // remplit la liste au chargement
-    $('#scene').click(function(){                 // à l'ouverture du menu Scene : liste + sélection = scène actuelle
+    populate_scene_list()                         // fills the list on load
+    $('#scene').click(function(){                 // when opening the Scene menu: list + selection = current scene
          populate_scene_list()
          if (scene.name){
                selected_scene = scene.name

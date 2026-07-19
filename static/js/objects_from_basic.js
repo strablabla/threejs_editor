@@ -237,11 +237,11 @@ function wall_for_box(pos, dim, orientation){
 
       var object = simple_parallelepiped(newname,pos,{"x":0, "y":0, "z":0},listmat[newname],dim,'wall_box')
       object.orientation = orientation
-      object.blocked = true                 // mur statique : la gravité/Verlet ne le déplace pas
+      object.blocked = true                 // static wall: gravity/Verlet does not move it
       listorig[newname] = object
       scene.add(object)
       objects.push(object)
-      list_moving_objects.push(object)      // entre dans la boucle d'interactions -> les boules rebondissent (sans 'a')
+      list_moving_objects.push(object)      // enters the interactions loop -> the balls bounce (without 'a')
       //alert("wall box is ok")
       return object
 
@@ -280,7 +280,7 @@ function make_the_four_edges(pos, side){
   var w4 = wall_for_box(pos4, {'width':side1,'height':150,'thickness':2}, side1_orient)
   w3.rotation.z = Math.PI/2
   w4.rotation.z = Math.PI/2
-  var bid = ++box_id_counter                       // les 4 parois partagent le même identifiant de boîte
+  var bid = ++box_id_counter                       // the 4 walls share the same box identifier
   w1.box_id = w2.box_id = w3.box_id = w4.box_id = bid
 
 

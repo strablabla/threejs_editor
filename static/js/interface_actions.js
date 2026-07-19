@@ -7,8 +7,8 @@ Different actions on the scene
 function position_panel_under_icon(name_obj, class_obj){
 
       /*
-      Place le panneau juste sous son icône de menu (sans déborder de l'écran)
-      et règle la position horizontale de la flèche (variable CSS --caret-left).
+      Places the panel just under its menu icon (without overflowing the screen)
+      and sets the horizontal position of the arrow (CSS variable --caret-left).
       */
 
       var $icon = $(name_obj), $panel = $(class_obj)
@@ -17,10 +17,10 @@ function position_panel_under_icon(name_obj, class_obj){
       var panelW = $panel.outerWidth()
       var winW = $(window).width()
       var left = Math.round(iconCenter - 30)
-      if (left + panelW > winW - 6){ left = winW - panelW - 6 }   // pas de débordement à droite
+      if (left + panelW > winW - 6){ left = winW - panelW - 6 }   // no overflow on the right
       if (left < 6){ left = 6 }
       $panel.css({ left: left + 'px', right: 'auto' })
-      var caret = Math.round(iconCenter - left - 9)               // 9 ~ demi-base du triangle
+      var caret = Math.round(iconCenter - left - 9)               // 9 ~ half-base of the triangle
       caret = Math.max(12, Math.min(panelW - 24, caret))
       $panel[0].style.setProperty('--caret-left', caret + 'px')
 
@@ -32,22 +32,22 @@ function generic_action_panel(name_obj, class_obj){
       Typical actions
       */
 
-      $(name_obj).click(function(){                            // clic sur l'icône : ouvrir CE panneau, fermer les autres
+      $(name_obj).click(function(){                            // click on the icon: open THIS panel, close the others
             var was_visible = $(class_obj).is(':visible')
-            for (var k in list_panels){ $('.panel_' + list_panels[k]).hide() }  // ferme tous les panneaux de menu
+            for (var k in list_panels){ $('.panel_' + list_panels[k]).hide() }  // close all menu panels
             if (!was_visible){
-                  $(class_obj).show()                          // toggle : rouvre celui-ci s'il était fermé
-                  position_panel_under_icon(name_obj, class_obj)  // sous l'icône + flèche
+                  $(class_obj).show()                          // toggle: reopen this one if it was closed
+                  position_panel_under_icon(name_obj, class_obj)  // under the icon + arrow
             }
       })
       $(name_obj).hover(function(){ controls.enabled = false }) // deactivate the controls when mouse is hover..
-      // plus d'auto-masquage à la sortie : on gère seulement les contrôles caméra
+      // no more auto-hiding on exit: we only manage the camera controls
       $(class_obj).hover(
-            function(){ controls.enabled = false },   // entrée dans le panneau : pas de rotation caméra
-            function(){ controls.enabled = true }     // sortie : on réactive les contrôles
+            function(){ controls.enabled = false },   // entering the panel: no camera rotation
+            function(){ controls.enabled = true }     // exit: we re-enable the controls
       )
 
-      // petite croix de fermeture en haut à droite du panneau
+      // small close cross at the top right of the panel
       var $close = $('<div class="panel_close" title="Fermer"></div>').html('&times;')
       $close.on('click', function(){ $(class_obj).hide() })
       $(class_obj).append($close)
@@ -108,7 +108,7 @@ function actions_with_block_unblock(obj){
 //------------------------   dicths, panels
 
 dicths = {}
-list_panels = ['objects', 'scene', 'tools', 'interaction', 'help']   // 'views' retiré : flèches 3D via la touche V
+list_panels = ['objects', 'scene', 'tools', 'interaction', 'help']   // 'views' removed: 3D arrows via the V key
 
 function one_element_dicths(name_panel){
     dicths[name_panel] = function(){ generic_action_panel("#" + name_panel, '.panel_' + name_panel) }}
@@ -119,7 +119,7 @@ for (var i in list_panels){ one_element_dicths(list_panels[i]) } // make_dicths
 function hide_show_keys(){
 
       /*
-      Panneau des raccourcis clavier : carte propre, sections, touches en <kbd>.
+      Keyboard shortcuts panel: clean card, sections, keys in <kbd>.
       */
 
       var groups = [
@@ -194,7 +194,7 @@ function set_new_view(x, y, altit){
 
 }
 
-function apply_view(name){                  // applique un preset de vue (utilisé par les flèches 3D du panneau Views)
+function apply_view(name){                  // applies a view preset (used by the 3D arrows of the Views panel)
 
       var altit_high = 2000, altit_low = 200
       if (name === 'above_view'){ set_new_view(0, 0, altit_high) }
@@ -289,7 +289,7 @@ function init_interf_actions(){
       dicths.objects()        //---------------------- Objects..
       dicths.scene()          //---------------------- scene
       dicths.tools()          //---------------------- scene
-      dicths.interaction()    //---------------------- Interaction (physique)
+      dicths.interaction()    //---------------------- Interaction (physics)
       dicths.help()           //---------------------- Help
 
       // Actions
@@ -301,17 +301,17 @@ function init_interf_actions(){
 
       manage_drop()  // manage the Dropzone
 
-      //---------------------- Tooltips des icônes de menu
+      //---------------------- Tooltips of the menu icons
 
       $('[data-toggle="tooltip"]').tooltip({ container: 'body', placement: 'bottom' })
 
-      //---------------------- Clic sur le nom d'outil (navbar) -> no tool
+      //---------------------- Click on the tool name (navbar) -> no tool
 
       $('#active_obj_navbar').click(function(){
-            reinit_params_ok()                              // désactive tous les outils
+            reinit_params_ok()                              // disables all tools
             $('#active_obj_navbar').text('')
             $('#curr_tool').text('')
-            if ($('#select_shape').length){ $('#select_shape').val('no tool') }   // synchro le dropdown
+            if ($('#select_shape').length){ $('#select_shape').val('no tool') }   // sync the dropdown
       })
 
  }

@@ -68,9 +68,9 @@ function color_group(){
 
       for (var i in list_obj_inside) {
            var col
-           if (list_obj_inside[i].group_id !== undefined){ col = color_group_persistent_violet }  // groupe persistant -> violet (prioritaire)
-           else if (select_move_group){ col = color_group_medium_blue }          // déplacement de groupe temporaire -> bleu
-           else { col = color_object_inside_pink }                               // simplement sélectionné -> rose
+           if (list_obj_inside[i].group_id !== undefined){ col = color_group_persistent_violet }  // persistent group -> violet (priority)
+           else if (select_move_group){ col = color_group_medium_blue }          // temporary group move -> blue
+           else { col = color_object_inside_pink }                               // simply selected -> pink
            list_obj_inside[i].material.color.setHex(col)
        }
 
@@ -109,14 +109,14 @@ function clone_object(){
 
       dict_shift_clone = {"wall":100, "simple_cube":200, "pavement": 200, "sphere":100}     // shift distance for clone
       clone = INTERSECTED.clone();
-      clone.material = clone.material.clone();   // matériau PROPRE (THREE.clone() le partage) -> couleur/sélection indépendantes
+      clone.material = clone.material.clone();   // OWN material (THREE.clone() shares it) -> independent color/selection
       clone._ownMaterial = true
       clone_basics(clone)
       //-----------  Clone infos
       INTERSECTED.clone_infos.numclone += 1;
       clone.clone_infos = {"numclone":0,"cloned":true,"origclone":INTERSECTED.name}
       //-----------
-      clone.position.x += (dict_shift_clone[clone.type] || 100);             // shift position in relation with the original piece (repli 100 si type absent)
+      clone.position.x += (dict_shift_clone[clone.type] || 100);             // shift position in relation with the original piece (fallback 100 if type is missing)
       clone.material.color.setHex( color_clone_pale_blue );      // clone color, pale blue
       //-----------
       scene.add(clone)

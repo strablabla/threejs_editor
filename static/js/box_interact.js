@@ -1,17 +1,17 @@
 /*
 
-Fonctionnalités de boîte (clic droit sur une paroi) :
- - regroupement des 4 parois d'une même boîte (box_id)
- - ajout de boules à l'intérieur
- - couvercle (plafond) qui empêche les boules de dépasser le haut
- - réglage de la hauteur de la boîte
+Box features (right-click on a wall):
+ - grouping of the 4 walls of the same box (box_id)
+ - adding balls inside
+ - lid (ceiling) that prevents balls from going past the top
+ - adjusting the height of the box
 
 */
 
 function get_box_walls(wall){
 
       /*
-      Renvoie toutes les parois partageant le box_id de 'wall' (sinon la paroi seule).
+      Returns all the walls sharing the box_id of 'wall' (otherwise the wall alone).
       */
 
       if (wall.box_id === undefined){ return [wall] }
@@ -25,18 +25,18 @@ function get_box_walls(wall){
 function get_box_bounds(walls){
 
       /*
-      Emprise x-y intérieure + hauteur de la boîte, déduite des positions des parois.
-      Les parois de normale x donnent les bornes en x ; celles de normale y, les bornes en y.
+      Inner x-y footprint + height of the box, deduced from the wall positions.
+      Walls with x normal give the x bounds; those with y normal, the y bounds.
       */
 
       var xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity, h = 150
       for (var i=0;i<walls.length;i++){
             var w = walls[i]
             h = w.height
-            if (Math.abs(w.orientation.x) > 0.5){           // normale x -> borne en x
+            if (Math.abs(w.orientation.x) > 0.5){           // x normal -> x bound
                   if (w.position.x < xmin) xmin = w.position.x
                   if (w.position.x > xmax) xmax = w.position.x
-            } else {                                        // normale y -> borne en y
+            } else {                                        // y normal -> y bound
                   if (w.position.y < ymin) ymin = w.position.y
                   if (w.position.y > ymax) ymax = w.position.y
             }
@@ -47,14 +47,14 @@ function get_box_bounds(walls){
 function add_balls_in_box(wall, count){
 
       /*
-      Ajoute 'count' boules à des positions aléatoires DANS la boîte (plan z = 0),
-      avec la vitesse initiale courante (Initial speeds).
+      Adds 'count' balls at random positions INSIDE the box (z = 0 plane),
+      with the current initial velocity (Initial speeds).
       */
 
       var walls = get_box_walls(wall)
       var b = get_box_bounds(walls)
-      if (!(b.xmax > b.xmin && b.ymax > b.ymin)){ return }  // emprise invalide
-      var m = radius_spring + 5                              // marge aux parois
+      if (!(b.xmax > b.xmin && b.ymax > b.ymin)){ return }  // invalid footprint
+      var m = radius_spring + 5                              // margin to the walls
       var xspan = (b.xmax - b.xmin) - 2*m, yspan = (b.ymax - b.ymin) - 2*m
       if (xspan <= 0 || yspan <= 0){ return }
       var coords = random_speed_z ? ['x','y','z'] : ['x','y']
@@ -72,7 +72,7 @@ function add_balls_in_box(wall, count){
 function set_box_height(wall, H){
 
       /*
-      Change la hauteur (z) des parois de la boîte et repositionne le couvercle éventuel.
+      Changes the height (z) of the box walls and repositions the lid if any.
       */
 
       if (H <= 0){ return }
@@ -84,7 +84,7 @@ function set_box_height(wall, H){
             w.position.z = H/2
             w.height = H
       }
-      var li = box_lid_index(wall.box_id)                   // suit le couvercle
+      var li = box_lid_index(wall.box_id)                   // follows the lid
       if (li >= 0){ list_lids[li].z = H; list_lids[li].mesh.position.z = H }
       if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
 }
@@ -97,8 +97,8 @@ function box_lid_index(box_id){
 function add_lid(wall){
 
       /*
-      Crée un couvercle : panneau horizontal semi-transparent au sommet de la boîte
-      + contrainte de plafond (voir lid_bounce dans objects_animation.js).
+      Creates a lid: semi-transparent horizontal panel at the top of the box
+      + ceiling constraint (see lid_bounce in objects_animation.js).
       */
 
       if (wall.box_id === undefined || box_lid_index(wall.box_id) >= 0){ return }
@@ -130,7 +130,7 @@ function remove_lid(box_id){
 function set_box_movable(wall, val){
 
       /*
-      Autorise (ou bloque) le déplacement d'une boîte : marque toutes ses parois.
+      Allows (or blocks) moving a box: marks all its walls.
       */
 
       var walls = get_box_walls(wall)
@@ -141,7 +141,7 @@ function set_box_movable(wall, val){
 function box_parts(wall){
 
       /*
-      Éléments déplacés en bloc : les parois de la boîte + son couvercle éventuel.
+      Elements moved as a block: the box walls + its lid if any.
       */
 
       var parts = get_box_walls(wall).slice()
@@ -153,16 +153,16 @@ function box_parts(wall){
 function box_drag_begin(planePoint){
 
       /*
-      Démarre le déplacement d'une boîte si la paroi attrapée (SELECTED) est "movable".
-      Mémorise les positions d'origine et le point de prise (déplacement relatif -> pas de saut).
+      Starts moving a box if the grabbed wall (SELECTED) is "movable".
+      Stores the original positions and the grab point (relative move -> no jump).
       */
 
       dragging_box = false
       var parts = null
       if (SELECTED && SELECTED.type === 'wall_box' && SELECTED.movable){
-            parts = box_parts(SELECTED)                                // boîte movable : parois + couvercle
+            parts = box_parts(SELECTED)                                // movable box: walls + lid
       } else if (SELECTED && SELECTED.group_id !== undefined && typeof group_members === 'function'){
-            parts = group_members(SELECTED.group_id)                   // groupe persistant (Ctrl+Maj+G)
+            parts = group_members(SELECTED.group_id)                   // persistent group (Ctrl+Shift+G)
       }
       if (parts && parts.length > 1){
             box_drag_parts = parts
@@ -172,7 +172,7 @@ function box_drag_begin(planePoint){
                   box_drag_orig.push({ x:p.x, y:p.y, z:p.z })
             }
             box_drag_anchor = { x: planePoint.x, y: planePoint.y }
-            box_drag_sel = (SELECTED.group_id !== undefined)           // groupe persistant : la zone de sélection suit
+            box_drag_sel = (SELECTED.group_id !== undefined)           // persistent group: the selection area follows
             box_drag_dotted_orig = []
             box_drag_corners_orig = []
             if (box_drag_sel){
@@ -187,15 +187,15 @@ function box_drag_begin(planePoint){
 function box_drag_move(planePoint){
 
       /*
-      Déplace toutes les parties de la boîte du même vecteur (souris − prise).
+      Moves all parts of the box by the same vector (mouse − grab).
       */
 
       var dx = planePoint.x - box_drag_anchor.x, dy = planePoint.y - box_drag_anchor.y
       for (var i=0;i<box_drag_parts.length;i++){
             box_drag_parts[i].position.x = box_drag_orig[i].x + dx
-            box_drag_parts[i].position.y = box_drag_orig[i].y + dy   // z inchangé (déplacement dans le plan)
+            box_drag_parts[i].position.y = box_drag_orig[i].y + dy   // z unchanged (move in the plane)
       }
-      if (box_drag_sel){                                              // la zone de sélection suit le groupe persistant
+      if (box_drag_sel){                                              // the selection area follows the persistent group
             for (var i=0;i<list_dotted_area.length;i++){
                   if (box_drag_dotted_orig[i]){ list_dotted_area[i].position.x = box_drag_dotted_orig[i].x + dx; list_dotted_area[i].position.y = box_drag_dotted_orig[i].y + dy }
             }
@@ -203,7 +203,7 @@ function box_drag_move(planePoint){
                   if (box_drag_corners_orig[i]){ list_sel_corners[i].position.x = box_drag_corners_orig[i].x + dx; list_sel_corners[i].position.y = box_drag_corners_orig[i].y + dy }
             }
       }
-      if (SELECTED && SELECTED.box_id !== undefined){                 // maj de l'emprise du couvercle après déplacement
+      if (SELECTED && SELECTED.box_id !== undefined){                 // update the lid footprint after the move
             var li = box_lid_index(SELECTED.box_id)
             if (li >= 0){ list_lids[li].bounds = get_box_bounds(get_box_walls(SELECTED)) }
       }
@@ -215,15 +215,15 @@ function box_drag_end(){
             dragging_box = false
             box_drag_sel = false
             box_drag_parts = []
-            if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persiste les nouvelles positions
+            if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persists the new positions
       }
 }
 
 function restore_lids(msg){
 
       /*
-      Recrée les couvercles sauvegardés (clé _lids) : pour chaque box_id, on retrouve une
-      paroi de la boîte (déjà chargée) et on rappelle add_lid, puis on remet l'opacité.
+      Recreates the saved lids (key _lids): for each box_id, we find a
+      wall of the box (already loaded) and call add_lid again, then restore the opacity.
       */
 
       if (!msg['_lids']){ return }
