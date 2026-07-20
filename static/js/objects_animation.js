@@ -1402,6 +1402,7 @@ function refresh_traj_color_filters(){
                         this.blur()                                     // returns keyboard focus to the scene (the 'x' shortcut stays active)
                         _traj_colors_sig = null                         // the checked state changed -> let the checkboxes resynchronize
                         draw_trajectories()
+                        if (typeof save_monitoring_prefs === 'function'){ save_monitoring_prefs() }   // the selection travels with the scene
                   })
                   // (the isolation from TrackballControls is set once and for all
                   //  on #traj_colors_wrap, cf. panel_interaction.html — no need to repeat it here)

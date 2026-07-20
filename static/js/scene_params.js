@@ -28,6 +28,7 @@ function reinit_params_ok(){
         window[key] = false
       }
     } // end for
+      if (typeof wall_preview_clear === 'function'){ wall_preview_clear() }   // no leftover dashed line
 
 }
 
@@ -71,6 +72,11 @@ list_interm_pair = []
 paire_harmonic = false
 harmonic_const = 0.06     // spring stiffness (k/m) — integrated with Verlet (force = k·displacement)
 dist_inter_wall_obj = 50
+//-------------------- Walls (key n: drawn from a start point to an end point)
+wall_height_default = 300      // vertical extent of a new wall (adjustable afterwards: right click)
+wall_thickness_default = 5     // thickness of a new wall
+wall_length_default = 150      // length used when the 2 ends coincide (click without dragging)
+wall_min_length = 20           // below this, the 2 clicks are considered to be at the same place
 dist_min_center_center = 40;   // distance under which a shock is produced..
 lenght_spring = 150;   // rest length of the springs (> ball diameter): avoids the chain folding back
 one_over_r2 = true

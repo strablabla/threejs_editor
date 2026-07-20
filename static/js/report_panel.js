@@ -299,7 +299,10 @@ function report_set_visible(on){
       if (show_report){ $('#report_box').show(); report_init() }   // report_init is idempotent
       else { $('#report_box').hide() }
 }
-function report_toggle(){ report_set_visible(!show_report) }
+function report_toggle(){
+      report_set_visible(!show_report)
+      if (typeof save_monitoring_prefs === 'function'){ save_monitoring_prefs() }   // open/closed saved with the scene
+}
 
 // The report opens/closes by clicking the experiment name (navbar), not a Monitoring checkbox.
 // Delegated so it works whatever moment the name is (re)populated.

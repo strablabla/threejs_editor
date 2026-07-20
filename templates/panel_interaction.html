@@ -229,11 +229,34 @@
     $('#chk_show_speeds').change(function(){
         show_speeds = this.checked
         if (!show_speeds && typeof clear_speed_arrows === 'function'){ clear_speed_arrows() }
+        save_monitoring_prefs()
     })
+
+    /* Persistence of the monitoring selections.
+       These choices (which plots, which colors are tracked, ⟨z⟩ only...) travel with the
+       SCENE (_dynamics + track_trajectory), so that each experiment reopens with its own
+       display. They are not saved by the auto-save on mouseup: the monitoring windows
+       stop the mouse events (isolation from TrackballControls) -> we save explicitly here.
+       Debounced: a burst of clicks on the plot buttons results in a single save.
+       The _mon_restoring guard avoids re-saving while restoring (refresh_dynamics_panel
+       triggers the 'change' of the checkboxes, which would call us back). */
+    var _mon_save_timer = null, _mon_restoring = false
+    window.save_monitoring_prefs = function(){
+        if (_mon_restoring){ return }
+        if (_mon_save_timer){ clearTimeout(_mon_save_timer) }
+        _mon_save_timer = setTimeout(function(){
+              _mon_save_timer = null
+              if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+        }, 500)
+    }
 
     // Refresh ALL panel controls from the global variables
     // (called when loading a scene that restores the Dynamics settings).
     window.refresh_dynamics_panel = function(){
+        _mon_restoring = true
+        try { refresh_dynamics_panel_body() } finally { _mon_restoring = false }
+    }
+    function refresh_dynamics_panel_body(){
         $('#chk_gravity').prop('checked', gravity_ok)
         $('#chk_springs').prop('checked', springs_ok)
         $('#chk_attract').prop('checked', one_over_r2)
@@ -259,6 +282,8 @@
         $('#chk_altitude_hist').prop('checked', show_altitude_hist).trigger('change')
         if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }
         if (typeof highlight_z_means === 'function'){ highlight_z_means() }
+        if (typeof apply_traj_colors_open === 'function'){ apply_traj_colors_open() }
+        if (typeof report_set_visible === 'function'){ report_set_visible(show_report) }
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
     }
 
@@ -289,6 +314,7 @@
         } else {
               $('#energy_graph_box').hide()
         }
+        save_monitoring_prefs()
     })
 
     // --- Monitoring: velocity histogram ---
@@ -301,6 +327,7 @@
         } else {
               $('#velocity_hist_box').hide()
         }
+        save_monitoring_prefs()
     })
 
     // --- Monitoring: trajectories + MSD ---
@@ -315,6 +342,7 @@
         } else {
               $('#trajectories_box').hide()
         }
+        save_monitoring_prefs()
     })
     // Displayed plots: independent toggles x–y / z(t) / MSD (all combinations; buttons -> no focus/typeahead like a <select>)
     if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true, v:false } }  // safeguard (JS served from cache)
@@ -331,6 +359,7 @@
         highlight_traj_mode()
         if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
+        save_monitoring_prefs()
     })
     highlight_traj_mode()
     // z(t): only show the ⟨z⟩ means (hides the curves)
@@ -343,6 +372,7 @@
         this.blur()
         highlight_z_means()
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
+        save_monitoring_prefs()
     })
     highlight_z_means()
     $('#btn_reset_traj').on('click', function(){            // reset all trajectories (origin = current position)
@@ -359,6 +389,7 @@
     $('#traj_colors_toggle').on('click', function(){
         traj_colors_open = !traj_colors_open
         apply_traj_colors_open()
+        save_monitoring_prefs()
     })
     apply_traj_colors_open()
     // Isolate the WHOLE window from TrackballControls (bound to document, it captures every mousedown and
@@ -380,6 +411,7 @@
         } else {
               $('#altitude_hist_box').hide()
         }
+        save_monitoring_prefs()
     })
     // Color filter: only count objects of one color (« all » = all).
     // The options are (re)populated by refresh_alt_color_options() from draw_altitude_hist.
@@ -387,6 +419,7 @@
         alt_color_filter = this.value
         this.blur()                                        // a <select> kept focused captures scene shortcuts (typeahead: « x »…)
         if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }   // immediate draw, without waiting for the animation
+        save_monitoring_prefs()
     })
     // ESSENTIAL for the dropdown list to open: TrackballControls is built without a domElement
     // (init_scene.js) -> it attaches to DOCUMENT and does preventDefault() on EVERY mousedown of the page.

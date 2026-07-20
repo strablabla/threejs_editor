@@ -158,7 +158,7 @@ function bs_prompt(title, message, defaultValue, onOk){
 
 <!-- Context menu (right-click on a GREEN object): editable attributes -->
 <div id="obj_context_menu" style="display:none; position:fixed; z-index:10200; background:#fff; border:1px solid #888; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.35); padding:8px 10px; font-family:sans-serif; font-size:12px; min-width:200px;">
-  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px;">
+  <div id="ctx_obj_header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:4px; margin-bottom:6px; cursor:move; user-select:none;">
     <span id="ctx_obj_title" style="font-weight:bold"></span>
     <span id="ctx_obj_close" style="cursor:pointer; color:#888; padding-left:12px">&times;</span>
   </div>
@@ -384,7 +384,9 @@ function bs_prompt(title, message, defaultValue, onOk){
               num_row($D, 'vz',        function(){ return obj.speed.z },          function(v){ applyAll(function(t){ t.speed.z = v }) })
         }
         num_row($D, 'friction',        function(){ return obj.friction },         function(v){ applyAll(function(t){ t.friction = v }) })
-        num_row($D, 'radius_interact', function(){ return obj.radius_interact },  function(v){ applyAll(function(t){ t.radius_interact = v }) })
+        if (RESIZABLE_TYPES.indexOf(obj.type) < 0){                               // meaningless on a static wall/block
+              num_row($D, 'radius_interact', function(){ return obj.radius_interact },  function(v){ applyAll(function(t){ t.radius_interact = v }) })
+        }
 
         // --- Miscellaneous: magnet, blocked, trajectory (+ group coloring) ---
         bool_row($M, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
@@ -392,6 +394,7 @@ function bs_prompt(title, message, defaultValue, onOk){
         bool_row($M, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // tracking specific to this object
               obj.track_trajectory = v
               if (v && typeof reset_trajectory === 'function'){ reset_trajectory(obj) } else { obj.traj = null }
+              if (typeof save_monitoring_prefs === 'function'){ save_monitoring_prefs() }   // tracking saved with the scene
         })
         if (obj.group_id !== undefined){                 // member of a persistent group: show/hide its coloring
               bool_row($M, 'coloration groupe',
@@ -424,11 +427,36 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top).append($rng); $f.append($row)
   }
+  var ctx_dragged = false                                      // the menu has been moved by hand: leave it where it is
   function position_ctx(x, y, mw, mh){
+        if (ctx_dragged){ $('#obj_context_menu').show(); return }   // a redraw (lid, refresh) must not bring it back to the mouse
         if (x + mw > $(window).width()){ x = $(window).width() - mw }
         if (y + mh > $(window).height()){ y = $(window).height() - mh }
         $('#obj_context_menu').css({ left: x + 'px', top: y + 'px' }).show()
   }
+  // --- Moving the menu by dragging its title bar ---
+  // The mousedown MUST be stopped here: TrackballControls listens on `document` and would
+  // rotate the camera behind the menu while it is being dragged.
+  ;(function(){
+        var drag = null
+        $('#ctx_obj_header').on('mousedown', function(e){
+              if (e.target.id === 'ctx_obj_close'){ return }    // the cross keeps closing the menu
+              var $m = $('#obj_context_menu')
+              drag = { x:e.clientX, y:e.clientY, left:parseFloat($m.css('left')) || 0, top:parseFloat($m.css('top')) || 0 }
+              e.preventDefault(); e.stopPropagation()
+        })
+        $(document).on('mousemove', function(e){
+              if (!drag){ return }
+              var $m = $('#obj_context_menu')
+              var l = drag.left + (e.clientX - drag.x)
+              var t = drag.top  + (e.clientY - drag.y)
+              l = Math.max(0, Math.min(l, $(window).width()  - $m.outerWidth()))
+              t = Math.max(0, Math.min(t, $(window).height() - 24))   // the title bar always stays reachable
+              $m.css({ left:l + 'px', top:t + 'px' })
+              ctx_dragged = true
+        })
+        $(document).on('mouseup', function(){ drag = null })
+  })()
   window.show_wall_context_menu = function(wall, x, y){         // right-click on a box wall
         $('#ctx_obj_title').text('box wall — ' + (wall.name || ''))
         var $f = $('#ctx_obj_fields').empty()
@@ -471,6 +499,7 @@ function bs_prompt(title, message, defaultValue, onOk){
   renderer.domElement.addEventListener('contextmenu', function(event){
         var ray = make_raycaster(event)            // internal preventDefault() -> no native menu
         var hits = ray.intersectObjects(objects)
+        ctx_dragged = false                        // a new right-click reopens the menu at the mouse
         if (hits.length){
               var obj = hits[0].object
               if (obj.type === 'elastic'){                       // right-click on an elastic -> its stiffness

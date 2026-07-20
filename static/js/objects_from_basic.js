@@ -35,7 +35,7 @@ function make_wall(name,p,r,material){
         material : color and texture of the object
         */
 
-        var dim = { width : 150, height : 300, thickness : 5}
+        var dim = { width : wall_length_default, height : wall_height_default, thickness : wall_thickness_default}
         var wall = simple_parallelepiped(name,p,r,material,dim,"wall")
 
         return wall
@@ -296,6 +296,72 @@ function make_new_box(selpos){
       var [middle_side1, middle_side2] = middle_side1_side2(selpos)
       var pos = four_pos_for_box(side[0], side[1], middle_side1, middle_side2)
       make_the_four_edges(pos, side)
+
+}
+
+/* ----------------------------------------------------------------------------
+   Wall drawn from a START point to an END point (key n) — same mechanism as the
+   box: 1st click sets the origin, the 2nd one validates, and in between the wall
+   is previewed by a dashed line.
+   ---------------------------------------------------------------------------- */
+
+function make_new_wall(selpos){
+
+      /*
+      Wall spanning the whole segment defined by the 2 corners: its LENGTH is the
+      distance between them and it is rotated to lie along the segment.
+      NB: simple_parallelepiped builds CubeGeometry(thickness, width, height), so the
+      LOCAL Y axis (width) carries the length -> rotation.z = angle of the segment - PI/2.
+      2 clicks at the same place: fall back to a wall of the default length (old behaviour).
+      */
+
+      wall_preview_clear()
+      var a = selpos[0].position, b = selpos[1].position
+      var dx = b.x - a.x, dy = b.y - a.y
+      var length = Math.sqrt(dx*dx + dy*dy)
+      var degenerate = (length < wall_min_length)
+      var angle = degenerate ? 0 : Math.atan2(dy, dx) - Math.PI/2
+
+      var newname = random_name()
+      basic_tex = new THREE.ImageUtils.loadTexture( basic_tex_addr )   // default white texture
+      listmat[newname] = new THREE.MeshBasicMaterial({ map : basic_tex, color : color_basic_default_pale_grey})
+
+      var mid = { x : (a.x + b.x)/2, y : (a.y + b.y)/2, z : 0 }        // simple_parallelepiped puts z back at height/2
+      var dim = { width : degenerate ? wall_length_default : length,
+                  height : wall_height_default,
+                  thickness : wall_thickness_default }
+      var wall = simple_parallelepiped(newname, mid, {"x":0, "y":0, "z":angle}, listmat[newname], dim, "wall")
+      wall.orientation = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0)   // normal, kept in sync by « rotation z »
+      listorig[newname] = wall
+
+      return wall
+
+}
+
+var wall_preview_line = null
+
+function wall_preview_clear(){
+
+      if (wall_preview_line){ scene.remove(wall_preview_line); wall_preview_line = null }
+
+}
+
+function wall_preview_refresh(){
+
+      /*
+      Live preview while drawing: dashed line between the fixed 1st corner and the
+      one being dragged. Like the camera-position arrow (key k), the line is NOT
+      pushed into objects[] -> the raycaster and the save ignore it.
+      */
+
+      wall_preview_clear()
+      if (selpos.length < 2){ return }                  // no segment being drawn
+      var a = selpos[0].position, b = selpos[1].position
+      var geom = new THREE.Geometry()
+      geom.vertices.push(new THREE.Vector3(a.x, a.y, 8), new THREE.Vector3(b.x, b.y, 8))
+      geom.computeLineDistances()                       // required by LineDashedMaterial
+      wall_preview_line = new THREE.Line(geom, new THREE.LineDashedMaterial({ color: color_dotted_line_black, dashSize: 18, gapSize: 12 }))
+      scene.add(wall_preview_line)
 
 }
 

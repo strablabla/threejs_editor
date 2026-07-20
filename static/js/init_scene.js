@@ -92,10 +92,13 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact',
-                          'magnet', 'friction', 'group_id']
+                          'magnet', 'friction', 'group_id', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
+    }
+    if (listorig[name].track_trajectory && typeof reset_trajectory === 'function'){
+          reset_trajectory(listorig[name])       // tracked object: it needs its .traj, otherwise record_trajectories crashes
     }
     if (listorig[name].group_id !== undefined && listorig[name].group_id > group_id_counter){
           group_id_counter = listorig[name].group_id             // avoids group id collisions
@@ -265,7 +268,16 @@ function restore_dynamics(d){
       if (d.show_velocity_hist !== undefined){ show_velocity_hist = d.show_velocity_hist }
       if (d.show_altitude_hist !== undefined){ show_altitude_hist = d.show_altitude_hist }
       if (d.show_trajectories !== undefined){ show_trajectories = d.show_trajectories }
+      if (d.show_report !== undefined){ show_report = d.show_report }
+      if (d.show_speeds !== undefined){ show_speeds = d.show_speeds }
       if (d.altitude_fit_expr !== undefined){ altitude_fit_expr = d.altitude_fit_expr }
+      if (d.traj_show){                                 // key by key: an older scene may not have them all
+            var tkeys = ['xy', 'z', 'msd', 'v']
+            for (var ti in tkeys){ if (d.traj_show[tkeys[ti]] !== undefined){ traj_show[tkeys[ti]] = d.traj_show[tkeys[ti]] } }
+      }
+      if (d.z_means_only !== undefined){ z_means_only = d.z_means_only }
+      if (d.traj_colors_open !== undefined){ traj_colors_open = d.traj_colors_open }
+      if (d.alt_color_filter !== undefined){ alt_color_filter = d.alt_color_filter }
       if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // updates the checkboxes/sliders
 
 }
@@ -335,7 +347,8 @@ function make_infos_obj_of(obj){
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
                           'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
-                          'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id']  // useful to recreate spheres/boxes
+                          'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
+                          'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
       var y = obj.rotation.y
       var z = obj.rotation.z
@@ -393,7 +406,14 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           show_velocity_hist: show_velocity_hist,
           show_altitude_hist: show_altitude_hist,
           show_trajectories: show_trajectories,
-          altitude_fit_expr: (typeof altitude_fit_expr !== 'undefined') ? altitude_fit_expr : ''
+          show_report: show_report,
+          show_speeds: show_speeds,
+          altitude_fit_expr: (typeof altitude_fit_expr !== 'undefined') ? altitude_fit_expr : '',
+          // selections INSIDE the monitoring windows (which plots, which display)
+          traj_show: { xy:!!traj_show.xy, z:!!traj_show.z, msd:!!traj_show.msd, v:!!traj_show.v },   // x-y / z(t) / MSD / |v|(t)
+          z_means_only: z_means_only,                  // z(t): means ⟨z⟩ only
+          traj_colors_open: traj_colors_open,          // "suivre par couleur" list expanded or not
+          alt_color_filter: alt_color_filter           // altitude histogram: color counted
     }
     return listpos
 }

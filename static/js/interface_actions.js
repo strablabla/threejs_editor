@@ -125,7 +125,7 @@ function hide_show_keys(){
       var groups = [
             { title:'Create', rows:[
                   {k:['o'], d:'sphere (ball)'},        {k:['e'], d:'chain (balls + springs)'},
-                  {k:['n'], d:'wall'},                 {k:['w'], d:'box (reflecting walls)'},
+                  {k:['n'], d:'wall (2 clicks: start, end)'},  {k:['w'], d:'box (reflecting walls)'},
                   {k:['m'], d:'textured cube'},        {k:['l'], d:'simple cube'},
                   {k:['t'], d:'track'},                {k:['u'], d:'link two objects (spring)'},
                   {k:['b'], d:'no tool / cancel'} ]},

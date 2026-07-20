@@ -215,7 +215,7 @@ function mouse_create_object_or_action(){
        where the mouse is located in the plane.
       */
 
-      link(new_wall_ok, dictp.make_wall, null)
+      link(new_wall_ok, limits_and_action, make_new_wall)   // wall drawn between 2 clicks (like the box)
       link(new_cube_ok, dictp.make_simple_cube, null)
       link(new_sphere_ok, make_new_sphere, null)
       link(new_string_ok, make_new_string, null)

@@ -39,6 +39,7 @@ function onDocumentMouseMove( event ) {
       if (vdrag_dragging){ vdrag_mouse_move(event); return } // altitude mode (double-click): only z follows the mouse
       var raycaster = make_raycaster(event)
       if (new_select_ok){ refresh_dotted_area() } // refresh the dotted line
+      if (new_wall_ok){ wall_preview_refresh() }  // wall being drawn: dashed line between its 2 ends
       if ( SELECTED ) {
           action_on_selected_when_moving(raycaster)
           return;
