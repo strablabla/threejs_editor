@@ -112,6 +112,52 @@ function report_snapshot(kind){
       report_render()                                      // immediately reflects the insertion in the preview
 }
 
+// --- Experiment description (!descr) ----------------------------------------
+
+/*
+« !descr » opens the description of the experiment: it takes every sentence up to the
+FIRST heading (line starting with #). It feeds the tooltip of the scene dropdown, so it is
+returned as PLAIN text — markup and figure tokens removed, blank lines collapsed.
+*/
+
+var REPORT_DESCR_MAX = 400                    // a tooltip must stay readable: beyond that we cut
+
+function report_extract_descr(md){
+      var lines = String(md || '').split('\n')
+      var started = false, buf = []
+      for (var i = 0; i < lines.length; i++){
+            if (!started){
+                  var m = lines[i].match(/^\s*!descr\b[ \t]*(.*)$/)
+                  if (!m){ continue }
+                  started = true
+                  if (m[1].trim()){ buf.push(m[1].trim()) }   // description started on the directive line itself
+                  continue
+            }
+            if (/^\s*#/.test(lines[i])){ break }              // first « # » = end of the description
+            buf.push(lines[i].trim())
+      }
+      if (!started){ return '' }
+      var txt = buf.join('\n')
+            .replace(/\[\[fig:\d+(?:\|[^\]]*)?\]\]/g, ' ')    // a figure means nothing in a tooltip
+            .replace(/[*`]/g, '')                             // bold / italic / code markers
+            .replace(/[ \t]+/g, ' ')
+            .replace(/\n{2,}/g, '\n')                         // blank lines collapsed
+            .trim()
+      if (txt.length > REPORT_DESCR_MAX){ txt = txt.slice(0, REPORT_DESCR_MAX - 1).trim() + '…' }
+      return txt
+}
+
+// Description of ANY scene, read from ITS report bucket — no need to load the scene,
+// which is what lets the dropdown show a tooltip for every entry in the list.
+function report_scene_description(name){
+      try {
+            var raw = localStorage.getItem(REPORT_LS_PREFIX + (name || '__unnamed__'))
+            if (!raw){ return '' }
+            var s = JSON.parse(raw)
+            return report_extract_descr(s && s.md)
+      } catch(e){ return '' }                                 // localStorage unavailable or broken JSON
+}
+
 // --- Lightweight markdown rendering -----------------------------------------
 
 function report_esc(s){
@@ -143,15 +189,24 @@ function report_apply_figs(line){
       })
 }
 
-// Mini markdown: headings (#/##/###), lists (-, 1.), separator (---), paragraphs, + figures.
+// Mini markdown: centered title (!tit), headings (#/##/###), lists (-, 1.), separator (---),
+// paragraphs, + figures.
 function report_to_html(md){
       var lines = md.split('\n')
       var out = [], list = null   // list = 'ul' | 'ol' | null
+      var in_descr = false        // inside the !descr block -> nothing is rendered
       function close_list(){ if (list){ out.push('</' + list + '>'); list = null } }
 
       for (var i = 0; i < lines.length; i++){
             var raw = lines[i]
             var line = raw.trim()
+
+            // !descr block: METADATA (tooltip of the scene list), not report content.
+            // Everything up to the first heading is skipped; that heading itself is rendered.
+            if (in_descr){
+                  if (/^#/.test(line)){ in_descr = false }
+                  else { continue }
+            }
 
             // Figure alone on its line -> block (outside paragraph)
             if (/^\[\[fig:\d+(?:\|[^\]]*)?\]\]$/.test(line)){
@@ -159,6 +214,21 @@ function report_to_html(md){
             }
             if (line === ''){ close_list(); continue }
             if (line === '---'){ close_list(); out.push('<hr style="border:0; border-top:1px solid #ddd; margin:12px 0">'); continue }
+
+            // « !tit Mon titre » -> title centered across the page width, larger than a « # » heading.
+            // Own directive (not markdown): centering is not expressible in markdown, and a report
+            // wants a real cover title, distinct from the section headings.
+            var tit = line.match(/^!tit\s+(\S.*)$/)
+            if (tit){
+                  close_list()
+                  out.push('<h1 style="margin:18px 0 12px; text-align:center; font-size:1.8em; ' +
+                           'font-weight:bold; color:#2e7d32; line-height:1.25">' +
+                           report_inline(report_esc(tit[1])) + '</h1>')
+                  continue
+            }
+
+            // « !descr » : opens the description block — see the skip at the top of the loop.
+            if (/^!descr\b/.test(line)){ close_list(); in_descr = true; continue }
 
             var h = line.match(/^(#{1,3})\s+(.*)$/)
             if (h){

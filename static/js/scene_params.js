@@ -105,6 +105,7 @@ alt_color_filter = 'all'    // altitude histogram: 'all' or '#rrggbb' — only c
                             // (the trajectory color checkboxes have no own state: they reflect
                             //  directly obj.track_trajectory, cf. refresh_traj_color_filters)
 traj_colors_open = true     // trajectories: expandable list of colors to track — expanded or collapsed
+traj_modes_open = true      // trajectories: expandable list of plots (x-y / z(t) / MSD / |v|(t)) — idem
 sim_time = 0                // elapsed simulation time (a.u.) since the last trajectories reset; freezes on pause
 
 //---------------------- Movement in a vertical plane (double-click on an object)

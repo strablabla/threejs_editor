@@ -83,15 +83,26 @@ function bs_prompt(title, message, defaultValue, onOk){
 <!-- Trajectories + MSD (toggle "trajectories" in Monitoring; per-object tracking via right-click) -->
 <div id="trajectories_box" style="display:none; position:fixed; top:70px; left:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_trajectories" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Trajectories</b>
-    <span id="traj_mode_btns" style="margin-left:4px" title="tracés affichés (combinaisons libres)">
-      <button type="button" class="traj_mode_btn" data-mode="xy"  style="font-size:10px; cursor:pointer">x–y</button>
-      <button type="button" class="traj_mode_btn" data-mode="z"   style="font-size:10px; cursor:pointer">z(t)</button>
-      <button type="button" class="traj_mode_btn" data-mode="msd" style="font-size:10px; cursor:pointer">MSD</button>
-      <button type="button" class="traj_mode_btn" data-mode="v"   style="font-size:10px; cursor:pointer">|v|(t)</button>
-    </span>
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
     <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause) — 1 u.a. = 100 ms de temps réel">t = 0.0 u.a. (0:00)</span>
     <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
+    <!-- Plots displayed: collapsible, stacked vertically (a row of buttons widened the
+         window for good). Same pattern as « suivre par couleur » just below. -->
+    <div id="traj_modes_wrap" style="margin-top:3px">
+      <div id="traj_modes_toggle" title="afficher / masquer le choix des tracés"
+           style="cursor:pointer; user-select:none; -webkit-user-select:none; color:#555">
+        <span id="traj_modes_caret">▾</span> <b>tracés</b>
+        <span id="traj_modes_count" style="color:#888; font-weight:normal"></span>
+      </div>
+      <div id="traj_modes_list" title="tracés affichés (combinaisons libres)"
+           style="border:1px solid #ddd; border-radius:3px; padding:3px 4px; margin-top:2px;
+                  display:flex; flex-direction:column; gap:1px">
+        <label style="cursor:pointer; display:flex; align-items:center; white-space:nowrap"><input type="checkbox" class="traj_mode_chk" data-mode="xy"  style="margin:0 4px 0 0">x–y</label>
+        <label style="cursor:pointer; display:flex; align-items:center; white-space:nowrap"><input type="checkbox" class="traj_mode_chk" data-mode="z"   style="margin:0 4px 0 0">z(t)</label>
+        <label style="cursor:pointer; display:flex; align-items:center; white-space:nowrap"><input type="checkbox" class="traj_mode_chk" data-mode="msd" style="margin:0 4px 0 0">MSD</label>
+        <label style="cursor:pointer; display:flex; align-items:center; white-space:nowrap"><input type="checkbox" class="traj_mode_chk" data-mode="v"   style="margin:0 4px 0 0">|v|(t)</label>
+      </div>
+    </div>
     <!-- Colors to track: collapsible + scrollable panel (populated by refresh_traj_color_filters).
          In a grid rather than a row: a scene can have many distinct colors. -->
     <div id="traj_colors_wrap" style="margin-top:3px">
@@ -107,6 +118,7 @@ function bs_prompt(title, message, defaultValue, onOk){
     </div>
   </div>
   <div id="traj_xy_wrap">
+    <div style="margin:6px 0 3px;"><b>x–y</b> <span style="color:#888">trajectoires dans le plan</span></div>
     <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_z_wrap">
@@ -131,7 +143,11 @@ function bs_prompt(title, message, defaultValue, onOk){
 <div id="report_box" style="display:none; position:fixed; top:70px; left:360px; z-index:9999; width:380px; background:rgba(255,255,255,0.97); border:1px solid #888; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,0.3); font-family:sans-serif; font-size:12px;">
   <div id="report_header" style="display:flex; align-items:center; gap:6px; padding:5px 8px; background:#2e7d32; color:#fff; border-radius:6px 6px 0 0; cursor:move; user-select:none; -webkit-user-select:none;">
     <b style="flex:1">Compte rendu</b>
-    <button type="button" id="report_mode_btn" title="basculer édition / aperçu" style="font-size:10px; cursor:pointer">aperçu</button>
+    <!-- Explicit colors: the native button is pale grey and, on the green bar, inherits the
+         white text of the header -> white on pale grey, unreadable. -->
+    <button type="button" id="report_mode_btn" title="basculer édition / aperçu"
+            style="font-size:10px; cursor:pointer; background:#1b5e20; color:#fff;
+                   border:1px solid rgba(255,255,255,0.6); border-radius:3px; padding:1px 8px">aperçu</button>
     <span id="report_close_btn" title="fermer" style="cursor:pointer; padding-left:4px; font-size:14px; line-height:1">&times;</span>
   </div>
   <div id="report_toolbar" style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 8px; border-bottom:1px solid #ddd;">
@@ -148,7 +164,7 @@ function bs_prompt(title, message, defaultValue, onOk){
   </div>
   <!-- Edit area: textarea (edit) OR rendering (preview). Resizable in height. -->
   <textarea id="report_md" spellcheck="false"
-            placeholder="# Titre du compte rendu&#10;&#10;Décris l'expérience ici. **gras**, *italique*, listes avec «- ».&#10;&#10;Utilise le menu « insérer un graphe… » pour ajouter x–y / z(t) / MSD / |v|(t)."
+            placeholder="!tit Titre centré du compte rendu&#10;&#10;!descr Description de l'expérience — sert de bulle d'aide dans la liste des scènes.&#10;Elle s'arrête au premier «#».&#10;&#10;# Section&#10;&#10;Décris l'expérience ici. **gras**, *italique*, listes avec «- ».&#10;&#10;Utilise le menu « insérer un graphe… » pour ajouter x–y / z(t) / MSD / |v|(t)."
             style="display:none; box-sizing:border-box; width:100%; height:320px; border:0; border-radius:0 0 6px 6px; padding:8px; resize:vertical; outline:none; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.45;"></textarea>
   <div id="report_preview" style="box-sizing:border-box; width:100%; height:320px; overflow:auto; padding:10px 12px; border-radius:0 0 6px 6px; background:#fff; color:#222; line-height:1.5;"></div>
 </div>

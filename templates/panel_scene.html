@@ -137,9 +137,13 @@
          $.ajax({ url: '/scenes', dataType: 'json', cache: false }).done(function(names){
                var menu = $('#scene_dropdown_menu').empty()
                for (var i in names){
-                     menu.append($('<li>').append(
-                           $('<a href="#">').text(names[i]).attr('data-scene', names[i])
-                     ))
+                     var $a = $('<a href="#">').text(names[i]).attr('data-scene', names[i])
+                     // Tooltip = the « !descr » of that experiment's report. Read from ITS own
+                     // localStorage bucket, so no need to load the scene to describe it.
+                     // No description -> no title attribute (a tooltip repeating the name is noise).
+                     var d = (typeof report_scene_description === 'function') ? report_scene_description(names[i]) : ''
+                     if (d){ $a.attr('title', d) }
+                     menu.append($('<li>').append($a))
                }
          })
     }

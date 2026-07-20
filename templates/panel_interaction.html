@@ -283,6 +283,7 @@
         if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }
         if (typeof highlight_z_means === 'function'){ highlight_z_means() }
         if (typeof apply_traj_colors_open === 'function'){ apply_traj_colors_open() }
+        if (typeof apply_traj_modes_open === 'function'){ apply_traj_modes_open() }
         if (typeof report_set_visible === 'function'){ report_set_visible(show_report) }
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
     }
@@ -344,19 +345,21 @@
         }
         save_monitoring_prefs()
     })
-    // Displayed plots: independent toggles x–y / z(t) / MSD (all combinations; buttons -> no focus/typeahead like a <select>)
+    // Displayed plots: one checkbox per plot, independent (all combinations), like « suivre par couleur »
     if (typeof traj_show === 'undefined'){ traj_show = { xy:true, z:false, msd:true, v:false } }  // safeguard (JS served from cache)
-    window.highlight_traj_mode = function(){                    // highlight each active button
-        $('.traj_mode_btn').each(function(){
+    window.highlight_traj_mode = function(){                    // reflects traj_show into the checkboxes
+        var n = 0
+        $('.traj_mode_chk').each(function(){
             var on = !!traj_show[this.getAttribute('data-mode')]
-            $(this).css({'font-weight': on ? 'bold' : 'normal', 'background': on ? '#cfe3ff' : ''})
+            if (on){ n++ }
+            $(this).prop('checked', on)
         })
+        $('#traj_modes_count').text('(' + n + ' affiché(s))')    // stays readable once the list is collapsed
     }
-    $('.traj_mode_btn').on('click', function(){
-        var m = this.getAttribute('data-mode')
-        traj_show[m] = !traj_show[m]                           // toggle this plot independently of the others
+    $('.traj_mode_chk').on('change', function(){
+        traj_show[this.getAttribute('data-mode')] = this.checked   // this plot only, independently of the others
         this.blur()                                            // return keyboard focus to the scene (the 'x' shortcut stays functional)
-        highlight_traj_mode()
+        highlight_traj_mode()                                  // refreshes the "(n affiché(s))" counter
         if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
         save_monitoring_prefs()
@@ -380,6 +383,18 @@
         draw_trajectories()
     })
     // The report window is toggled by clicking the experiment name (navbar), wired in report_panel.js.
+    // Collapsible list of plots (stacked vertically: keeps the window narrow)
+    if (typeof traj_modes_open === 'undefined'){ traj_modes_open = true }   // safeguard (JS served from cache)
+    window.apply_traj_modes_open = function(){
+        $('#traj_modes_list').toggle(!!traj_modes_open)
+        $('#traj_modes_caret').text(traj_modes_open ? '▾' : '▸')
+    }
+    $('#traj_modes_toggle').on('click', function(){
+        traj_modes_open = !traj_modes_open
+        apply_traj_modes_open()
+        save_monitoring_prefs()
+    })
+    apply_traj_modes_open()
     // Collapsible list of colors to track (scrollable grid: a scene can have many colors)
     if (typeof traj_colors_open === 'undefined'){ traj_colors_open = true }   // safeguard (JS served from cache)
     window.apply_traj_colors_open = function(){
