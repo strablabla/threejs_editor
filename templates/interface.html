@@ -287,6 +287,21 @@ function bs_prompt(title, message, defaultValue, onOk){
         $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($top).append($rng); $f.append($row)
   }
+  // Resizable parallelepipeds. 'wall_box' is excluded on purpose: the 4 walls of a box
+  // form a closed rectangle, so their size is driven from the box menu (« box height »).
+  var RESIZABLE_TYPES = ['wall', 'simple_cube', 'pavement', 'square_pillar']
+  function dims_rows($f, obj, applyAll){                       // length / height / thickness of a wall (or block)
+        function dim_row(label, key){
+              num_row($f, label, function(){ return Math.round(obj[key]) }, function(v){
+                    if (!(v > 0)){ return }                    // a null or negative dimension has no meaning
+                    applyAll(function(t){ var d = {}; d[key] = v; set_parallelepiped_dims(t, d) })
+                    if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persists (pos.json)
+              })
+        }
+        dim_row('length',    'width')                          // extent along the wall
+        dim_row('height',    'height')                         // vertical (z)
+        dim_row('thickness', 'thickness')
+  }
   function ctx_tab_bar($f, tabs){                              // tab bar + panes, scoped to this menu
         var $bar = $('<div style="display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid #ddd">')
         var pane = {}
@@ -360,6 +375,7 @@ function bs_prompt(title, message, defaultValue, onOk){
         if (obj.material && obj.material.color){ color_row($A, obj, applyAll) }   // object color
         if (obj.type === 'sphere'){ radius_row($A, obj, applyAll); population_row($A, obj) }   // actual radius + color count
         if (BOXY_TYPES.indexOf(obj.type) >= 0){ rotz_row($A, obj, applyAll) }     // cube/slab: rotation around the vertical
+        if (RESIZABLE_TYPES.indexOf(obj.type) >= 0){ dims_rows($A, obj, applyAll) }   // wall/block: length, height, thickness
 
         // --- Dynamics: velocity (vx/vy/vz), friction, radius_interact ---
         if (obj.speed){                                        // velocity (components) — moving objects

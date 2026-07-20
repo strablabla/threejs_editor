@@ -139,6 +139,33 @@ function simple_parallelepiped(name,p,r,material,dim,type){
 
 } // end function
 
+function set_parallelepiped_dims(obj, dim){
+
+        /*
+        Resizes a parallelepiped (wall, cube, slab, pillar...) in place.
+        Rebuilds the geometry with the same convention as simple_parallelepiped
+        -- CubeGeometry(thickness, width, height) -- and keeps the object standing
+        on the ground (z = height/2) when its height changes.
+        dim : { width, height, thickness }, each one optional (kept as is if absent)
+        */
+
+        // absent, null, NaN or <= 0 -> the current dimension is kept (an empty field
+        // of the parameters panel must not shrink the object to nothing)
+        function kept(v, cur){ return (typeof v === 'number' && isFinite(v) && v > 0) ? v : cur }
+        var w = kept(dim.width,     obj.width)
+        var h = kept(dim.height,    obj.height)
+        var t = kept(dim.thickness, obj.thickness)
+        if (!(w > 0) || !(h > 0) || !(t > 0)){ return }        // object without usable dimensions
+
+        if (obj.geometry && obj.geometry.dispose){ obj.geometry.dispose() }
+        obj.geometry = new THREE.CubeGeometry( t, w, h );
+        if (h !== obj.height){ obj.position.z = h/2 }        // the object stays laid on the ground
+        obj.width = w;
+        obj.height = h;
+        obj.thickness = t;
+
+} // end function
+
 function make_cube_texture(name,p,r,meshFaceMaterial){
 
         /*

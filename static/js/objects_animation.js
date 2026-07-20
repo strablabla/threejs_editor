@@ -248,7 +248,10 @@ function conditions_interaction_obj_plane(i,j){
 
 // ---- Bounce of balls on solid boxes (cubes/blocks): sphere-box collision ----
 
-var SOLID_BOX_TYPES = ['simple_cube', 'pavement', 'cube_mult_tex']   // solid boxes -> bounce on the 6 faces
+// Solid parallelepipeds -> bounce on the 6 faces. 'wall' (simple wall, key 'n') and
+// 'square_pillar' are in here too: unlike 'wall_box' they are not in list_moving_objects
+// and have no .orientation, so the sphere-box path is what makes the balls bounce on them.
+var SOLID_BOX_TYPES = ['simple_cube', 'pavement', 'cube_mult_tex', 'wall', 'square_pillar']
 function is_solid_box(o){ return o && SOLID_BOX_TYPES.indexOf(o.type) >= 0 }
 
 function interaction_obj_cube(ball, cube){

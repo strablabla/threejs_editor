@@ -123,6 +123,9 @@ function load_parallelepiped_shapes(name, msg){
       curr_tex = new THREE.ImageUtils.loadTexture( curr_tex_addr ) // by default white texture
       listmat[name] = new THREE.MeshBasicMaterial({ map : curr_tex, color : color_basic_default_pale_grey, transparent : true, opacity : 1 })
       listorig[name] = dic_type_parall[msg[name]['type']]( name, msg[name]['pos'], msg[name]['rot'], listmat[name] )   // make the wall object
+      set_parallelepiped_dims( listorig[name], { width : msg[name]['width'],        // saved dimensions: make_wall & co
+                                                 height : msg[name]['height'],      // recreate the object with their default
+                                                 thickness : msg[name]['thickness'] } )  // sizes -> we resize it afterwards
       load_params(name, msg, curr_tex_addr)
 
 }

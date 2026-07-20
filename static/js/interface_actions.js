@@ -267,6 +267,12 @@ function save_params_panel_object(){
                objects[i].material.opacity = parseFloat($('#alpha_panel').val())      // opacity
                objects[i].material.needsUpdate = true;                    // refreshing
                objects[i].mass = parseFloat($('#mass_panel').val())            // mass
+               // dimensions (walls, cubes, slabs...): the fields were displayed but ignored until now
+               if (typeof set_parallelepiped_dims === 'function' && objects[i].width !== undefined){
+                  set_parallelepiped_dims(objects[i], { width : parseFloat($('#width_panel').val()),
+                                                        height : parseFloat($('#height_panel').val()),
+                                                        thickness : parseFloat($('#thickness_panel').val()) })
+               }
                // change the orientation
                if (objects[i].type == 'wall_box'){
                   change_orientation(i)
