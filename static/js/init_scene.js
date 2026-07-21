@@ -279,6 +279,7 @@ function restore_dynamics(d){
       if (d.traj_colors_open !== undefined){ traj_colors_open = d.traj_colors_open }
       if (d.traj_modes_open !== undefined){ traj_modes_open = d.traj_modes_open }
       if (d.alt_color_filter !== undefined){ alt_color_filter = d.alt_color_filter }
+      if (d.speed_color_filter !== undefined){ speed_color_filter = d.speed_color_filter }
       if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // updates the checkboxes/sliders
 
 }
@@ -415,7 +416,8 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           z_means_only: z_means_only,                  // z(t): means ⟨z⟩ only
           traj_colors_open: traj_colors_open,          // "suivre par couleur" list expanded or not
           traj_modes_open: traj_modes_open,            // "tracés" list expanded or not
-          alt_color_filter: alt_color_filter           // altitude histogram: color counted
+          alt_color_filter: alt_color_filter,          // altitude histogram: color counted
+          speed_color_filter: speed_color_filter       // Initial speeds: color acted upon
     }
     return listpos
 }

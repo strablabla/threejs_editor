@@ -123,21 +123,42 @@ function random_speed_chose_xyz(obj, list_coord){
 
 }
 
-function reinitialize_speeds(){
+function speed_target_objects(filter){
 
       /*
-      Reassigns the velocity of ALL moving balls according to the current Initial speeds
-      parameters (Random, Strength, z component). Lets a simulation be restarted
-      « from scratch » at any time without recreating the scene. If « Random » is unchecked (or
-      Strength = 0), all balls start again at rest.
+      Balls the « Initial speeds » tab acts on: the dynamic balls, restricted to the
+      color chosen in the tab (speed_color_filter = 'all' -> all of them).
+      Lets each population be given its own velocity distribution (e.g. a hot red gas
+      inside a cold blue one) instead of re-drawing the whole scene every time.
+      filter: color to force ('all' to list every ball, whatever the current selection).
       */
 
-      var coords = random_speed_z ? ['x','y','z'] : ['x','y']
+      if (filter === undefined){ filter = speed_color_filter }
+      var a = []
       for (var i in list_moving_objects){
             var o = list_moving_objects[i]
             if (o.type !== 'sphere' || o.blocked){ continue }   // dynamic balls only
-            o.speed.set(0, 0, 0)                                 // reset to zero (z included if not drawn)
-            random_speed_chose_xyz(o, coords)                   // velocity according to the current params
+            if (filter !== 'all' && obj_hex(o) !== filter){ continue }
+            a.push(o)
+      }
+      return a
+
+}
+
+function reinitialize_speeds(){
+
+      /*
+      Reassigns the velocity of the TARGETED balls (see speed_target_objects: all, or one
+      color) according to the current Initial speeds parameters (Random, Strength, z
+      component). Lets a simulation be restarted « from scratch » at any time without
+      recreating the scene. If « Random » is unchecked (or Strength = 0), they start again at rest.
+      */
+
+      var coords = random_speed_z ? ['x','y','z'] : ['x','y']
+      var a = speed_target_objects()
+      for (var i=0;i<a.length;i++){
+            a[i].speed.set(0, 0, 0)                              // reset to zero (z included if not drawn)
+            random_speed_chose_xyz(a[i], coords)                // velocity according to the current params
       }
 
 }
@@ -145,17 +166,16 @@ function reinitialize_speeds(){
 function flatten_z(){
 
       /*
-      Projects all balls onto the z = 0 plane and cancels their z velocity.
-      Cleans up a scene whose z positions have drifted: in pure 3D, a coplanar
-      cloud stays coplanar (collision normal with no z component), so the gas
+      Projects the TARGETED balls (see speed_target_objects) onto the z = 0 plane and
+      cancels their z velocity. Cleans up a scene whose z positions have drifted: in pure 3D,
+      a coplanar cloud stays coplanar (collision normal with no z component), so the gas
       becomes perfectly planar again without any special « mode ».
       */
 
-      for (var i in list_moving_objects){
-            var o = list_moving_objects[i]
-            if (o.type !== 'sphere' || o.blocked){ continue }
-            o.position.z = 0
-            o.speed.z = 0
+      var a = speed_target_objects()
+      for (var i=0;i<a.length;i++){
+            a[i].position.z = 0
+            a[i].speed.z = 0
       }
 
 }

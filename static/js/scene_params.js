@@ -102,6 +102,7 @@ show_altitude_hist = false  // display of the number-of-particles vs altitude hi
 show_report = false         // display of the « Compte rendu » window (Monitoring) — editor + graph snapshots
 show_speeds = false         // 3D velocity arrows on each moving object (Initial speeds tab)
 alt_color_filter = 'all'    // altitude histogram: 'all' or '#rrggbb' — only counts objects of this color
+speed_color_filter = 'all'  // Initial speeds: 'all' or '#rrggbb' — balls the tab acts on (reinit, flatten z, previews)
                             // (the trajectory color checkboxes have no own state: they reflect
                             //  directly obj.track_trajectory, cf. refresh_traj_color_filters)
 traj_colors_open = true     // trajectories: expandable list of colors to track — expanded or collapsed

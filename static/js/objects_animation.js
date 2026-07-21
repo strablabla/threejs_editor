@@ -981,29 +981,12 @@ function draw_velocity_hist(){
 
 var PANEL_ANGLE_BINS = 24                                    // sectors of the angular rose (x-y)
 
-function collect_velocities(){
-
-      /*
-      Velocities (Vector3) of the moving massive objects, same exclusions as collect_speeds().
-      Returns the list of velocity vectors to derive magnitude AND direction.
-      */
-
-      var vels = []
-      for (var i in list_moving_objects){
-            var obj = list_moving_objects[i]
-            if (obj.blocked){ continue }
-            if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
-            vels.push(obj.speed)
-      }
-      return vels
-
-}
-
 function draw_panel_speed_hist(){
 
       /*
       Small histogram of the speed magnitudes embedded in the "Initial speeds" tab.
-      Same data as the Monitoring window but independent of its toggle.
+      Restricted to the balls the tab ACTS ON (color select): the preview must show what
+      « reinitialize » is going to change, not the whole scene.
       */
 
       var cv = document.getElementById('panel_speed_hist')
@@ -1011,7 +994,9 @@ function draw_panel_speed_hist(){
       var ctx = cv.getContext('2d')
       var W = cv.width, H = cv.height
       ctx.clearRect(0, 0, W, H)
-      var speeds = collect_speeds()
+      var targets = speed_target_objects()
+      var speeds = []
+      for (var t=0;t<targets.length;t++){ speeds.push(targets[t].speed.length()) }
       var n = speeds.length
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#333'
       ctx.textAlign = 'right'; ctx.textBaseline = 'top'
@@ -1058,7 +1043,9 @@ function draw_panel_angle_hist(){
       ctx.clearRect(0, 0, W, H)
       var cx = W / 2, cy = H / 2
       var R = Math.min(W, H) / 2 - 8
-      var vels = collect_velocities()
+      var targets = speed_target_objects()                    // same target as the buttons of the tab
+      var vels = []
+      for (var t=0;t<targets.length;t++){ vels.push(targets[t].speed) }
       //--- distribution of directions (we ignore ~zero velocities: no defined direction)
       var bins = new Array(PANEL_ANGLE_BINS).fill(0)
       var counted = 0
@@ -1176,29 +1163,30 @@ function collect_altitudes(){                                 // z of the retain
       return zs
 }
 
-var _alt_colors_sig = null                                    // signature of the present colors -> only rebuilds the <select> if it changes
+var _color_sel_sigs = {}                                      // per <select>: signature already rendered -> rebuild only if it changes
 
-function refresh_alt_color_options(){
+function refresh_color_select(sel_id, objs, current){
 
       /*
-      Populates the color select ("all" + one entry per present color).
-      Called each frame from draw_altitude_hist: we compare a signature before touching the
-      DOM, otherwise we'd destroy the menu 60 times per second (impossible to open).
+      Populates a color select ("all" + one entry per color present among objs) and RETURNS
+      the filter value to keep ('all' if the filtered color has disappeared from the scene).
+      Shared by the altitude histogram and the Initial speeds tab.
+      The signature is essential: this runs each frame, and rebuilding the menu 60 times
+      per second would make it impossible to open.
       */
 
-      var sel = document.getElementById('alt_color_sel')
-      if (!sel){ return }
-      var a = altitude_objects()
-      var cols = distinct_colors(a)
+      var sel = document.getElementById(sel_id)
+      if (!sel){ return current }
+      var cols = distinct_colors(objs)
       var counts = {}
-      for (var i=0;i<a.length;i++){ var h = obj_hex(a[i]); counts[h] = (counts[h] || 0) + 1 }
-      var sig = cols.map(function(h){ return h + ':' + counts[h] }).join(',')
-      if (sig === _alt_colors_sig){ return }
-      _alt_colors_sig = sig
-      if (alt_color_filter !== 'all' && cols.indexOf(alt_color_filter) < 0){ alt_color_filter = 'all' }  // the filtered color has disappeared
+      for (var i=0;i<objs.length;i++){ var h = obj_hex(objs[i]); counts[h] = (counts[h] || 0) + 1 }
+      if (current !== 'all' && cols.indexOf(current) < 0){ current = 'all' }   // the filtered color has disappeared
+      var sig = cols.map(function(h){ return h + ':' + counts[h] }).join(',') + '|' + current
+      if (sig === _color_sel_sigs[sel_id]){ return current }
+      _color_sel_sigs[sel_id] = sig
       while (sel.firstChild){ sel.removeChild(sel.firstChild) }
       var o = document.createElement('option')
-      o.value = 'all'; o.textContent = 'all (' + a.length + ')'
+      o.value = 'all'; o.textContent = 'all (' + objs.length + ')'
       sel.appendChild(o)
       for (var i=0;i<cols.length;i++){
             o = document.createElement('option')
@@ -1207,8 +1195,19 @@ function refresh_alt_color_options(){
             o.style.background = cols[i]                      // swatch: the option takes the color it designates
             sel.appendChild(o)
       }
-      sel.value = alt_color_filter
+      sel.value = current
+      return current
 
+}
+
+function refresh_alt_color_options(){                         // altitude histogram: color counted
+      alt_color_filter = refresh_color_select('alt_color_sel', altitude_objects(), alt_color_filter)
+}
+
+function refresh_speed_color_options(){                       // Initial speeds: color acted upon
+      // speed_target_objects('all'): the list must offer EVERY color, including the ones the
+      // current selection excludes — otherwise you could never come back to them.
+      speed_color_filter = refresh_color_select('speed_color_sel', speed_target_objects('all'), speed_color_filter)
 }
 
 function draw_altitude_hist(){

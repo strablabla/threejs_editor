@@ -83,6 +83,13 @@
           <!-- ===== Page: Initial speeds ===== -->
           <div id="tab_speeds" class="dyn_tab" style="display:none">
 
+            <!-- Which balls this tab acts on. Placed FIRST: everything below (reinit,
+                 flatten z, previews) applies to this selection only. -->
+            <div class="help"> <span> Apply to: </span>
+              <select id="speed_color_sel" title="couleur des boules concernées par cet onglet ; « all » = toutes"
+                      style="font-size:0.85em; cursor:pointer"><option value="all">all</option></select>
+            </div><br>
+
             <div class="help">
               <label><input type="checkbox" id="chk_random_speed"> Random</label>
             </div><br>
@@ -274,6 +281,7 @@
         $('#rng_speed_intensity').val(random_speed_module)
         $('#speed_intensity_val').text(random_speed_module)
         $('#chk_show_speeds').prop('checked', show_speeds).trigger('change')
+        refresh_speed_panels()                         // « Apply to » list + previews for THIS scene
         sync_deactivate_all()
         // Monitoring: set the checkbox AND trigger its handler (shows/hides the window)
         if (typeof altitude_fit_expr !== 'undefined'){ $('#altitude_fit_expr').val(altitude_fit_expr || '') }
@@ -288,12 +296,24 @@
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
     }
 
-    // Redraw the |v| previews + angular rose of the Initial speeds tab (updated "on action")
+    // Redraw the |v| previews + angular rose of the Initial speeds tab (updated "on action"),
+    // and refresh the list of colors offered (objects may have been created/removed/recolored)
     function refresh_speed_panels(){
+        if (typeof refresh_speed_color_options === 'function'){ refresh_speed_color_options() }
         if (typeof draw_speed_panels === 'function'){ draw_speed_panels() }
     }
 
-    // Reset the velocity of ALL balls according to the current params (restarts a simulation from scratch)
+    // Which balls the tab acts on. Same TrackballControls workaround as #alt_color_sel:
+    // without stopPropagation, the mousedown is preventDefault'ed and the list never opens.
+    $('#speed_color_sel').on('change', function(){
+        speed_color_filter = this.value
+        this.blur()                                        // a focused <select> captures the scene shortcuts
+        refresh_speed_panels()                             // the previews now show only this color
+        save_monitoring_prefs()
+    })
+    $('#speed_color_sel').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+
+    // Reset the velocity of the TARGETED balls according to the current params
     $('#btn_reinit_speeds').on('click', function(){
         reinitialize_speeds()
         if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // refresh the histogram if shown
