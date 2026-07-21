@@ -153,10 +153,17 @@ function bs_prompt(title, message, defaultValue, onOk){
   <div id="report_toolbar" style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 8px; border-bottom:1px solid #ddd;">
     <select id="report_snap_select" title="insérer un graphe des trajectoires (état courant)" style="font-size:11px; cursor:pointer">
       <option value="">insérer un graphe…</option>
-      <option value="xy">x–y</option>
-      <option value="z">z(t)</option>
-      <option value="msd">MSD</option>
-      <option value="v">|v|(t) — vitesse</option>
+      <optgroup label="trajectoires">
+        <option value="xy">x–y</option>
+        <option value="z">z(t)</option>
+        <option value="msd">MSD</option>
+        <option value="v">|v|(t) — vitesse</option>
+      </optgroup>
+      <optgroup label="monitoring">
+        <option value="vhist">histogramme des vitesses</option>
+        <option value="zhist">histogramme des altitudes</option>
+        <option value="energy">énergies</option>
+      </optgroup>
     </select>
     <span style="flex:1"></span>
     <button type="button" id="report_pdf_btn"   title="ouvrir la version imprimable (PDF via le navigateur)" style="font-size:10px; cursor:pointer">PDF</button>

@@ -67,17 +67,35 @@ function report_bind_scene(){
 
 // --- Snapshots of the trajectory graphs -------------------------------------
 
-var REPORT_CANVAS = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas', v:'v_canvas' }
-var REPORT_LABEL  = { xy:'x–y', z:'z(t)', msd:'MSD', v:'|v|(t)' }
+/*
+Graphs that can be inserted in the report. For each one: its canvas, the caption label,
+the global saying whether its WINDOW is open, its redraw function, and the name of the
+window to quote if it is closed.
+A closed window is no longer redrawn -> its canvas holds a stale (or blank) image:
+we refuse the capture rather than inserting a misleading figure.
+*/
+var REPORT_GRAPHS = {
+      xy:     { canvas:'traj_canvas',   label:'x–y',                       flag:'show_trajectories',  draw:'draw_trajectories',  win:'Trajectories' },
+      z:      { canvas:'z_canvas',      label:'z(t)',                      flag:'show_trajectories',  draw:'draw_trajectories',  win:'Trajectories' },
+      msd:    { canvas:'msd_canvas',    label:'MSD',                       flag:'show_trajectories',  draw:'draw_trajectories',  win:'Trajectories' },
+      v:      { canvas:'v_canvas',      label:'|v|(t)',                    flag:'show_trajectories',  draw:'draw_trajectories',  win:'Trajectories' },
+      vhist:  { canvas:'velocity_hist', label:'histogramme des vitesses',  flag:'show_velocity_hist', draw:'draw_velocity_hist', win:'velocity histogram' },
+      zhist:  { canvas:'altitude_hist', label:'histogramme des altitudes', flag:'show_altitude_hist', draw:'draw_altitude_hist', win:'altitude histogram' },
+      energy: { canvas:'energy_graph',  label:'énergies',                  flag:'show_energy_graph',  draw:'draw_energy_graph',  win:'energy graph' },
+}
+
+function report_graph_label(kind){                   // caption / alt text (old reports keep their kind)
+      return (REPORT_GRAPHS[kind] && REPORT_GRAPHS[kind].label) || 'figure'
+}
 
 // Composes the source canvas on a white background (the graphs are drawn transparent:
 // without a background, the PNG would be transparent and unreadable when printed) and returns a data-URL.
 function report_capture(kind){
-      var src = document.getElementById(REPORT_CANVAS[kind])
+      var g = REPORT_GRAPHS[kind]
+      if (!g || !window[g.flag]){ return null }          // unknown graph, or its window is closed
+      var src = document.getElementById(g.canvas)
       if (!src || !src.width || !src.height){ return null }
-      if (typeof show_trajectories !== 'undefined' && show_trajectories && typeof draw_trajectories === 'function'){
-            draw_trajectories()                            // ensures the canvas reflects the current state
-      }
+      if (typeof window[g.draw] === 'function'){ window[g.draw]() }   // canvas up to date at the instant of the click
       var off = document.createElement('canvas')
       off.width = src.width; off.height = src.height
       var ctx = off.getContext('2d')
@@ -89,12 +107,17 @@ function report_capture(kind){
 // Captures the graph and inserts a figure token in the text, at the cursor position.
 function report_snapshot(kind){
       var url = report_capture(kind)
-      if (!url){ alert('Graphe « ' + REPORT_LABEL[kind] + ' » indisponible.\nOuvre la fenêtre Trajectories et lance l’animation.'); return }
+      if (!url){
+            var g = REPORT_GRAPHS[kind]
+            alert('Graphe « ' + report_graph_label(kind) + ' » indisponible.\n' +
+                  'Ouvre la fenêtre « ' + ((g && g.win) || '?') + ' » (panneau Dynamics > Monitoring) et lance l’animation.')
+            return
+      }
       var id = ++report_state.seq
       report_state.figs[id] = { kind: kind, url: url }
       var t = 'u.a.'
       if (typeof sim_time !== 'undefined'){ t = sim_time.toFixed(1) + ' u.a.' }
-      var token = '[[fig:' + id + '|' + REPORT_LABEL[kind] + ' — t = ' + t + ']]'
+      var token = '[[fig:' + id + '|' + report_graph_label(kind) + ' — t = ' + t + ']]'
 
       var ta = document.getElementById('report_md')
       // Inserts at the cursor if editing, otherwise appends at the end.
@@ -178,7 +201,7 @@ function report_fig_html(id, caption){
       if (!f){ return '<p style="color:#c00">[figure ' + report_esc(id) + ' manquante]</p>' }
       var cap = caption ? '<figcaption style="text-align:center; color:#666; font-size:0.9em; margin-top:2px">' + report_inline(report_esc(caption)) + '</figcaption>' : ''
       return '<figure style="margin:10px 0; text-align:center">' +
-             '<img src="' + f.url + '" alt="' + report_esc(REPORT_LABEL[f.kind] || 'figure') + '" style="max-width:100%; border:1px solid #ddd; border-radius:4px">' +
+             '<img src="' + f.url + '" alt="' + report_esc(report_graph_label(f.kind)) + '" style="max-width:100%; border:1px solid #ddd; border-radius:4px">' +
              cap + '</figure>'
 }
 
