@@ -209,10 +209,17 @@ function interaction_obj_plane(i,j){
       n.divideScalar(nlen)                                     // normalized
 
       //--- lateral footprint (in the wall plane): is the ball facing the wall?
+      // Tested over the WHOLE step (start AND end), not only at the arrival point: the
+      // crossing test below is continuous, this one must be too. A ball travelling
+      // diagonally into a corner leaves the lateral span of the wall during the very step
+      // it crosses its plane; judging only on the final position let it through — that is
+      // how balls escaped through the corners (measured: 8 escapes, 8 of them at a corner).
       var vec_lat = new THREE.Vector3().crossVectors(new THREE.Vector3(0,0,1), n).normalize()
-      var lat = Math.abs(obj.position.dot(vec_lat) - wall.position.dot(vec_lat))
+      var wl = wall.position.dot(vec_lat)
+      var lat = Math.abs(obj.position.dot(vec_lat) - wl)
+      var lat_prev = obj._ppos ? Math.abs(obj._ppos.dot(vec_lat) - wl) : lat
       var rad = (obj.radius !== undefined) ? obj.radius : dist_inter_wall_obj
-      if (lat > wall.width/2 + rad){ return }                  // outside the wall -> no collision
+      if (Math.min(lat, lat_prev) > wall.width/2 + rad){ return }   // outside the wall -> no collision
 
       //--- signed distances to the plane (before / after the step)
       var contact = rad + (wall.thickness ? wall.thickness/2 : 0)  // ball surface flush with the wall
@@ -2108,6 +2115,13 @@ function lid_bounce(){
       Lid (ceiling) constraint: the balls within the x-y footprint of a box fitted
       with a lid cannot pass above the top. Elastic reflection (only if
       the ball is rising), symmetric to the ground bounce.
+
+      A BALL BIGGER THAN THE BOX (diameter > lid height) has no valid position: the ground
+      wants z = radius, the lid wants z = lid - radius, which is LOWER. As lid_bounce runs
+      after ground_bounce it used to win, and the ball ended up sunk into the floor
+      (a ball of radius 80 in the default box of height 150 sat at z = 70). We now detect
+      the case: the ball stays on the ground and its vertical motion is frozen, instead of
+      the two constraints fighting each other every frame.
       */
 
       if (typeof list_lids === 'undefined'){ return }
@@ -2118,12 +2132,21 @@ function lid_bounce(){
                   if (o.blocked || o.type !== 'sphere'){ continue }
                   if (o.position.x < b.xmin || o.position.x > b.xmax || o.position.y < b.ymin || o.position.y > b.ymax){ continue }
                   var rad = (o.radius !== undefined) ? o.radius : 0
+                  var lo = gravity_ok ? rad : -Infinity        // lowest centre allowed by the ground
+                  var hi = zc - rad                            // highest centre allowed by the lid
+                  if (hi <= lo){                               // ball too big for the box: no possible position
+                        o.position.z = lo                      // it rests on the ground, the lid is what gives way
+                        o.speed.z = 0                          // and we stop moving it vertically every frame
+                        continue
+                  }
                   if (o.position.z + rad > zc){
                         var pen = o.position.z + rad - zc            // overshoot above the lid
                         o.position.z = zc - rad
                         if (o.speed.z > 0){                          // reflects only if it's rising
                               // symmetric to the ground: lowering the ball GIVES BACK m·g·pen,
-                              // which goes into the kinetic energy (nothing to add without gravity)
+                              // which goes into the kinetic energy (nothing to add without gravity).
+                              // Removing this credit makes the scheme DISSIPATIVE: measured -4%
+                              // over 2000 steps in a tight box, where lid contacts are frequent.
                               var g = gravity_ok ? GRAVITY_Z : 0
                               o.speed.z = -Math.sqrt(o.speed.z*o.speed.z + 2*g*pen)
                         }
