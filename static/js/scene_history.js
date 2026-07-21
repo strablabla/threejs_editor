@@ -13,7 +13,12 @@ re-recording (keeps history_restoring).
 */
 
 var history_restoring = false;          // true during an undo/redo: don't record a new state
-var HISTORY_MAX = 30;                    // max depth (localStorage ~5 MB)
+var HISTORY_MAX = 30;                    // max depth (in number of states)
+// localStorage is ~5 MB for the WHOLE site — history AND experiment reports.
+// A snapshot is the full scene: ~540 kB for 300 objects, 1.2 MB for Maxwell.
+// Counting in states was therefore meaningless (30 x 540 kB = 16 MB): we budget in BYTES,
+// otherwise the history saturates the storage and the reports can no longer be saved.
+var HISTORY_MAX_BYTES = 1500000;         // ~1.5 MB max for the history of a scene
 
 function history_key(){
       return 'scene_history::' + ((typeof scene !== 'undefined' && scene && scene.name) ? scene.name : '__working__');
@@ -24,10 +29,32 @@ function history_get(){
       catch(e){ return {stack:[], ptr:-1}; }
 }
 
+function history_trim(h){
+
+      /*
+      Keeps the MOST RECENT states within the byte budget (at least 2, so that
+      one undo stays possible). Trimming from the front shifts the pointer.
+      */
+
+      var total = 0, keep = []
+      for (var i = h.stack.length - 1; i >= 0; i--){
+            total += h.stack[i].length
+            if (total > HISTORY_MAX_BYTES && keep.length >= 2){ break }
+            keep.unshift(h.stack[i])
+      }
+      var dropped = h.stack.length - keep.length
+      if (dropped > 0){
+            h.stack = keep
+            h.ptr = Math.max(0, h.ptr - dropped)
+      }
+      return h
+}
+
 function history_set(h){
+      history_trim(h)
       try { localStorage.setItem(history_key(), JSON.stringify(h)); }
-      catch(e){                                        // quota exceeded -> keep only the recent half
-            h.stack = h.stack.slice(-Math.ceil(HISTORY_MAX/2));
+      catch(e){                                        // still too big -> fall back to the last state alone
+            h.stack = h.stack.slice(-1);
             h.ptr = h.stack.length - 1;
             try { localStorage.setItem(history_key(), JSON.stringify(h)); } catch(e2){}
       }

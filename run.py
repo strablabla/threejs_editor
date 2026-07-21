@@ -222,6 +222,143 @@ def rename_named_scene(name):
     os.rename(src, dst)
     return flask.jsonify({'ok': True, 'name': new})
 
+#---------------------------------------------------------------- Comptes rendus
+# Les rapports d'experience vivaient dans le localStorage du navigateur (~5 Mo pour
+# TOUT le site) : avec des figures PNG en base64, une centaine d'experiences saturait
+# le quota et les figures etaient perdues. Ils sont desormais sur disque, comme les
+# scenes -> plus de limite, et ils suivent le projet (portables, sauvegardables).
+
+REPORTS_DIR = os.path.join('static', 'reports')
+
+def _report_path(name):
+    '''
+    Chemin du fichier de rapport, ou None si le nom est invalide.
+    Le nom vient de l'URL : on refuse separateurs et '..' pour qu'il ne puisse pas
+    designer un fichier hors de static/reports/.
+    '''
+    name = (name or '').strip()
+    if not name or '/' in name or '\\' in name or name == '..':
+        return None
+    return os.path.join(REPORTS_DIR, name + '.json')
+
+def _ensure_reports_dir():
+    if not os.path.isdir(REPORTS_DIR):
+        os.makedirs(REPORTS_DIR)
+
+@app.route('/report/<path:name>', methods=['GET'])
+def get_report(name):
+    '''
+    Rapport d'une experience. Absent = rapport vide (et non une erreur) : une scene
+    sans compte rendu est un cas normal.
+    '''
+    path = _report_path(name)
+    if not path or not os.path.exists(path):
+        return flask.jsonify({'md': '', 'figs': {}, 'seq': 0, 'descr': ''})
+    with open(path, 'r') as f:
+        return flask.Response(f.read(), mimetype='application/json')
+
+@app.route('/report/<path:name>', methods=['POST'])
+def save_report(name):
+    '''
+    Ecrit le rapport (texte + figures PNG en data-URL + description extraite).
+    '''
+    path = _report_path(name)
+    if not path:
+        return flask.jsonify({'error': 'invalid name'}), 400
+    data = request.get_json(force=True, silent=True)
+    if data is None:
+        return flask.jsonify({'error': 'invalid json'}), 400
+    _ensure_reports_dir()
+    with open(path, 'w') as f:
+        json.dump(data, f, ensure_ascii=True)
+    return flask.jsonify({'ok': True})
+
+@app.route('/reports')
+def list_reports():
+    '''
+    { nom_de_scene : description } pour toutes les experiences ayant un rapport.
+    On ne renvoie QUE la description (champ 'descr', calcule cote client a partir de
+    !descr) : le markdown complet contient les figures base64, inutile de le charger
+    pour remplir des bulles d'aide.
+    '''
+    out = {}
+    for path in glob.glob(os.path.join(REPORTS_DIR, '*.json')):
+        name = opb(path)[:-5]
+        if not name.strip():
+            continue
+        try:
+            with open(path, 'r') as f:
+                d = json.load(f)
+            descr = (d.get('descr') or '').strip()
+            if descr:
+                out[name] = descr
+        except (ValueError, IOError):
+            continue                                   # fichier corrompu : on l'ignore
+    return flask.jsonify(out)
+
+@app.route('/report_delete/<path:name>', methods=['GET', 'POST'])
+def delete_report(name):
+    path = _report_path(name)
+    if path and os.path.exists(path):
+        os.remove(path)
+    return flask.jsonify({'ok': True})                 # deja absent = succes (idempotent)
+
+@app.route('/report_rename/<path:name>', methods=['GET', 'POST'])
+def rename_report(name):
+    '''
+    Suit le renommage d'une scene. Ne jamais ecraser un rapport existant.
+    '''
+    new = (flask.request.values.get('new') or '').strip()
+    src, dst = _report_path(name), _report_path(new)
+    if not src or not dst:
+        return flask.jsonify({'error': 'invalid name'}), 400
+    if os.path.abspath(src) == os.path.abspath(dst) or not os.path.exists(src):
+        return flask.jsonify({'ok': True})
+    if os.path.exists(dst):
+        return flask.jsonify({'error': 'report already exists'}), 409
+    _ensure_reports_dir()
+    os.rename(src, dst)
+    return flask.jsonify({'ok': True})
+
+@app.route('/report_copy/<path:name>', methods=['GET', 'POST'])
+def copy_report(name):
+    '''
+    Copie le rapport <name> vers ?new=<dst> quand une scene est nommee ou clonee
+    (Save as). N'ecrase jamais un rapport existant a destination.
+    '''
+    new = (flask.request.values.get('new') or '').strip()
+    src, dst = _report_path(name), _report_path(new)
+    if not src or not dst:
+        return flask.jsonify({'error': 'invalid name'}), 400
+    if os.path.abspath(src) == os.path.abspath(dst) or not os.path.exists(src) or os.path.exists(dst):
+        return flask.jsonify({'ok': True, 'copied': False})
+    _ensure_reports_dir()
+    sh.copyfile(src, dst)
+    return flask.jsonify({'ok': True, 'copied': True})
+
+@app.route('/report_migrate', methods=['POST'])
+def migrate_reports():
+    '''
+    Reprise unique des rapports encore stockes dans le navigateur.
+    N'ecrit QUE les rapports absents du disque : une reprise ne doit jamais ecraser
+    un rapport deja edite cote serveur. Renvoie la liste des noms effectivement ecrits,
+    que le client peut alors retirer de son localStorage.
+    '''
+    data = request.get_json(force=True, silent=True) or {}
+    written = []
+    _ensure_reports_dir()
+    for name, state in data.items():
+        path = _report_path(name)
+        if not path or os.path.exists(path):
+            continue
+        try:
+            with open(path, 'w') as f:
+                json.dump(state, f, ensure_ascii=True)
+            written.append(name)
+        except IOError:
+            continue
+    return flask.jsonify({'ok': True, 'written': written})
+
 @app.route('/shutdown', methods=['GET', 'POST'])
 def shutdown():
     '''

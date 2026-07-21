@@ -63,21 +63,11 @@
     function archive_scene(name){                 // saves the current scene as <name> (-> scenes/<name>.json)
          var oldName = scene.name                 // name BEFORE saving (often '': scene still unnamed)
          scene.name = (name || '').trim()
-         // The report FOLLOWS the scene when it is named/saved: we carry over the bucket
-         // report::<old> to report::<new> (without ever overwriting a report already present at the destination).
-         // From an UNNAMED scene (scratch bucket __unnamed__) -> move: the next blank one starts clean.
-         // From a named scene (Save as = clone) -> copy: the original scene keeps its report.
-         if (scene.name && scene.name !== oldName){
-               try {
-                     var oldKey = 'report::' + (oldName || '__unnamed__')
-                     var newKey = 'report::' + scene.name
-                     var rk = localStorage.getItem(oldKey)
-                     if (rk !== null && localStorage.getItem(newKey) === null){
-                           localStorage.setItem(newKey, rk)
-                           if (!oldName){ localStorage.removeItem(oldKey) }
-                     }
-               } catch(e){}
-         }
+         // The report FOLLOWS the scene when it is named/saved (static/reports/<nom>.json).
+         // Copy server-side AFTER flushing the pending keystrokes, otherwise the copy would
+         // be made from a stale file (the editor writes with a delay).
+         // From an UNNAMED scene -> move; from a named one (Save as = clone) -> copy.
+         if (scene.name && scene.name !== oldName){ carry_report_to(oldName || '__unnamed__', scene.name, !oldName) }
          $('#scene_name').val(scene.name)
          update_scene_name_display()              // report_bind_scene then reads the key (now populated)
          emit_infos_scene(scene.name)             // EXPLICIT save -> freezes scenes/<name>.json
@@ -133,18 +123,44 @@
 
     var selected_scene = null
 
+    function carry_report_to(from, to, move){
+         /*
+         Makes the report of 'from' follow to 'to'. Waits for the pending edits to be
+         written before copying. move = true: the source (scratch report of the unnamed
+         scene) is consumed, so the next blank scene starts clean.
+         */
+         var flush = (typeof _report_dirty !== 'undefined' && _report_dirty && typeof report_save === 'function')
+                     ? report_save(true) : $.Deferred().resolve()
+         $.when(flush).always(function(){
+               $.get('/report_copy/' + encodeURIComponent(from) + '?new=' + encodeURIComponent(to))
+                .always(function(){
+                      if (move){ $.get('/report_delete/' + encodeURIComponent(from)) }
+                      if (typeof report_reload === 'function'){ report_reload() }
+                      refresh_scene_descriptions()
+                })
+         })
+    }
+
+    // { scene : description !descr }. Comes from the server, so EVERY experiment gets its
+    // tooltip — not only those whose report was written in this browser.
+    var scene_descriptions = {}
+    function refresh_scene_descriptions(done){
+         $.ajax({ url: '/reports', dataType: 'json', cache: false })
+          .done(function(d){ scene_descriptions = d || {} })
+          .always(function(){ if (typeof done === 'function'){ done() } })
+    }
+
     function populate_scene_list(){
-         $.ajax({ url: '/scenes', dataType: 'json', cache: false }).done(function(names){
-               var menu = $('#scene_dropdown_menu').empty()
-               for (var i in names){
-                     var $a = $('<a href="#">').text(names[i]).attr('data-scene', names[i])
-                     // Tooltip = the « !descr » of that experiment's report. Read from ITS own
-                     // localStorage bucket, so no need to load the scene to describe it.
-                     // No description -> no title attribute (a tooltip repeating the name is noise).
-                     var d = (typeof report_scene_description === 'function') ? report_scene_description(names[i]) : ''
-                     if (d){ $a.attr('title', d) }
-                     menu.append($('<li>').append($a))
-               }
+         refresh_scene_descriptions(function(){
+               $.ajax({ url: '/scenes', dataType: 'json', cache: false }).done(function(names){
+                     var menu = $('#scene_dropdown_menu').empty()
+                     for (var i in names){
+                           var $a = $('<a href="#">').text(names[i]).attr('data-scene', names[i])
+                           var d = scene_descriptions[names[i]]
+                           if (d){ $a.attr('title', d) }   // no description -> no tooltip repeating the name
+                           menu.append($('<li>').append($a))
+                     }
+               })
          })
     }
 
@@ -188,11 +204,9 @@
                             var hk = localStorage.getItem('scene_history::' + old)
                             if (hk !== null){ localStorage.setItem('scene_history::' + newname, hk); localStorage.removeItem('scene_history::' + old) }
                       } catch(e){}
-                      // likewise migrate the report (key = report::<name>) so it follows the renamed scene
-                      try {
-                            var rk = localStorage.getItem('report::' + old)
-                            if (rk !== null){ localStorage.setItem('report::' + newname, rk); localStorage.removeItem('report::' + old) }
-                      } catch(e){}
+                      // likewise rename the report file so it follows the renamed scene
+                      $.get('/report_rename/' + encodeURIComponent(old) + '?new=' + encodeURIComponent(newname))
+                       .always(function(){ refresh_scene_descriptions() })
                       // if we rename the CURRENTLY loaded scene, reflect the new name everywhere
                       if (scene.name === old){
                             scene.name = newname
@@ -215,9 +229,13 @@
          var n = selected_scene
          bs_confirm('Remove', 'Remove scene "' + n + '"?', function(){
                $.getJSON('/scene_delete/' + encodeURIComponent(n), function(){
-                     selected_scene = null
-                     $('#scene_dropdown_label').html('choose&hellip;')
-                     populate_scene_list()        // refresh the list
+                     $.get('/report_delete/' + encodeURIComponent(n))    // its report goes with it
+                      .always(function(){
+                            selected_scene = null
+                            $('#scene_dropdown_label').html('choose&hellip;')
+                            refresh_scene_descriptions()
+                            populate_scene_list()  // refresh the list
+                      })
                })
          }, 'btn-danger', 'remove')
     })

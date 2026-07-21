@@ -9,59 +9,160 @@
   Stack: vanilla JS + jQuery (like the rest of the project). No external markdown dependency —
   a small in-house renderer is enough for a lab report (headings, bold/italic, lists, figures).
 
-  Persistence: text + figures are saved in localStorage, PER SCENE — key
-  `report::<scene.name>` (unnamed scene: bucket `__unnamed__`). Each experiment therefore has
-  its own report: loading/creating another scene switches to ITS report, no
-  report migrates from one experiment to another. Same convention as the undo/redo history
-  (`scene_history::<name>`), migrated on rename in panel_scene.html.
+  Persistence: ON DISK, served by Flask — static/reports/<scene>.json, one file per
+  experiment (unnamed scene: __unnamed__). It used to be the browser localStorage, capped at
+  ~5 MB for the whole site: with PNG figures in base64, a hundred experiments blew the quota
+  and the figures were LOST without a word. On disk there is no such limit, the reports follow
+  the project (portable, backup-able) and the server can list their descriptions (!descr)
+  to fill the tooltips of the scene dropdown — which the browser storage could not do.
+  The reports follow renaming / Save as / deletion, wired in panel_scene.html.
 
   Inspired by the ReportPanel from sam3_exp (!fig / !img directives), adapted to the context: here the
   figures are canvas snapshots referenced by a [[fig:ID|caption]] token.
 */
 
-var REPORT_LS_PREFIX = 'report::'
-var REPORT_LS_OLD_KEY = 'threejs_report_v1'   // old single key (before the per-scene report) — migrated once
+var REPORT_LS_PREFIX = 'report::'              // OLD browser storage — only read, for the one-time migration
+var REPORT_LS_OLD_KEY = 'threejs_report_v1'   // even older single key
 var report_state = { md: '', figs: {}, seq: 0 }   // figs: { id -> {kind, url} } ; seq: id counter
 var _report_wired = false
-var _report_scene_key = null                  // localStorage key of the scene currently loaded in the editor
+var _report_scene = null                      // name of the scene whose report is loaded in the editor
+var _report_dirty = false                     // edits not yet written to disk
+var _report_save_timer = null
 
-// localStorage key of the current scene's report (unnamed scene -> dedicated bucket).
+var REPORT_UNNAMED = '__unnamed__'            // scratch report of a scene with no name yet
+var REPORT_SAVE_DELAY = 700                   // ms: one write per pause in typing, not one per keystroke
+
+// Name of the report bucket for the current scene.
 function report_scene_key(){
       var nm = (typeof scene !== 'undefined' && scene && scene.name) ? scene.name : ''
-      return REPORT_LS_PREFIX + (nm || '__unnamed__')
+      return nm || REPORT_UNNAMED
 }
 
-// --- Persistence (per scene) ------------------------------------------------
+// --- Persistence: ON DISK, served by Flask (static/reports/<scene>.json) --------
+// The browser storage was capped at ~5 MB for the whole site: a hundred experiments
+// with a few PNG figures each blew the quota and the figures were silently lost.
 
-function report_load(){
-      report_state = { md: '', figs: {}, seq: 0 }        // starts blank: otherwise a report would migrate between scenes
+function report_apply(s){                     // adopts a state coming from the server
+      report_state = { md: '', figs: {}, seq: 0 }        // blank first: a report must never leak between scenes
+      if (s){
+            report_state.md   = typeof s.md === 'string' ? s.md : ''
+            report_state.figs = (s.figs && typeof s.figs === 'object') ? s.figs : {}
+            report_state.seq  = s.seq | 0
+      }
+}
+
+function report_load(name, done){
+
+      /*
+      Loads the report of scene 'name' (asynchronous: it comes from the server).
+      'done' is called once the state is in place — the editor is only refreshed there,
+      otherwise a slow answer would overwrite a report the user has already started typing.
+      */
+
+      $.ajax({ url: '/report/' + encodeURIComponent(name), dataType: 'json', cache: false })
+       .done(function(s){
+            if (_report_scene !== name){ return }         // scene changed meanwhile: this answer is stale
+            report_apply(s)
+            _report_dirty = false
+            if (typeof done === 'function'){ done() }
+       })
+       .fail(function(){
+            if (_report_scene !== name){ return }
+            report_apply(null)                            // server unreachable: blank editor rather than a foreign report
+            if (typeof done === 'function'){ done() }
+       })
+}
+
+function report_save_now(name, state){
+
+      /*
+      Immediate write. 'name'/'state' are captured by the caller so that a save in flight
+      keeps targeting the RIGHT scene even if the user switches scene in the meantime.
+      */
+
+      state.descr = (typeof report_extract_descr === 'function') ? report_extract_descr(state.md) : ''
+      return $.ajax({ url: '/report/' + encodeURIComponent(name), method: 'POST',
+                      contentType: 'application/json', data: JSON.stringify(state) })
+}
+
+function report_save(immediate){
+
+      /*
+      Schedules the write (debounced: the textarea fires on every keystroke).
+      immediate = true for the actions that must not be lost (figure, clear, closing).
+      */
+
+      if (!_report_scene){ return }
+      _report_dirty = true
+      var name = _report_scene, state = report_state
+      if (_report_save_timer){ clearTimeout(_report_save_timer); _report_save_timer = null }
+      if (immediate){
+            return report_save_now(name, state)
+                  .done(function(){ _report_dirty = false })
+                  .fail(function(){ alert('Compte rendu : écriture sur le disque impossible.\nVérifie que le serveur tourne.') })
+      }
+      _report_save_timer = setTimeout(function(){
+            _report_save_timer = null
+            report_save_now(name, state).done(function(){ _report_dirty = false })
+      }, REPORT_SAVE_DELAY)
+}
+
+function report_migrate_from_browser(){
+
+      /*
+      One-time recovery of the reports still held in this browser. The server only writes
+      those it does NOT already have (never overwrites a report edited since), and returns
+      what it actually wrote: only those are removed from localStorage — nothing is dropped
+      before it is safely on disk.
+      */
+
+      var payload = {}, keys = []
       try {
-            var raw = localStorage.getItem(_report_scene_key)
-            if (raw){
-                  var s = JSON.parse(raw)
-                  report_state.md   = typeof s.md === 'string' ? s.md : ''
-                  report_state.figs = (s.figs && typeof s.figs === 'object') ? s.figs : {}
-                  report_state.seq  = s.seq | 0
+            var old = localStorage.getItem(REPORT_LS_OLD_KEY)   // the very first single-key format
+            if (old !== null){
+                  try { payload[REPORT_UNNAMED] = JSON.parse(old) } catch(e){}
+                  keys.push(REPORT_LS_OLD_KEY)
             }
-      } catch(e){ /* localStorage unavailable or JSON broken: we start blank */ }
-}
-
-function report_save(){
-      if (!_report_scene_key){ return }
-      try { localStorage.setItem(_report_scene_key, JSON.stringify(report_state)) }
-      catch(e){ /* quota exceeded (many figures): we do not interrupt editing */ }
+            for (var i = 0; i < localStorage.length; i++){
+                  var k = localStorage.key(i)
+                  if (!k || k.indexOf(REPORT_LS_PREFIX) !== 0){ continue }
+                  var nm = k.slice(REPORT_LS_PREFIX.length)
+                  try { payload[nm] = JSON.parse(localStorage.getItem(k)) } catch(e){ continue }
+                  keys.push(k)
+            }
+      } catch(e){ return }                                       // no localStorage: nothing to migrate
+      if (!keys.length){ return }
+      $.ajax({ url: '/report_migrate', method: 'POST', contentType: 'application/json',
+               data: JSON.stringify(payload) })
+       .done(function(res){
+            var written = (res && res.written) || []
+            for (var j = 0; j < written.length; j++){
+                  try { localStorage.removeItem(REPORT_LS_PREFIX + written[j]) } catch(e){}
+            }
+            try { localStorage.removeItem(REPORT_LS_OLD_KEY) } catch(e){}
+            if (written.length){ console.log('Comptes rendus repris sur disque : ' + written.join(', ')) }
+       })
 }
 
 // Switches the editor to the current scene's report (called when the scene changes:
-// load / new / clear / rename, via update_scene_name_display). The edits in progress are
-// already persisted (saved on each keystroke), so we can load the other report without risk.
+// load / new / clear / rename, via update_scene_name_display).
 function report_bind_scene(){
       if (!_report_wired){ return }                      // not yet initialized: report_init will load the right scene
       var key = report_scene_key()
-      if (key === _report_scene_key){ return }           // same scene: nothing to do
-      _report_scene_key = key
-      report_load()
-      var ta = document.getElementById('report_md'); if (ta){ ta.value = report_state.md }
+      if (key === _report_scene){ return }               // same scene: nothing to do
+      if (_report_dirty){ report_save(true) }            // flush the pending edits to the OLD scene before switching
+      _report_scene = key
+      report_load(key, report_show_state)
+}
+
+function report_reload(){                                // forces a re-read (after a server-side copy/rename)
+      if (!_report_wired || !_report_scene){ return }
+      report_load(_report_scene, report_show_state)
+}
+
+function report_show_state(){                            // puts the loaded state into the editor
+      var ta = document.getElementById('report_md')
+      if (ta){ ta.value = report_state.md }
       report_render()
 }
 
@@ -131,7 +232,7 @@ function report_snapshot(kind){
       var sep_after  = (after  && !/^\s*\n/.test(after))  ? '\n\n' : ''
       report_state.md = before + sep_before + token + sep_after + after
       if (ta){ ta.value = report_state.md }
-      report_save()
+      report_save(true)                                    // a figure is heavy: written at once, not on a timer
       report_render()                                      // immediately reflects the insertion in the preview
 }
 
@@ -168,17 +269,6 @@ function report_extract_descr(md){
             .trim()
       if (txt.length > REPORT_DESCR_MAX){ txt = txt.slice(0, REPORT_DESCR_MAX - 1).trim() + '…' }
       return txt
-}
-
-// Description of ANY scene, read from ITS report bucket — no need to load the scene,
-// which is what lets the dropdown show a tooltip for every entry in the list.
-function report_scene_description(name){
-      try {
-            var raw = localStorage.getItem(REPORT_LS_PREFIX + (name || '__unnamed__'))
-            if (!raw){ return '' }
-            var s = JSON.parse(raw)
-            return report_extract_descr(s && s.md)
-      } catch(e){ return '' }                                 // localStorage unavailable or broken JSON
 }
 
 // --- Lightweight markdown rendering -----------------------------------------
@@ -315,21 +405,10 @@ function report_init(){
       if (_report_wired){ return }
       _report_wired = true
 
-      // One-time migration: the old single-key report becomes that of the « sans nom » (unnamed) scene.
-      try {
-            var old = localStorage.getItem(REPORT_LS_OLD_KEY)
-            if (old !== null){
-                  var unnamed = REPORT_LS_PREFIX + '__unnamed__'
-                  if (localStorage.getItem(unnamed) === null){ localStorage.setItem(unnamed, old) }
-                  localStorage.removeItem(REPORT_LS_OLD_KEY)
-            }
-      } catch(e){ /* no problem if the migration fails */ }
+      report_migrate_from_browser()                      // one-time recovery of the reports still in the browser
 
-      _report_scene_key = report_scene_key()
-      report_load()
-
-      var ta = document.getElementById('report_md')
-      if (ta){ ta.value = report_state.md }
+      _report_scene = report_scene_key()
+      report_load(_report_scene, report_show_state)      // asynchronous: the editor fills in on the answer
 
       // Edit -> state + persistence (preview recomputed on toggle)
       $('#report_md').on('input', function(){ report_state.md = this.value; report_save() })
@@ -355,7 +434,19 @@ function report_init(){
             if (!confirm('Effacer tout le compte rendu (texte et figures) ?')){ return }
             report_state.md = ''; report_state.figs = {}; report_state.seq = 0
             var t = document.getElementById('report_md'); if (t){ t.value = '' }
-            report_save(); report_render()
+            report_save(true); report_render()
+      })
+
+      // Closing the tab during the debounce window: the last keystrokes would be lost.
+      // Synchronous request — the only kind a browser still honours in beforeunload.
+      $(window).on('beforeunload', function(){
+            if (!_report_dirty || !_report_scene){ return }
+            if (_report_save_timer){ clearTimeout(_report_save_timer); _report_save_timer = null }
+            report_state.descr = (typeof report_extract_descr === 'function') ? report_extract_descr(report_state.md) : ''
+            try {
+                  $.ajax({ url: '/report/' + encodeURIComponent(_report_scene), method: 'POST',
+                           contentType: 'application/json', data: JSON.stringify(report_state), async: false })
+            } catch(e){}
       })
 
       report_make_draggable()
