@@ -291,7 +291,14 @@ function interaction_obj_cube(ball, cube){
       var n = new THREE.Vector3(nlx, nly, nlz).applyQuaternion(cube.quaternion).normalize()  // normal LOCAL -> WORLD
       ball.position.addScaledVector(n, push)                     // de-penetration: ball brought back to the surface
       var vn = ball.speed.dot(n)
-      if (vn < 0){ ball.speed.addScaledVector(n, -2*vn) }        // elastic reflection if the ball is entering (v' = v - 2(v·n)n)
+      if (vn < 0){                                               // elastic reflection if the ball is entering
+            // The de-penetration moved the ball by push·n.z in z: that gravitational work has to
+            // be paid by the rebound. Without this, a ball resting on a slab vibrates on the spot
+            // and heats the whole scene — same trap as ground_bounce.
+            var g = gravity_ok ? GRAVITY_Z : 0
+            var v2 = vn*vn - 2*g*push*n.z
+            ball.speed.addScaledVector(n, (v2 > 0 ? Math.sqrt(v2) : 0) - vn)   // v·n -> +sqrt(...)
+      }
       check_change_color(ball, 0xff0000)
 
 }
@@ -1997,6 +2004,8 @@ function accel_attraction_bruteforce(){                // exact O(n²) double lo
       }
 }
 
+var GRAVITY_Z = 9.81*0.1        // vertical gravity of the scene — also used by the ground/lid contacts
+
 function compute_accelerations(){
 
       /*
@@ -2008,7 +2017,7 @@ function compute_accelerations(){
             var o = list_moving_objects[i]
             if (!o.acc){ o.acc = new THREE.Vector3() }
             if (o.blocked || !gravity_ok){ o.acc.set(0, 0, 0) }  // static/anchor or gravity turned off
-            else { o.acc.set(0, 0, -9.81*0.1) }
+            else { o.acc.set(0, 0, -GRAVITY_Z) }
       }
       if (one_over_r2){                                        // otherwise no need to iterate over the pairs
             if (use_barnes_hut){
@@ -2069,6 +2078,11 @@ function ground_bounce(){
 
       /*
       Ground constraint: elastic bounce when the center drops below height/2.
+
+      ENERGY: de-penetration RAISES the ball by 'pen', which costs m·g·pen of potential
+      energy. We take it back from the kinetic energy, otherwise every contact frame
+      creates energy out of nothing: a ball at rest starts vibrating on the spot
+      (invisible, sub-pixel) while its |v| keeps growing, and the whole gas heats up.
       */
 
       if (!gravity_ok){ return }                               // no gravity -> no "down" -> no ground (everything is free 3D)
@@ -2077,8 +2091,12 @@ function ground_bounce(){
             if (o.blocked){ continue }                         // static object: no ground bounce
             var hz = (o.radius !== undefined) ? o.radius : o.height/2   // sphere: rests exactly on the ground (bottom = center - radius); others: height/2
             if (o.position.z < hz){
+                  var pen = hz - o.position.z                  // depth crossed during the step
                   o.position.z = hz                            // ALWAYS brings the ball back up to ground level (de-penetration)
-                  if (o.speed.z < 0){ o.speed.z = -o.speed.z } // reflects ONLY if it's descending, otherwise we'd trap it under the ground
+                  if (o.speed.z < 0){                          // reflects ONLY if it's descending, otherwise we'd trap it under the ground
+                        var v2 = o.speed.z*o.speed.z - 2*GRAVITY_Z*pen   // rebound velocity paying for the rise
+                        o.speed.z = (v2 > 0) ? Math.sqrt(v2) : 0         // too slow to bounce -> settles for good
+                  }
             }
       }
 
@@ -2101,8 +2119,14 @@ function lid_bounce(){
                   if (o.position.x < b.xmin || o.position.x > b.xmax || o.position.y < b.ymin || o.position.y > b.ymax){ continue }
                   var rad = (o.radius !== undefined) ? o.radius : 0
                   if (o.position.z + rad > zc){
+                        var pen = o.position.z + rad - zc            // overshoot above the lid
                         o.position.z = zc - rad
-                        if (o.speed.z > 0){ o.speed.z = -o.speed.z }   // reflects only if it's rising
+                        if (o.speed.z > 0){                          // reflects only if it's rising
+                              // symmetric to the ground: lowering the ball GIVES BACK m·g·pen,
+                              // which goes into the kinetic energy (nothing to add without gravity)
+                              var g = gravity_ok ? GRAVITY_Z : 0
+                              o.speed.z = -Math.sqrt(o.speed.z*o.speed.z + 2*g*pen)
+                        }
                   }
             }
       }
