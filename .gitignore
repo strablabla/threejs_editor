@@ -21,6 +21,10 @@ env/
 /static/scenes/*.json
 !/static/scenes/.gitkeep
 
+# Rapports d'expérience générés au runtime (non versionnés)
+/static/reports/*.json
+!/static/reports/.gitkeep
+
 # Fichiers uploadés (textures déposées via Dropzone)
 /static/upload/*
 !/static/upload/Blank.jpg
