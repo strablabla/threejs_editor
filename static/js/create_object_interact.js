@@ -285,8 +285,18 @@ function population_bounds(list){                     // bounding box (min/max o
       return b
 }
 
+function free_gpu(o){                                 // frees the GPU memory of a mesh (geometry + material + texture)
+      if (o && o.geometry && o.geometry.dispose && !o.geometry._shared){ o.geometry.dispose() }  // never dispose a shared ball geometry
+      var mats = (o && o.material) ? (o.material.length ? o.material : [o.material]) : []
+      for (var m=0;m<mats.length;m++){
+            if (mats[m] && mats[m].map && mats[m].map.dispose){ mats[m].map.dispose() }
+            if (mats[m] && mats[m].dispose){ mats[m].dispose() }
+      }
+}
+
 function remove_single_object(o){                     // clean removal of an object: scene + all lists + selection
       scene.remove(o)
+      free_gpu(o)                                    // without dispose(), scene.remove leaks VRAM (matters when shrinking a big population)
       var i = objects.indexOf(o);            if (i>=0){ objects.splice(i,1) }
       i = list_moving_objects.indexOf(o);    if (i>=0){ list_moving_objects.splice(i,1) }
       if (typeof list_interact !== 'undefined'){ i = list_interact.indexOf(o); if (i>=0){ list_interact.splice(i,1) } }
@@ -297,7 +307,7 @@ function remove_single_object(o){                     // clean removal of an obj
       if (typeof list_paired_harmonic !== 'undefined'){
             for (var k=list_paired_harmonic.length-1;k>=0;k--){
                   var pr = list_paired_harmonic[k]
-                  if (pr[0]===o || pr[1]===o){ if (pr[2]){ scene.remove(pr[2]) } list_paired_harmonic.splice(k,1) }
+                  if (pr[0]===o || pr[1]===o){ if (pr[2]){ scene.remove(pr[2]); free_gpu(pr[2]) } list_paired_harmonic.splice(k,1) }
             }
       }
       if (typeof SELECTED    !== 'undefined' && SELECTED    === o){ SELECTED = null }

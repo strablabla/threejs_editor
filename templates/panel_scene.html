@@ -74,13 +74,30 @@
          setTimeout(populate_scene_list, 400)     // the archived scene appears in the list
     }
 
+    // scene.remove() only detaches from the graph: the geometry, material and textures stay
+    // in GPU memory, so dispose() them to free VRAM. The MAIN scene-switch crash, though, was a
+    // V8 JS-heap OOM: every ball used to own a full THREE.Geometry (~1089 verts + ~2048 Face3 as
+    // JS objects). Balls now SHARE one geometry (cf. shared_sphere_geometry), flagged _shared —
+    // it must NOT be disposed here (other balls still reference it); only per-object geometries
+    // (boxes, walls) are disposed.
+    function dispose_object(o){
+         if (!o){ return }
+         scene.remove(o)
+         if (o.geometry && o.geometry.dispose && !o.geometry._shared){ o.geometry.dispose() }
+         var mats = o.material ? (o.material.length ? o.material : [o.material]) : []
+         for (var m = 0; m < mats.length; m++){
+               var mat = mats[m]; if (!mat){ continue }
+               if (mat.map && mat.map.dispose){ mat.map.dispose() }         // texture (walls, boxes)
+               if (mat.dispose){ mat.dispose() }
+         }
+    }
     function clear_scene_local(){
          // remove from the 3D graph all objects + springs + marks, and reset the lists
-         for (var i in objects){ scene.remove(objects[i]) }
+         for (var i in objects){ dispose_object(objects[i]) }
          for (var i in list_paired_harmonic){
-               if (list_paired_harmonic[i][2]){ scene.remove(list_paired_harmonic[i][2]) }
+               if (list_paired_harmonic[i][2]){ dispose_object(list_paired_harmonic[i][2]) }
          }
-         for (var i in list_dotted_area){ scene.remove(list_dotted_area[i]) }
+         for (var i in list_dotted_area){ dispose_object(list_dotted_area[i]) }
          objects = []
          list_moving_objects = []
          list_paired_harmonic = []

@@ -25,10 +25,28 @@ function obj_basics(object, p, r, name){
         return object;
 }
 
+// All balls are identical spheres (radius = radius_spring, 32×32): per-ball size is done via
+// obj.scale (set_sphere_radius), NEVER by editing the geometry. So ONE geometry is shared by
+// every ball. Before this, each ball allocated its own THREE.Geometry (~1089 verts + ~2048
+// Face3 as JS objects, ~hundreds of KB of HEAP each): 1200 balls ≈ 0.5 GB of JS heap, and
+// switching scenes OOM'd V8 ("Ineffective mark-compacts near heap limit") — dispose() only
+// frees VRAM, not this heap. Sharing => ~1 geometry total, the OOM disappears.
+var _sphere_geo_cache = {}
+function shared_sphere_geometry(radius, seg){
+        seg = seg || 32
+        var key = radius + '_' + seg
+        if (!_sphere_geo_cache[key]){
+              var g = new THREE.SphereGeometry( radius, seg, seg )
+              g._shared = true                 // dispose_object/free_gpu must NOT dispose this: other balls still use it
+              _sphere_geo_cache[key] = g
+        }
+        return _sphere_geo_cache[key]
+}
+
 function sphere_blocked(pos){
 
         var radius = 20;
-        var geometry = new THREE.SphereGeometry( radius, 32, 32 );
+        var geometry = shared_sphere_geometry( radius, 32 );
         var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
         var sphere = new THREE.Mesh( geometry, material );
         scene.add( sphere );
@@ -45,7 +63,7 @@ function basic_sphere(name,p,r,col){
         */
 
         var radius = radius_spring;
-        var geometry = new THREE.SphereGeometry( radius, 32, 32 );
+        var geometry = shared_sphere_geometry( radius, 32 );
         var material = new THREE.MeshBasicMaterial( {color: col} );
         var object = new THREE.Mesh( geometry, material );
         object = obj_basics(object,p,r,name)
