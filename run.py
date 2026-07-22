@@ -70,8 +70,18 @@ def receive(message):
     g = json.loads(message)
     archive_name = (g.get('_archive') or '').strip()        # archivage UNIQUEMENT sur sauvegarde explicite (Save as)
     if archive_name and archive_name != 'None':             # -> les scenes nommees restent figees a l'etat sauvegarde
-        with open('static/scenes/{}.json'.format(archive_name), 'w') as h:
-            h.write(str(message))
+        dst = 'static/scenes/{}.json'.format(archive_name)
+        if not g.get('_folder') and os.path.exists(dst):    # re-saving: keep the virtual folder the client didn't resend
+            try:
+                with open(dst, 'r') as h:
+                    prev = (json.load(h).get('_folder') or '').strip().strip('/')
+                if prev:
+                    g['_folder'] = prev
+            except (ValueError, OSError):
+                pass
+        with open(dst, 'w') as h:
+            json.dump(g, h)                                 # dump g (may carry the preserved _folder), not the raw message
+        _folder_cache.pop(dst, None)
 
 @socketio.on('begin', namespace='/pos')
 def receive(begin):
@@ -129,17 +139,70 @@ def upload_file(debug=1):
     #print("####### On the point to scan UPLOADED_PATH !!!")
     return render_template('create_3d.html')
 
+# --- Virtual folders --------------------------------------------------------
+# The scenes stay FLAT on disk (static/scenes/*.json). Their place in the tree is
+# a virtual path stored INSIDE each scene JSON under the special key '_folder'
+# (e.g. "Thermo/atmo") -- same convention as '_dynamics'/'_archive'. Reading that
+# field means parsing the scene file, and scenes are big (up to ~1.3 MB), so the
+# folder is cached per file mtime: the 18 MB of scenes are parsed once, not on
+# every dropdown refresh.
+_folder_cache = {}                         # path -> (mtime, folder)
+
+def _scene_folder(path):
+    '''Virtual folder of a scene file, cached by mtime (''=root/ungrouped).'''
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return ''
+    cached = _folder_cache.get(path)
+    if cached and cached[0] == mt:
+        return cached[1]
+    folder = ''
+    try:
+        with open(path, 'r') as f:
+            folder = (json.load(f).get('_folder') or '').strip().strip('/')
+    except (ValueError, OSError):
+        folder = ''
+    _folder_cache[path] = (mt, folder)
+    return folder
+
 @app.route('/scenes')
 def list_scenes():
     '''
-    Return the list of saved named scenes (files in static/scenes/).
+    Return the saved named scenes as [{name, folder}] (folder = virtual path,
+    '' = root). Files stay flat in static/scenes/; folder is read from '_folder'.
     '''
-    names = []
+    out = []
     for path in glob.glob('static/scenes/*.json'):
         name = opb(path)[:-5]              # strip the .json extension
         if name.strip():                   # skip the empty-named archive
-            names.append(name)
-    return flask.jsonify(sorted(names))
+            out.append({'name': name, 'folder': _scene_folder(path)})
+    out.sort(key=lambda s: s['name'].lower())
+    return flask.jsonify(out)
+
+@app.route('/scene_set_folder/<path:name>', methods=['POST'])
+def set_scene_folder(name):
+    '''
+    File a scene into a virtual folder: write/update its '_folder' key in place
+    (source of truth, travels with the file). folder='' -> back to the root.
+    '''
+    folder = (flask.request.values.get('folder') or '').strip().strip('/')
+    path = os.path.join('static', 'scenes', name + '.json')
+    if not os.path.exists(path):
+        return flask.jsonify({'error': 'scene not found'}), 404
+    try:
+        with open(path, 'r') as f:
+            data = json.load(f)
+    except ValueError:
+        return flask.jsonify({'error': 'corrupted scene'}), 500
+    if folder:
+        data['_folder'] = folder
+    else:
+        data.pop('_folder', None)          # empty -> ungrouped, don't keep a stale key
+    with open(path, 'w') as f:
+        json.dump(data, f)
+    _folder_cache.pop(path, None)          # invalidate (mtime changed anyway)
+    return flask.jsonify({'ok': True, 'name': name, 'folder': folder})
 
 @app.route('/eval_fit', methods=['POST'])
 def eval_fit():
