@@ -343,10 +343,12 @@ Deux entrées équivalentes : les **cases par couleur** dans la fenêtre Monitor
 suivre **toutes** les boules de cette couleur) ou la case **`trajectory`** du menu contextuel
 (clic droit) d'une boule. Les tracés reprennent la **couleur de chaque boule**.
 
-**Décocher une couleur masque sa courbe et met l'enregistrement en pause — sans l'effacer** ;
-**recocher** la fait réapparaître telle quelle et reprend l'enregistrement. Seul **reset**
-(dans la fenêtre) remet les tracés à zéro et refixe l'origine `r₀`. L'historique est plafonné
-(~200 000 pts/trajectoire, borne mémoire) et le tracé **décimé** pour rester fluide.
+**Décocher une couleur masque sa courbe, mais l'enregistrement continue en tâche de fond**,
+**en phase** avec les courbes restées visibles. **Recocher** la fait réapparaître — et la
+portion acquise **pendant qu'elle était masquée** est tracée **en pointillés**, la courbe
+reprenant **au même point temporel** que les autres. Seul **reset** (dans la fenêtre) remet
+les tracés à zéro et refixe l'origine `r₀`. L'historique est plafonné (~200 000 pts/trajectoire,
+borne mémoire) et le tracé **décimé** pour rester fluide.
 
 ### Infobulles (moyennes)
 

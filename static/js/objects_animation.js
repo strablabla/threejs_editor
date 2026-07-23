@@ -1316,9 +1316,15 @@ var TRAJ_MAX = 200000                                       // max samples per t
 var TRAJ_DRAW_MAX = 2000                                    // max points plotted per curve (decimation -> fast rendering)
 function traj_color(obj){ return obj_hex(obj) }             // ACTUAL color of the ball (currentHex = tint outside highlight)
 
-function tracked_objects(){                                 // objects whose trajectory is tracked
+function tracked_objects(){                                 // objects whose trajectory is currently DISPLAYED (checked)
       var a = []
       for (var k in objects){ if (objects[k] && objects[k].track_trajectory){ a.push(objects[k]) } }
+      return a
+}
+
+function acquired_objects(){                                // objects still being RECORDED: every object that has a traj,
+      var a = []                                            // even if currently un-checked (hidden) -> it keeps acquiring in
+      for (var k in objects){ if (objects[k] && objects[k].traj){ a.push(objects[k]) } }  // the background, in sync with the visible ones
       return a
 }
 
@@ -1454,19 +1460,19 @@ function apply_traj_mode(){                                 // shows/hides each 
 }
 
 function reset_trajectory(obj){                             // (re)starts recording from the current position
-      obj.traj = { x:[], y:[], z:[], msd:[], v:[], x0:null, y0:null, z0:null, zsum:0, zcount:0, vsum:0, vcount:0 }  // v: |velocity| per sample ; zsum/zcount & vsum/vcount: ⟨z⟩ / ⟨|v|⟩ since the reset (independent of the sliding window)
+      obj.traj = { x:[], y:[], z:[], msd:[], v:[], hid:[], x0:null, y0:null, z0:null, zsum:0, zcount:0, vsum:0, vcount:0 }  // hid[k]=true if sample k was recorded while HIDDEN (un-checked) -> drawn dashed. zsum/zcount & vsum/vcount: ⟨z⟩ / ⟨|v|⟩ since reset
 }
 
 function reset_all_trajectories(){
       if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // restart with an auto-fit view
       sim_time = 0                                                      // the timer restarts with the plots ("since the last Reset")
-      var t = tracked_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }
+      var t = acquired_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }  // Reset zeroes ALL curves (visible AND hidden)
 }
 
 function record_trajectories(){                             // called each animation frame
 
       if (!show_trajectories){ return }
-      var t = tracked_objects()
+      var t = acquired_objects()                            // record every acquired curve, even un-checked (hidden) ones -> no gap on re-check
       for (var i=0;i<t.length;i++){
             var o = t[i]; if (!o.traj){ reset_trajectory(o) }
             var tr = o.traj
@@ -1476,15 +1482,33 @@ function record_trajectories(){                             // called each anima
             var sp = o.speed                               // |velocity| = speed magnitude at this sample
             var vmag = sp ? Math.sqrt(sp.x*sp.x + sp.y*sp.y + sp.z*sp.z) : 0
             tr.v.push(vmag)
+            tr.hid.push(!o.track_trajectory)               // was this sample acquired while hidden? -> dashed on re-display
             tr.zsum += o.position.z; tr.zcount++            // cumulative z mean since the reset (all points, not just the window)
             tr.vsum += vmag; tr.vcount++                    // cumulative ⟨|v|⟩ mean since the reset
-            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift(); tr.v.shift() }
+            if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift(); tr.v.shift(); tr.hid.shift() }
       }
       draw_trajectories()
 
 }
 
 function traj_stride(n){ return Math.max(1, Math.ceil(n / TRAJ_DRAW_MAX)) }  // decimation: at most TRAJ_DRAW_MAX points
+
+function stroke_traj_curve(ctx, XY, HD, color){
+      // Draw a polyline (pixel points XY) splitting it into runs: SOLID where the sample was
+      // visible, DASHED where it was recorded while hidden (HD[k] === true).
+      if (!XY || XY.length < 2){ return }
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5
+      var i = 0
+      while (i < XY.length-1){
+            var h = !!HD[i+1]                                 // segment i->i+1 styled by the incoming sample's hidden flag
+            ctx.setLineDash(h ? [4,3] : [])
+            ctx.beginPath(); ctx.moveTo(XY[i].x, XY[i].y); ctx.lineTo(XY[i+1].x, XY[i+1].y)
+            var j = i+1
+            while (j+1 < XY.length && !!HD[j+1] === h){ j++; ctx.lineTo(XY[j].x, XY[j].y) }
+            ctx.stroke(); i = j
+      }
+      ctx.setLineDash([])
+}
 
 /*
 Rubber-band zoom on the trajectory graphs. Each canvas has:
@@ -1849,11 +1873,10 @@ function draw_trajectories(){
                   ctx.save(); ctx.beginPath(); ctx.rect(L,T,PW,PH); ctx.clip()          // only shows the interior (useful when zoomed)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.x.length<2)continue
                         var n=tr.x.length, st=traj_stride(n), col=traj_color(t[i])
-                        ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath()
-                        var first=true
-                        for (var k=0;k<n;k+=st){ var X=PX(tr.x[k]),Y=PY(tr.y[k]); if(first){ctx.moveTo(X,Y);first=false}else ctx.lineTo(X,Y) }
-                        ctx.lineTo(PX(tr.x[n-1]),PY(tr.y[n-1]))   // last point
-                        ctx.stroke()
+                        var XY=[], HD=[]
+                        for (var k=0;k<n;k+=st){ XY.push({x:PX(tr.x[k]),y:PY(tr.y[k])}); HD.push(!!(tr.hid&&tr.hid[k])) }
+                        XY.push({x:PX(tr.x[n-1]),y:PY(tr.y[n-1])}); HD.push(!!(tr.hid&&tr.hid[n-1]))   // last point
+                        stroke_traj_curve(ctx, XY, HD, col)
                         ctx.fillStyle=col; ctx.beginPath(); ctx.arc(PX(tr.x[n-1]),PY(tr.y[n-1]),3,0,2*Math.PI); ctx.fill()
                   }
                   ctx.restore()
@@ -1888,11 +1911,10 @@ function draw_trajectories(){
                         var n=tr.z.length, st=traj_stride(n), col=traj_color(t[i])
                         //--- z(t): curve (hidden in "means only" mode)
                         if (!means_only){
-                              cz.strokeStyle=col; cz.lineWidth=1.5; cz.beginPath()
-                              var first=true
-                              for (var k=0;k<n;k+=st){ var X=ZX(k),Y=ZY(tr.z[k]); if(first){cz.moveTo(X,Y);first=false}else cz.lineTo(X,Y) }
-                              cz.lineTo(ZX(n-1),ZY(tr.z[n-1]))         // last point
-                              cz.stroke()
+                              var XY=[], HD=[]
+                              for (var k=0;k<n;k+=st){ XY.push({x:ZX(k),y:ZY(tr.z[k])}); HD.push(!!(tr.hid&&tr.hid[k])) }
+                              XY.push({x:ZX(n-1),y:ZY(tr.z[n-1])}); HD.push(!!(tr.hid&&tr.hid[n-1]))   // last point
+                              stroke_traj_curve(cz, XY, HD, col)
                         }
                         //--- ⟨z⟩ mean since the reset: dashed with the curve, solid if displayed alone
                         if (tr.zcount > 0){
@@ -1932,11 +1954,10 @@ function draw_trajectories(){
                   c2.save(); c2.beginPath(); c2.rect(L,T,PW,PH); c2.clip()
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||tr.msd.length<2)continue
                         var n=tr.msd.length, st=traj_stride(n)
-                        c2.strokeStyle=traj_color(t[i]); c2.lineWidth=1.5; c2.beginPath()
-                        var first=true
-                        for (var k=0;k<n;k+=st){ var X=MX(k),Y=MY(tr.msd[k]); if(first){c2.moveTo(X,Y);first=false}else c2.lineTo(X,Y) }
-                        c2.lineTo(MX(n-1),MY(tr.msd[n-1]))        // last point
-                        c2.stroke()
+                        var XY=[], HD=[]
+                        for (var k=0;k<n;k+=st){ XY.push({x:MX(k),y:MY(tr.msd[k])}); HD.push(!!(tr.hid&&tr.hid[k])) }
+                        XY.push({x:MX(n-1),y:MY(tr.msd[n-1])}); HD.push(!!(tr.hid&&tr.hid[n-1]))   // last point
+                        stroke_traj_curve(c2, XY, HD, traj_color(t[i]))
                   }
                   c2.restore()
             } else { traj_view.msd = null }
@@ -1967,11 +1988,10 @@ function draw_trajectories(){
                   traj_v_means = []                                // hoverable ⟨|v|⟩ lines (repopulated on each drawing)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.v||tr.v.length<2)continue
                         var n=tr.v.length, st=traj_stride(n), colv=traj_color(t[i])
-                        c3.strokeStyle=colv; c3.lineWidth=1.5; c3.beginPath()
-                        var first=true
-                        for (var k=0;k<n;k+=st){ var X=VX(k),Y=VY(tr.v[k]); if(first){c3.moveTo(X,Y);first=false}else c3.lineTo(X,Y) }
-                        c3.lineTo(VX(n-1),VY(tr.v[n-1]))        // last point
-                        c3.stroke()
+                        var XY=[], HD=[]
+                        for (var k=0;k<n;k+=st){ XY.push({x:VX(k),y:VY(tr.v[k])}); HD.push(!!(tr.hid&&tr.hid[k])) }
+                        XY.push({x:VX(n-1),y:VY(tr.v[n-1])}); HD.push(!!(tr.hid&&tr.hid[n-1]))   // last point
+                        stroke_traj_curve(c3, XY, HD, colv)
                         //--- ⟨|v|⟩ mean since the reset: NO visible line on v(t) (per request),
                         //    but keep an invisible hover target at the mean level for the tooltip
                         if (tr.vcount > 0){
