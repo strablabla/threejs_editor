@@ -326,18 +326,51 @@ qu'on coche la case** puis se met à jour à chaque frame pendant l'animation.
 
 ## Trajectoires & MSD
 
-`Dynamics → Monitoring → ☑ trajectories` ouvre une fenêtre (en haut à gauche) à **deux
-canvas** :
-- **Trajectories** : le **chemin x-y** de chaque boule suivie (échelle isotrope, point =
-  position courante) ;
-- **MSD** : le **déplacement quadratique moyen `|r−r₀|²`** en fonction du temps, une
-  courbe par trajectoire — signature du régime **balistique** (∝ t²) aux temps courts puis
-  **diffusif** (∝ t) aux temps longs (mouvement brownien).
+`Dynamics → Monitoring → ☑ trajectories` ouvre la fenêtre **Monitoring** (en haut à gauche)
+avec **quatre graphes que l'on coche indépendamment** (toutes les combinaisons sont possibles) :
 
-On choisit **quelles** boules suivre via la case **`trajectory`** de leur menu contextuel
-(clic droit). Les tracés reprennent la **couleur de chaque boule**. Le bouton **reset**
-(dans la fenêtre) réinitialise tous les tracés et refixe l'origine `r₀`. L'historique n'est
-pas plafonné (borne mémoire ~200 000 pts) et le tracé est **décimé** pour rester fluide.
+- **Trajectories** — le **chemin x-y** de chaque boule suivie (échelle isotrope en vue auto,
+  point = position courante) ;
+- **z(t)** — l'**altitude** en fonction du temps ; une ligne **⟨z⟩** en pointillés donne la
+  **moyenne** depuis le dernier *reset* ;
+- **MSD** — le **déplacement quadratique moyen `|r−r₀|²`** vs temps : signature **balistique**
+  (∝ t²) aux temps courts puis **diffusive** (∝ t) aux temps longs (mouvement brownien) ;
+- **|v|(t)** — la **norme de la vitesse** vs temps.
+
+### Choisir les boules suivies
+
+Deux entrées équivalentes : les **cases par couleur** dans la fenêtre Monitoring (une case =
+suivre **toutes** les boules de cette couleur) ou la case **`trajectory`** du menu contextuel
+(clic droit) d'une boule. Les tracés reprennent la **couleur de chaque boule**.
+
+**Décocher une couleur masque sa courbe et met l'enregistrement en pause — sans l'effacer** ;
+**recocher** la fait réapparaître telle quelle et reprend l'enregistrement. Seul **reset**
+(dans la fenêtre) remet les tracés à zéro et refixe l'origine `r₀`. L'historique est plafonné
+(~200 000 pts/trajectoire, borne mémoire) et le tracé **décimé** pour rester fluide.
+
+### Infobulles (moyennes)
+
+Survoler la ligne **⟨z⟩** de z(t) — ou le **niveau de vitesse moyenne** sur |v|(t) (cible de
+survol invisible, pas de ligne dessinée) — affiche une bulle **couleur — masse — rayon —
+⟨valeur⟩**. Les boules de mêmes couleur/masse/rayon sont **regroupées** en une seule ligne
+(moyenne des moyennes, avec **×N**).
+
+### Zoom, pan et intervalles (indépendants par graphe)
+
+- **Vue auto** : **glisser** dessine une **fenêtre de sélection** (pointillés, mention
+  *« clic = zoom »*) ; **clic dedans** → zoome dessus, **clic à côté** → l'enlève.
+- **Vue zoomée** : mode **pan** par défaut (curseur **main**) — **glisser** déplace la vue
+  vers les zones contiguës ; **double-clic** → retour vue auto.
+  **Clic droit** dans le graphe bascule l'outil **pan ↔ zoom** : en mode zoom, on redessine
+  une fenêtre pour **re-zoomer dans le zoom**.
+- **Poignées triangulaires** (aux 4 bords) : un **petit triangle** — visible **seulement au
+  survol du bord** (pour ne pas encombrer les graphes) — pointe l'endroit de la courbe qui
+  définit cette borne : en bas = début/fin de l'**intervalle de temps**, à gauche = min/max de
+  l'**intervalle de valeurs**. On **tire un triangle** (une ligne-guide pointillée montre où
+  sera la coupe) ; le **changement d'échelle n'intervient qu'au relâchement**, pas avant.
+- **Suivi temps réel** : **clic droit sur la poignée droite** (axe des temps de z(t)/MSD/|v|(t))
+  colle le bord droit au **dernier échantillon** ; la fenêtre **glisse** en gardant sa largeur
+  (badge vert **⏱ live**). Tirer manuellement la poignée droite désactive le suivi.
 
 ## Profil d'altitude
 
@@ -380,6 +413,29 @@ Panneau **Scene** :
 - **Clear** (tooltip *clear the scene*) → vide l'éditeur.
 - **Quit** est désormais l'icône **⏻** dans la navbar (et non plus dans ce panneau).
 
+### Rangement en dossiers virtuels
+
+La liste déroulante des scènes est un **arbre repliable** façon messagerie. Le rangement est
+**virtuel** : sur le disque tout reste **plat** dans `static/scenes/`, mais chaque scène
+mémorise son chemin dans **son propre JSON** (clé **`_folder`**, ex. `Thermo/atmo` — même
+esprit que `_dynamics`). Côté serveur, `/scenes` renvoie `[{name, folder}]` (dossier lu via un
+**cache par mtime**, pas de re-parsing des scènes à chaque ouverture) et `POST
+/scene_set_folder/<nom>` écrit le `_folder` ; ré-enregistrer une scène **préserve** son dossier.
+
+- **Clic droit sur une scène** : la ranger dans un **dossier existant**, créer un **nouveau
+  (sous-)dossier** (chemin `A/B/C` → imbrication), la **sortir à la racine**, ou la
+  **supprimer** via la **croix noire ✕** de l'en-tête (supprime aussi son rapport).
+- **Clic droit sur un dossier** : le **renommer** (re-préfixe toutes les scènes dessous) ou le
+  **vider vers la racine**.
+- Chaque dossier se **plie/déplie** (▸/▾, état mémorisé) ; le bouton **⊞/⊟** à droite du nom
+  ouvre/ferme **tous ses sous-dossiers** d'un coup.
+- La hauteur de la liste est **bornée au bas du panneau** (défilement interne) pour que la
+  dernière scène reste toujours atteignable.
+
+> **Versionnement** : les scènes nommées (`static/scenes/`) **et** les rapports d'expérience
+> (`static/reports/`) sont **générés au runtime et non versionnés** (`.gitignore`) — gardés en
+> local, un `.gitkeep` préserve chaque dossier pour un clone frais.
+
 Sphères, **chaînes de ressorts** (liaisons reconstruites), **boîtes** (`wall_box`, avec
 leur `box_id` et l'option `movable`) et **couvercles** (clé `_lids`, recréés depuis leur
 boîte) sont persistés. Les **groupes persistants** (`group_id`) et l'**ajustement Python**
@@ -403,8 +459,9 @@ Chaque changement validé (relâchement de souris) enregistre un **snapshot** de
 au rafraîchissement** de la page. Une simple rotation caméra ne crée pas d'entrée
 (dédoublonnage) ; profondeur bornée (`HISTORY_MAX`).
 
-> Les fichiers de scènes runtime (`static/scenes/*.json`, `static/pos.json`) sont
-> **ignorés par git** (voir `.gitignore`).
+> Les fichiers générés au runtime — scènes (`static/scenes/*.json`), **rapports**
+> (`static/reports/*.json`) et `static/pos.json` — sont **ignorés par git** (voir
+> `.gitignore`) ; un `.gitkeep` conserve chaque dossier.
 
 ---
 
@@ -423,10 +480,11 @@ Les **flèches 3D** de direction (il n'y a plus de panneau *Views*) :
 |---|---|
 | `/` | page principale |
 | `/upload_file` | upload de textures (Dropzone) |
-| `/scenes` | liste des scènes nommées |
+| `/scenes` | liste des scènes nommées : `[{name, folder}]` (dossier virtuel, cache par mtime) |
 | `/scene/<nom>` | charge une scène (et la copie dans `pos.json`) |
 | `/scene_delete/<nom>` | supprime une scène |
 | `/scene_rename/<nom>?new=<nouveau>` | renomme une scène (refus si `<nouveau>` existe déjà) |
+| `/scene_set_folder/<nom>` *(POST `folder=…`)* | range la scène dans un dossier virtuel (écrit `_folder`) |
 | `/eval_fit` | évalue une expression Python de `z` (ajustement du profil d'altitude) |
 | `/shutdown` | arrête le serveur |
 | socket `message` / `begin` | sauvegarde / restitution de l'état |

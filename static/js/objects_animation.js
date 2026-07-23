@@ -1356,7 +1356,10 @@ function set_track_by_color(hex, on){
       for (var i=0;i<a.length;i++){
             if (obj_hex(a[i]) !== hex){ continue }
             a[i].track_trajectory = on
-            if (on){ reset_trajectory(a[i]) } else { a[i].traj = null }
+            // Keep the recorded curve when un-/re-checking: un-checking just hides it and pauses
+            // recording (the object leaves tracked_objects), re-checking shows it again and resumes.
+            // Only Reset zeroes the curves. -> reset only the first time (no traj yet).
+            if (on && !a[i].traj){ reset_trajectory(a[i]) }
             n++
       }
       return n
@@ -1451,7 +1454,7 @@ function apply_traj_mode(){                                 // shows/hides each 
 }
 
 function reset_trajectory(obj){                             // (re)starts recording from the current position
-      obj.traj = { x:[], y:[], z:[], msd:[], v:[], x0:null, y0:null, z0:null, zsum:0, zcount:0 }  // v: |velocity| per sample ; zsum/zcount: ⟨z⟩ since the reset (independent of the sliding window)
+      obj.traj = { x:[], y:[], z:[], msd:[], v:[], x0:null, y0:null, z0:null, zsum:0, zcount:0, vsum:0, vcount:0 }  // v: |velocity| per sample ; zsum/zcount & vsum/vcount: ⟨z⟩ / ⟨|v|⟩ since the reset (independent of the sliding window)
 }
 
 function reset_all_trajectories(){
@@ -1471,8 +1474,10 @@ function record_trajectories(){                             // called each anima
             var dx = o.position.x-tr.x0, dy = o.position.y-tr.y0, dz = o.position.z-tr.z0
             tr.x.push(o.position.x); tr.y.push(o.position.y); tr.z.push(o.position.z); tr.msd.push(dx*dx+dy*dy+dz*dz)  // |r-r0|²
             var sp = o.speed                               // |velocity| = speed magnitude at this sample
-            tr.v.push(sp ? Math.sqrt(sp.x*sp.x + sp.y*sp.y + sp.z*sp.z) : 0)
+            var vmag = sp ? Math.sqrt(sp.x*sp.x + sp.y*sp.y + sp.z*sp.z) : 0
+            tr.v.push(vmag)
             tr.zsum += o.position.z; tr.zcount++            // cumulative z mean since the reset (all points, not just the window)
+            tr.vsum += vmag; tr.vcount++                    // cumulative ⟨|v|⟩ mean since the reset
             if (tr.x.length > TRAJ_MAX){ tr.x.shift(); tr.y.shift(); tr.z.shift(); tr.msd.shift(); tr.v.shift() }
       }
       draw_trajectories()
@@ -1489,31 +1494,104 @@ Rubber-band zoom on the trajectory graphs. Each canvas has:
                      -> allows inverting pixel -> data on release of the rectangle.
 Drag = zoom on the rectangle; double-click = return to auto-fit.
 */
-var traj_zoom = { xy:null, z:null, msd:null }
-var traj_view = { xy:null, z:null, msd:null }
-var traj_drag = null                                        // rectangle in progress: {canvasId, key, x0,y0,x1,y1} (only one drag at a time)
-var traj_z_means = []                                       // ⟨z⟩ lines of the last drawing: {y (canvas px), value, mass, color} -> hover tooltip
+var traj_zoom = { xy:null, z:null, msd:null, v:null }        // applied zoom domain (data coords) or null = auto-fit
+var traj_view = { xy:null, z:null, msd:null, v:null }        // last displayed transform {L,T,W,H,a0,a1,b0,b1}
+var traj_sel  = { xy:null, z:null, msd:null, v:null }        // PENDING selection window (data coords) awaiting a click to zoom/cancel
+var traj_tool = { xy:'pan', z:'pan', msd:'pan', v:'pan' }    // tool WHEN ZOOMED: 'pan' (default, hand cursor) or 'select' (rubber-band). Toggled by right-click.
+var traj_hover = { xy:null, z:null, msd:null, v:null }      // which border is hovered per graph -> its triangle handle shows (only on hover, no clutter)
+var traj_drag = null                                        // active gesture: {canvasId, key, mode:'select'|'pan'|'edge', ...} (one at a time)
+
+// pixel <-> data conversions given a view v = {L,T,W,H,a0,a1,b0,b1} (b grows upward: top = b1)
+function traj_px_x(v,a){ return v.L + (a-v.a0)/((v.a1-v.a0)||1)*v.W }
+function traj_px_y(v,b){ return v.T + (1-(b-v.b0)/((v.b1-v.b0)||1))*v.H }
+function traj_data_x(v,x){ return v.a0 + (x-v.L)/(v.W||1)*(v.a1-v.a0) }
+function traj_data_y(v,y){ return v.b0 + (1-(y-v.T)/(v.H||1))*(v.b1-v.b0) }
+
+// real-time sliding window (time axis): when the right handle is "stuck to now" (followX),
+// pin a1 to the latest sample each frame and slide a0 to keep the window width constant.
+function traj_follow_slide(key, n){
+      var z = traj_zoom[key]
+      if (z && z.followX && n > 1){ var w = z.a1 - z.a0; z.a1 = n-1; z.a0 = Math.max(0, (n-1) - w) }
+}
+
+function draw_traj_handles(){
+
+      /*
+      Interval handles = small triangles pointing at the curve spot that defines each window
+      bound: two on the bottom axis (start/end time = a0/a1, pointing up), two on the left axis
+      (min/max value = b0/b1, pointing right). Dragging one moves ONLY the triangle (+ a dashed
+      guide line); the axis rescale happens on release (cf. the 'edge' branch of finish()).
+      */
+
+      var ids = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas', v:'v_canvas' }
+      for (var key in ids){
+            var v = traj_view[key]; if (!v){ continue }
+            var drag = (traj_drag && traj_drag.mode==='edge' && traj_drag.key===key) ? traj_drag : null
+            var active = drag ? drag.edge : traj_hover[key]      // only the hovered (or dragged) border shows its triangle
+            if (!active){ continue }
+            var cv = document.getElementById(ids[key]); if (!cv){ continue }
+            var ctx = cv.getContext('2d')
+            var xL=v.L, xR=v.L+v.W, yT=v.T, yB=v.T+v.H
+            function tri(cx, cy, dir, hot){
+                  ctx.save(); ctx.fillStyle = hot ? '#0077ff' : '#888'; ctx.beginPath()
+                  if (dir==='up'){ ctx.moveTo(cx, cy-7); ctx.lineTo(cx-4, cy); ctx.lineTo(cx+4, cy) }
+                  else {           ctx.moveTo(cx+7, cy); ctx.lineTo(cx, cy-4); ctx.lineTo(cx, cy+4) }   // 'right'
+                  ctx.closePath(); ctx.fill(); ctx.restore()
+            }
+            function guide(vertical, at){
+                  ctx.save(); ctx.strokeStyle='rgba(0,119,255,0.6)'; ctx.setLineDash([4,3]); ctx.beginPath()
+                  if (vertical){ ctx.moveTo(at,yT); ctx.lineTo(at,yB) } else { ctx.moveTo(xL,at); ctx.lineTo(xR,at) }
+                  ctx.stroke(); ctx.restore()
+            }
+            if (active==='left' || active==='right'){           // time bound: triangle on the bottom axis, pointing up
+                  var x = drag ? drag.previewX : (active==='left' ? xL : xR)
+                  if (drag){ guide(true, x) }
+                  tri(x, yB, 'up', !!drag)
+            } else {                                            // value bound: triangle on the left axis, pointing right
+                  var y = drag ? drag.previewY : (active==='top' ? yT : yB)
+                  if (drag){ guide(false, y) }
+                  tri(xL, y, 'right', !!drag)
+            }
+      }
+}
+
+function draw_traj_follow_badge(){                          // "⏱ live" marker on graphs whose right handle follows real time
+      var ids = { z:'z_canvas', msd:'msd_canvas', v:'v_canvas' }
+      for (var key in ids){
+            var z = traj_zoom[key], v = traj_view[key]; if (!z || !z.followX || !v){ continue }
+            var cv = document.getElementById(ids[key]); if (!cv){ continue }
+            var ctx = cv.getContext('2d')
+            ctx.save(); ctx.fillStyle='#0a8f27'; ctx.font='bold 9px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='top'
+            ctx.fillText('⏱ live', v.L+v.W, v.T+1); ctx.restore()
+      }
+}
+var traj_z_means = []                                       // ⟨z⟩ lines of the last drawing: {y (canvas px), value, mass, radius, color} -> hover tooltip
+var traj_v_means = []                                       // ⟨|v|⟩ lines of the last drawing (same shape) -> hover tooltip on v(t)
 var _traj_zoom_setup = false
 
-function clear_traj_zoom(){ traj_zoom = { xy:null, z:null, msd:null } }
+function clear_traj_zoom(){ traj_zoom = { xy:null, z:null, msd:null, v:null }; traj_sel = { xy:null, z:null, msd:null, v:null } }
 
 function hide_traj_tooltip(){ var el=document.getElementById('traj_tooltip'); if(el){ el.style.display='none' } }
 
-function show_traj_tooltip(clientX, clientY, groups){
+function show_traj_tooltip(clientX, clientY, groups, label){
 
       /*
-      Tooltip when hovering a ⟨z⟩ mean line: one entry per hovered (color, mass)
-      — several particles of the same color/mass then share a single summary line
-      (mean of the ⟨z⟩, with ×N), otherwise 2000 balls of one color would give 2000 lines.
+      Tooltip when hovering a mean line (⟨z⟩ on z(t), ⟨|v|⟩ on v(t)): one entry per hovered
+      (color, mass, radius) — several particles of the same color/mass/radius then share a
+      single summary line (mean of the means, with ×N), otherwise 2000 balls of one color
+      would give 2000 lines. `label` = what the mean is (e.g. '⟨z⟩', '⟨|v|⟩').
       */
 
       var el = document.getElementById('traj_tooltip'); if (!el){ return }
+      label = label || '⟨z⟩'
       var html = ''
       for (var i=0;i<groups.length;i++){
             var g = groups[i], mean = g.sum/g.count
             html += '<div style="display:flex; align-items:center; gap:4px; white-space:nowrap">'
                   + '<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; background:' + g.color + '"></span>'
-                  + 'masse ' + fmt_energy(g.mass) + ' — ⟨z⟩ = ' + fmt_energy(mean)
+                  + 'masse ' + fmt_energy(g.mass)
+                  + (g.radius !== undefined && g.radius !== null ? ' — rayon ' + fmt_energy(g.radius) : '')
+                  + ' — ' + label + ' = ' + fmt_energy(mean)
                   + (g.count > 1 ? ' <span style="color:#bbb">(×' + g.count + ')</span>' : '')
                   + '</div>'
       }
@@ -1535,7 +1613,7 @@ function draw_traj_drag_rect(){
       Painted from the handler, the rectangle would disappear on the next frame — hence invisible.
       */
 
-      if (!traj_drag){ return }
+      if (!traj_drag || traj_drag.mode !== 'select'){ return }
       var cv = document.getElementById(traj_drag.canvasId); if (!cv){ return }
       var ctx = cv.getContext('2d')
       var x = Math.min(traj_drag.x0, traj_drag.x1), y = Math.min(traj_drag.y0, traj_drag.y1)
@@ -1545,76 +1623,187 @@ function draw_traj_drag_rect(){
 
 }
 
-function _bind_traj_zoom(canvasId, key){
-      var cv = document.getElementById(canvasId); if (!cv){ return }
-      cv.style.cursor = 'crosshair'
-      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
-      cv.addEventListener('mousedown', function(e){
-            // stopPropagation: TrackballControls is bound to document and would rotate the camera
-            // during the rectangle drawing (the isolation set on #trajectories_box already covers this case,
-            // we repeat it here so the canvas stays safe even outside that container).
-            e.stopPropagation()
-            var v = traj_view[key]; if (!v){ return }
-            var p = pos(e)
-            if (p.x<v.L || p.x>v.L+v.W || p.y<v.T || p.y>v.T+v.H){ return }   // outside the plot area
-            traj_drag = { canvasId:canvasId, key:key, x0:p.x, y0:p.y, x1:p.x, y1:p.y }
-            e.preventDefault()
-      })
-      cv.addEventListener('mousemove', function(e){
-            if (!traj_drag || traj_drag.key !== key){ return }
-            e.stopPropagation()
-            var v = traj_view[key], p = pos(e)
-            traj_drag.x1 = Math.max(v.L, Math.min(v.L+v.W, p.x))
-            traj_drag.y1 = Math.max(v.T, Math.min(v.T+v.H, p.y))
-            draw_trajectories()                              // redraws the graph + the rectangle on top
-      })
-      function finish(){
-            if (!traj_drag || traj_drag.key !== key){ return }
-            var v = traj_view[key]
-            var x0=Math.min(traj_drag.x0,traj_drag.x1), x1=Math.max(traj_drag.x0,traj_drag.x1)
-            var y0=Math.min(traj_drag.y0,traj_drag.y1), y1=Math.max(traj_drag.y0,traj_drag.y1)
-            traj_drag = null
-            if (v && (x1-x0)>4 && (y1-y0)>4){                 // ignore clicks/micro-rectangles
-                  var a0 = v.a0 + (x0-v.L)/v.W*(v.a1-v.a0)
-                  var a1 = v.a0 + (x1-v.L)/v.W*(v.a1-v.a0)
-                  var b1 = v.b0 + (1-(y0-v.T)/v.H)*(v.b1-v.b0)   // top of the screen -> large value
-                  var b0 = v.b0 + (1-(y1-v.T)/v.H)*(v.b1-v.b0)
-                  traj_zoom[key] = { a0:a0, a1:a1, b0:b0, b1:b1 }
-            }
-            draw_trajectories()
-      }
-      cv.addEventListener('mouseup', finish)
-      cv.addEventListener('mouseleave', finish)
-      cv.addEventListener('dblclick', function(){ traj_zoom[key]=null; draw_trajectories() })   // reset zoom of this graph
-}
-
-function _bind_traj_z_means_hover(){
+function draw_traj_pending_sel(){
 
       /*
-      Hover over the ⟨z⟩ lines of the z(t) graph: tooltip with color + mass + current mean.
-      Separate from the zoom handler (same canvas): the zoom only acts during a drag (traj_drag),
-      the hover only outside a drag. Groups nearby lines by (color, mass) — cf. show_traj_tooltip.
+      The PENDING selection window (traj_sel[key], in data coords): drawn on top of each graph
+      every frame until the user clicks inside it (-> zoom) or outside it (-> removed). Stored in
+      data coords so it stays anchored to the curve as new samples arrive.
       */
 
-      var cv = document.getElementById('z_canvas'); if (!cv){ return }
+      var ids = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas', v:'v_canvas' }
+      for (var key in ids){
+            var s = traj_sel[key], v = traj_view[key]; if (!s || !v){ continue }
+            var cv = document.getElementById(ids[key]); if (!cv){ continue }
+            var ctx = cv.getContext('2d')
+            var x0 = traj_px_x(v,Math.min(s.a0,s.a1)), x1 = traj_px_x(v,Math.max(s.a0,s.a1))
+            var y0 = traj_px_y(v,Math.max(s.b0,s.b1)), y1 = traj_px_y(v,Math.min(s.b0,s.b1))   // b1(top) -> smaller y
+            ctx.save()
+            ctx.fillStyle='rgba(0,119,255,0.10)'; ctx.strokeStyle='#0077ff'; ctx.lineWidth=1; ctx.setLineDash([5,3])
+            ctx.fillRect(x0,y0,x1-x0,y1-y0); ctx.strokeRect(x0,y0,x1-x0,y1-y0); ctx.setLineDash([])
+            ctx.fillStyle='#0077ff'; ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top'
+            if ((x1-x0)>44 && (y1-y0)>14){ ctx.fillText('clic = zoom', (x0+x1)/2, y0+2) }
+            ctx.restore()
+      }
+
+}
+
+function _bind_traj_zoom(canvasId, key){
+
+      /*
+      Interaction model (chosen with the user):
+        AUTO view (no zoom): drag draws a selection window (persistent). A click INSIDE it
+              zooms to it; a click OUTSIDE removes it. A new drag replaces the window.
+        ZOOMED view: drag = PAN (see contiguous zones). Double-click = back to auto.
+        BOTH: dragging a border handle (near an edge) sets that bound precisely (live).
+      */
+
+      var cv = document.getElementById(canvasId); if (!cv){ return }
+      var EDGE = 6, CLICK = 4                                  // px: edge-handle grab distance / click-vs-drag threshold
+      cv.style.cursor = 'crosshair'
+      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+      function inPlot(v,p){ return p.x>=v.L-EDGE && p.x<=v.L+v.W+EDGE && p.y>=v.T-EDGE && p.y<=v.T+v.H+EDGE }
+      function edgeAt(v,p){
+            var onRow = p.y>=v.T-EDGE && p.y<=v.T+v.H+EDGE, onCol = p.x>=v.L-EDGE && p.x<=v.L+v.W+EDGE
+            if (onRow && Math.abs(p.x-v.L)     <= EDGE){ return 'left'  }
+            if (onRow && Math.abs(p.x-(v.L+v.W)) <= EDGE){ return 'right' }
+            if (onCol && Math.abs(p.y-v.T)     <= EDGE){ return 'top'   }
+            if (onCol && Math.abs(p.y-(v.T+v.H)) <= EDGE){ return 'bottom' }
+            return null
+      }
+      function curDomain(v){ var z=traj_zoom[key]; return z ? {a0:z.a0,a1:z.a1,b0:z.b0,b1:z.b1} : {a0:v.a0,a1:v.a1,b0:v.b0,b1:v.b1} }
+
+      cv.addEventListener('mousedown', function(e){
+            e.stopPropagation()                               // keep TrackballControls (bound to document) from rotating the camera
+            var v = traj_view[key]; if (!v){ return }
+            var p = pos(e); if (!inPlot(v,p)){ return }
+            e.preventDefault()
+            var edge = edgeAt(v,p)
+            if (edge){                                        // border handle (triangle) -> preview only, APPLIED ON RELEASE
+                  traj_drag = { canvasId:canvasId, key:key, mode:'edge', edge:edge, moved:false,
+                                wasZoom:!!traj_zoom[key], base:curDomain(v),
+                                previewX:Math.max(v.L,Math.min(v.L+v.W,p.x)), previewY:Math.max(v.T,Math.min(v.T+v.H,p.y)) }
+            } else if (traj_zoom[key] && traj_tool[key] !== 'select'){   // zoomed, pan tool (default) -> pan
+                  traj_drag = { canvasId:canvasId, key:key, mode:'pan', x0:p.x, y0:p.y, moved:false, start:curDomain(v) }
+            } else {                                           // auto view, OR zoomed with the 'select' tool -> draw a selection window
+                  traj_drag = { canvasId:canvasId, key:key, mode:'select', x0:p.x, y0:p.y, x1:p.x, y1:p.y, moved:false, prevSel:traj_sel[key] }
+            }
+      })
+
+      cv.addEventListener('mousemove', function(e){
+            var v = traj_view[key]
+            if (!traj_drag || traj_drag.key !== key){         // idle: cursor feedback + reveal the hovered handle
+                  if (v){ var pp=pos(e), ed=inPlot(v,pp)?edgeAt(v,pp):null
+                        cv.style.cursor = ed ? 'pointer'      // triangle handle (no double-arrow)
+                                             : ((traj_zoom[key] && traj_tool[key] !== 'select') ? 'grab' : 'crosshair')
+                        if (traj_hover[key] !== ed){ traj_hover[key] = ed; draw_trajectories() } }  // show/hide the triangle only on hover
+                  return
+            }
+            e.stopPropagation()
+            var p = pos(e)
+            if (traj_drag.mode === 'select'){
+                  traj_drag.x1 = Math.max(v.L, Math.min(v.L+v.W, p.x))
+                  traj_drag.y1 = Math.max(v.T, Math.min(v.T+v.H, p.y))
+                  if (Math.abs(traj_drag.x1-traj_drag.x0)>CLICK || Math.abs(traj_drag.y1-traj_drag.y0)>CLICK){ traj_drag.moved=true; traj_sel[key]=null }
+                  draw_trajectories()
+            } else if (traj_drag.mode === 'pan'){
+                  var s = traj_drag.start
+                  var da = (p.x-traj_drag.x0)/(v.W||1)*(s.a1-s.a0)     // drag right -> domain shifts left
+                  var db = (p.y-traj_drag.y0)/(v.H||1)*(s.b1-s.b0)     // drag down  -> domain shifts up (top = high value)
+                  traj_zoom[key] = { a0:s.a0-da, a1:s.a1-da, b0:s.b0+db, b1:s.b1+db }
+                  traj_drag.moved = true; cv.style.cursor='grabbing'
+                  draw_trajectories()
+            } else if (traj_drag.mode === 'edge'){            // move the triangle preview only; axes stay put until release
+                  traj_drag.previewX = Math.max(v.L, Math.min(v.L+v.W, p.x))
+                  traj_drag.previewY = Math.max(v.T, Math.min(v.T+v.H, p.y))
+                  traj_drag.moved = true
+                  draw_trajectories()
+            }
+      })
+
+      function finish(e, isUp){
+            if (!traj_drag || traj_drag.key !== key){ return }
+            var v = traj_view[key], d = traj_drag
+            if (d.mode === 'select'){
+                  if (d.moved && v){
+                        var x0=Math.min(d.x0,d.x1), x1=Math.max(d.x0,d.x1), y0=Math.min(d.y0,d.y1), y1=Math.max(d.y0,d.y1)
+                        if ((x1-x0)>CLICK && (y1-y0)>CLICK){
+                              traj_sel[key] = { a0:traj_data_x(v,x0), a1:traj_data_x(v,x1), b0:traj_data_y(v,y1), b1:traj_data_y(v,y0) }
+                        }
+                  } else if (isUp && v){                       // a click (no drag): resolve against the previous pending window
+                        var ps = d.prevSel
+                        if (ps){
+                              var p = pos(e), da = traj_data_x(v,p.x), db = traj_data_y(v,p.y)
+                              var inside = da>=Math.min(ps.a0,ps.a1) && da<=Math.max(ps.a0,ps.a1) && db>=Math.min(ps.b0,ps.b1) && db<=Math.max(ps.b0,ps.b1)
+                              if (inside){ traj_zoom[key] = { a0:ps.a0, a1:ps.a1, b0:ps.b0, b1:ps.b1 }; traj_sel[key]=null; traj_tool[key]='pan' }  // land in pan mode
+                              else { traj_sel[key] = null }     // click outside -> remove the window
+                        }
+                  } else if (!isUp){ traj_sel[key] = d.prevSel } // left the canvas without a real click -> keep the previous window
+            } else if (d.mode === 'edge' && d.moved && v){       // APPLY the new bound now (deferred from the drag)
+                  var dom = d.base, px = d.previewX, py = d.previewY
+                  if (d.edge==='left'){       var a=traj_data_x(v,px);  if (a  < dom.a1){ dom.a0=a } }
+                  else if (d.edge==='right'){ var a2=traj_data_x(v,px); if (a2 > dom.a0){ dom.a1=a2 } dom.followX=false }
+                  else if (d.edge==='top'){   var b1=traj_data_y(v,py); if (b1 > dom.b0){ dom.b1=b1 } }
+                  else if (d.edge==='bottom'){var b0=traj_data_y(v,py); if (b0 < dom.b1){ dom.b0=b0 } }
+                  traj_zoom[key] = dom
+                  if (!d.wasZoom){ traj_tool[key] = 'pan' }       // came from auto view -> land in pan mode
+            }
+            traj_drag = null
+            draw_trajectories()
+      }
+      cv.addEventListener('mouseup',   function(e){ e.stopPropagation(); finish(e, true) })
+      cv.addEventListener('mouseleave',function(e){
+            var hadHover = traj_hover[key] != null; traj_hover[key] = null
+            finish(e, false)                          // ends any drag (and redraws)
+            if (hadHover && !traj_drag){ draw_trajectories() }   // hide the hovered handle on leave
+      })
+      cv.addEventListener('dblclick',  function(e){ e.stopPropagation(); traj_zoom[key]=null; traj_sel[key]=null; traj_tool[key]='pan'; traj_drag=null; draw_trajectories() })
+
+      // Right-click: on the RIGHT time handle -> toggle real-time follow (window stuck to the
+      // latest sample); anywhere else while zoomed -> switch tool pan <-> select (zoom inside the zoom).
+      cv.addEventListener('contextmenu', function(e){
+            e.preventDefault(); e.stopPropagation()
+            var v = traj_view[key]; if (!v){ return }
+            var p = pos(e), edge = inPlot(v,p) ? edgeAt(v,p) : null
+            if (edge === 'right' && key !== 'xy'){            // real-time follow toggle (time axis only)
+                  if (!traj_zoom[key]){ traj_zoom[key] = curDomain(v); traj_tool[key]='pan' }
+                  traj_zoom[key].followX = !traj_zoom[key].followX
+                  draw_trajectories()
+            } else if (traj_zoom[key]){                        // toggle pan <-> select while zoomed
+                  traj_tool[key] = (traj_tool[key] === 'select' ? 'pan' : 'select')
+                  traj_sel[key] = null
+                  draw_trajectories()
+            }
+      })
+}
+
+function _bind_traj_means_hover(canvasId, viewKey, getMeans, label){
+
+      /*
+      Hover over the mean lines of a graph (⟨z⟩ on z(t), ⟨|v|⟩ on v(t)): tooltip with
+      color + mass + radius + current mean. Separate from the zoom handler (same canvas):
+      the zoom acts during a drag (traj_drag), the hover only outside a drag. Groups nearby
+      lines by (color, mass, radius) — cf. show_traj_tooltip.
+      */
+
+      var cv = document.getElementById(canvasId); if (!cv){ return }
       var THRESH = 5                                          // vertical capture distance (canvas px)
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
       cv.addEventListener('mousemove', function(e){
-            if (traj_drag){ hide_traj_tooltip(); return }     // in the middle of a zoom -> no tooltip
-            var v = traj_view.z, p = pos(e)
-            if (!v || p.x<v.L || p.x>v.L+v.W){ hide_traj_tooltip(); cv.style.cursor='crosshair'; return }
-            var groups = {}, order = []                       // groups the means in range by (color+mass)
-            for (var i=0;i<traj_z_means.length;i++){
-                  var m = traj_z_means[i]
+            if (traj_drag){ hide_traj_tooltip(); return }     // in the middle of a zoom/pan -> no tooltip
+            var v = traj_view[viewKey], p = pos(e), means = getMeans()
+            if (!v || p.x<v.L || p.x>v.L+v.W){ hide_traj_tooltip(); return }
+            var groups = {}, order = []                       // groups the means in range by (color+mass+radius)
+            for (var i=0;i<means.length;i++){
+                  var m = means[i]
                   if (Math.abs(m.y - p.y) > THRESH){ continue }
-                  var key = m.color + '|' + m.mass
-                  if (!groups[key]){ groups[key] = { color:m.color, mass:m.mass, sum:0, count:0 }; order.push(key) }
+                  var key = m.color + '|' + m.mass + '|' + m.radius
+                  if (!groups[key]){ groups[key] = { color:m.color, mass:m.mass, radius:m.radius, sum:0, count:0 }; order.push(key) }
                   groups[key].sum += m.value; groups[key].count++
             }
-            if (!order.length){ hide_traj_tooltip(); cv.style.cursor='crosshair'; return }
+            if (!order.length){ hide_traj_tooltip(); return }
             order.sort()                                       // stable order from one hover to the next
-            show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }))
-            cv.style.cursor='pointer'
+            show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }), label)
       })
       cv.addEventListener('mouseleave', hide_traj_tooltip)
 }
@@ -1623,7 +1812,8 @@ function setup_traj_zoom(){                                 // idempotent: attac
       if (_traj_zoom_setup){ return }
       _traj_zoom_setup = true
       _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd'); _bind_traj_zoom('v_canvas','v')
-      _bind_traj_z_means_hover()
+      _bind_traj_means_hover('z_canvas', 'z', function(){ return traj_z_means }, '⟨z⟩')
+      _bind_traj_means_hover('v_canvas', 'v', function(){ return traj_v_means }, '⟨|v|⟩')
 }
 
 function draw_trajectories(){
@@ -1683,6 +1873,7 @@ function draw_trajectories(){
                   for(var k=0;k<n;k+=st){ if(tr.z[k]>zmax)zmax=tr.z[k] }
                   if(tr.z[n-1]>zmax)zmax=tr.z[n-1] }
             if (nz>1 && zmax>0){
+                  traj_follow_slide('z', nz)                  // real-time sliding window if the right handle is stuck to now
                   var dz = traj_zoom.z || { a0:0, a1:nz-1, b0:0, b1:zmax }
                   var zL=46, zT=6, zB=6, zR=4, L=zL, T=zT, PW=Wz-zL-zR, PH=Hz-zT-zB
                   traj_view.z = { L:L, T:T, W:PW, H:PH, a0:dz.a0, a1:dz.a1, b0:dz.b0, b1:dz.b1 }
@@ -1706,7 +1897,7 @@ function draw_trajectories(){
                         //--- ⟨z⟩ mean since the reset: dashed with the curve, solid if displayed alone
                         if (tr.zcount > 0){
                               var zmean=tr.zsum/tr.zcount, yzmean=ZY(zmean)
-                              traj_z_means.push({ y:yzmean, value:zmean, mass:t[i].mass, color:col })   // for the hover tooltip
+                              traj_z_means.push({ y:yzmean, value:zmean, mass:t[i].mass, radius:t[i].radius, color:col })   // for the hover tooltip
                               cz.strokeStyle=col; cz.lineWidth=1.5
                               if (!means_only){ cz.lineWidth=1; cz.setLineDash([4,3]) }
                               cz.beginPath(); cz.moveTo(L,yzmean); cz.lineTo(L+PW,yzmean); cz.stroke()
@@ -1729,6 +1920,7 @@ function draw_trajectories(){
                   for(var k=0;k<n;k+=st){ if(tr.msd[k]>vmaxm)vmaxm=tr.msd[k] }
                   if(tr.msd[n-1]>vmaxm)vmaxm=tr.msd[n-1] }
             if (nmax>1 && vmaxm>0){
+                  traj_follow_slide('msd', nmax)
                   var dm = traj_zoom.msd || { a0:0, a1:nmax-1, b0:0, b1:vmaxm }
                   var ML=46, MT=6, MB=6, MR=4, L=ML, T=MT, PW=W2-ML-MR, PH=H2-MT-MB
                   traj_view.msd = { L:L, T:T, W:PW, H:PH, a0:dm.a0, a1:dm.a1, b0:dm.b0, b1:dm.b1 }
@@ -1762,6 +1954,7 @@ function draw_trajectories(){
                   for(var k=0;k<n;k+=st){ if(tr.v[k]>vmaxv)vmaxv=tr.v[k] }
                   if(tr.v[n-1]>vmaxv)vmaxv=tr.v[n-1] }
             if (nmaxv>1 && vmaxv>0){
+                  traj_follow_slide('v', nmaxv)
                   var dvv = traj_zoom.v || { a0:0, a1:nmaxv-1, b0:0, b1:vmaxv }
                   var VL=46, VT=6, VB=6, VR=4, L=VL, T=VT, PW=W3-VL-VR, PH=H3-VT-VB
                   traj_view.v = { L:L, T:T, W:PW, H:PH, a0:dvv.a0, a1:dvv.a1, b0:dvv.b0, b1:dvv.b1 }
@@ -1771,19 +1964,29 @@ function draw_trajectories(){
                   for (var g=0;g<=4;g++){ var v=dvv.b0+(dvv.b1-dvv.b0)*g/4, y=VY(v); c3.strokeStyle='#eee'; c3.lineWidth=1
                         c3.beginPath(); c3.moveTo(L,y); c3.lineTo(L+PW,y); c3.stroke(); c3.fillText(fmt_energy(v),L-4,y) }
                   c3.save(); c3.beginPath(); c3.rect(L,T,PW,PH); c3.clip()
+                  traj_v_means = []                                // hoverable ⟨|v|⟩ lines (repopulated on each drawing)
                   for (var i=0;i<t.length;i++){ var tr=t[i].traj; if(!tr||!tr.v||tr.v.length<2)continue
-                        var n=tr.v.length, st=traj_stride(n)
-                        c3.strokeStyle=traj_color(t[i]); c3.lineWidth=1.5; c3.beginPath()
+                        var n=tr.v.length, st=traj_stride(n), colv=traj_color(t[i])
+                        c3.strokeStyle=colv; c3.lineWidth=1.5; c3.beginPath()
                         var first=true
                         for (var k=0;k<n;k+=st){ var X=VX(k),Y=VY(tr.v[k]); if(first){c3.moveTo(X,Y);first=false}else c3.lineTo(X,Y) }
                         c3.lineTo(VX(n-1),VY(tr.v[n-1]))        // last point
                         c3.stroke()
+                        //--- ⟨|v|⟩ mean since the reset: NO visible line on v(t) (per request),
+                        //    but keep an invisible hover target at the mean level for the tooltip
+                        if (tr.vcount > 0){
+                              var vmean=tr.vsum/tr.vcount
+                              traj_v_means.push({ y:VY(vmean), value:vmean, mass:t[i].mass, radius:t[i].radius, color:colv })
+                        }
                   }
                   c3.restore()
             } else { traj_view.v = null }
       }
 
-      draw_traj_drag_rect()                                     // zoom rectangle in progress, on top of the freshly redrawn plot
+      draw_traj_pending_sel()                                   // persistent selection window awaiting a click
+      draw_traj_drag_rect()                                     // selection rectangle in progress, on top of the freshly redrawn plot
+      draw_traj_handles()                                       // interval triangles on the borders (+ guide line while dragging)
+      draw_traj_follow_badge()                                  // "⏱ live" on real-time-following graphs
 
 }
 
