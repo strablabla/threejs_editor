@@ -317,7 +317,7 @@ function init_interf_actions(){
             reinit_params_ok()                              // disables all tools
             $('#active_obj_navbar').text('')
             $('#curr_tool').text('')
-            if ($('#select_shape').length){ $('#select_shape').val('no tool') }   // sync the dropdown
+            $('#obj_icon_grid .obj-icon').removeClass('active')   // clear the Object panel icon highlight
       })
 
  }

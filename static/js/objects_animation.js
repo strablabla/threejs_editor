@@ -1535,23 +1535,48 @@ function traj_data_y(v,y){ return v.b0 + (1-(y-v.T)/(v.H||1))*(v.b1-v.b0) }
 // pin a1 to the latest sample each frame and slide a0 to keep the window width constant.
 function traj_follow_slide(key, n){
       var z = traj_zoom[key]
-      if (z && z.followX && n > 1){ var w = z.a1 - z.a0; z.a1 = n-1; z.a0 = Math.max(0, (n-1) - w) }
+      if (z && z.followX && n > 1){
+            if (z.fixedWidth){ var w = z.a1 - z.a0; z.a1 = n-1; z.a0 = Math.max(0, (n-1) - w) }  // fixed-width window: slides, keeps its width
+            else { z.a1 = n-1 }                                                                  // growing window (default): a1 follows real time, a0 stays
+      }
+}
+
+// Interval handles = small triangles. Rest positions are INSET from the corners so the two
+// handles that share a corner (start-time a0 & min-value b0 at the bottom-left, etc.) never
+// overlap. Each handle is grabbed by a hit-box around its drawn position (cf. traj_handle_at),
+// so "grab the triangle you see" always maps to the right bound — no corner-priority ambiguity.
+var TRAJ_HANDLE_OFF = 11, TRAJ_HANDLE_HIT = 10
+
+function traj_handle_points(v){
+      var xL=v.L, xR=v.L+v.W, yT=v.T, yB=v.T+v.H, O=TRAJ_HANDLE_OFF
+      return [
+            { edge:'left',   cx:xL+O, cy:yB,   dir:'up'    },   // a0 = start of the time window (the end a1 = real time, no handle)
+            { edge:'top',    cx:xL,   cy:yT+O, dir:'right' },   // b1 = max value
+            { edge:'bottom', cx:xL,   cy:yB-O, dir:'right' }    // b0 = min value
+      ]
+}
+
+function traj_handle_at(v, p){                              // which handle is under p (hit-box), or null
+      var pts = traj_handle_points(v), best = null, bd = 1e9
+      for (var i=0;i<pts.length;i++){
+            var h = pts[i], d = Math.max(Math.abs(p.x-h.cx), Math.abs(p.y-h.cy))
+            if (d <= TRAJ_HANDLE_HIT && d < bd){ bd = d; best = h.edge }
+      }
+      return best
 }
 
 function draw_traj_handles(){
 
       /*
-      Interval handles = small triangles pointing at the curve spot that defines each window
-      bound: two on the bottom axis (start/end time = a0/a1, pointing up), two on the left axis
-      (min/max value = b0/b1, pointing right). Dragging one moves ONLY the triangle (+ a dashed
-      guide line); the axis rescale happens on release (cf. the 'edge' branch of finish()).
+      Draw the hovered (or dragged) interval handle only. Dragging one moves ONLY the triangle
+      (+ a dashed guide line at the future cut); the axis rescale happens on release.
       */
 
       var ids = { xy:'traj_canvas', z:'z_canvas', msd:'msd_canvas', v:'v_canvas' }
       for (var key in ids){
             var v = traj_view[key]; if (!v){ continue }
             var drag = (traj_drag && traj_drag.mode==='edge' && traj_drag.key===key) ? traj_drag : null
-            var active = drag ? drag.edge : traj_hover[key]      // only the hovered (or dragged) border shows its triangle
+            var active = drag ? drag.edge : traj_hover[key]      // only the hovered/dragged handle shows
             if (!active){ continue }
             var cv = document.getElementById(ids[key]); if (!cv){ continue }
             var ctx = cv.getContext('2d')
@@ -1567,12 +1592,15 @@ function draw_traj_handles(){
                   if (vertical){ ctx.moveTo(at,yT); ctx.lineTo(at,yB) } else { ctx.moveTo(xL,at); ctx.lineTo(xR,at) }
                   ctx.stroke(); ctx.restore()
             }
-            if (active==='left' || active==='right'){           // time bound: triangle on the bottom axis, pointing up
-                  var x = drag ? drag.previewX : (active==='left' ? xL : xR)
+            var pts = traj_handle_points(v), hp = null
+            for (var i=0;i<pts.length;i++){ if (pts[i].edge===active){ hp = pts[i] } }
+            if (!hp){ continue }
+            if (active==='left' || active==='right'){           // time bound: slides horizontally on the bottom axis
+                  var x = drag ? drag.previewX : hp.cx
                   if (drag){ guide(true, x) }
                   tri(x, yB, 'up', !!drag)
-            } else {                                            // value bound: triangle on the left axis, pointing right
-                  var y = drag ? drag.previewY : (active==='top' ? yT : yB)
+            } else {                                            // value bound: slides vertically on the left axis
+                  var y = drag ? drag.previewY : hp.cy
                   if (drag){ guide(false, y) }
                   tri(xL, y, 'right', !!drag)
             }
@@ -1585,9 +1613,31 @@ function draw_traj_follow_badge(){                          // "⏱ live" marker
             var z = traj_zoom[key], v = traj_view[key]; if (!z || !z.followX || !v){ continue }
             var cv = document.getElementById(ids[key]); if (!cv){ continue }
             var ctx = cv.getContext('2d')
-            ctx.save(); ctx.fillStyle='#0a8f27'; ctx.font='bold 9px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='top'
-            ctx.fillText('⏱ live', v.L+v.W, v.T+1); ctx.restore()
+            var moving = !!z.fixedWidth                        // fixed-WIDTH window slides -> "moving"; growing window (left edge pinned) -> "fixed"
+            var label = moving ? 'moving' : 'fixed'
+            ctx.save(); ctx.font='bold 9px sans-serif'; ctx.textBaseline='top'
+            var iconW = 15, gap = 3, labelW = ctx.measureText(label).width
+            var x0 = v.L + v.W - (iconW + gap + labelW), y0 = v.T + 4
+            draw_follow_icon(ctx, x0, y0, moving)
+            ctx.fillStyle='#0a8f27'; ctx.textAlign='left'; ctx.fillText(label, x0 + iconW + gap, y0)
+            ctx.restore()
       }
+}
+
+function draw_follow_icon(ctx, x, y, moving){
+      // Two vertical bars = the window edges. "moving": a left arrow (the window slides).
+      // "fixed": two triangles clamp the FIRST (left) bar (the left edge is pinned = growing window).
+      var h=9, bx1=x+5, bx2=x+11, top=y, bot=y+h
+      ctx.save(); ctx.strokeStyle='#0a8f27'; ctx.fillStyle='#0a8f27'; ctx.lineWidth=1.4; ctx.setLineDash([])
+      ctx.beginPath(); ctx.moveTo(bx1,top); ctx.lineTo(bx1,bot); ctx.moveTo(bx2,top); ctx.lineTo(bx2,bot); ctx.stroke()
+      if (moving){
+            var ay = y + h/2                                   // left-pointing arrowhead
+            ctx.beginPath(); ctx.moveTo(x, ay); ctx.lineTo(x+4, ay-3); ctx.lineTo(x+4, ay+3); ctx.closePath(); ctx.fill()
+      } else {
+            ctx.beginPath(); ctx.moveTo(bx1-3,top-3); ctx.lineTo(bx1+3,top-3); ctx.lineTo(bx1,top); ctx.closePath(); ctx.fill()  // top clamp ▼
+            ctx.beginPath(); ctx.moveTo(bx1-3,bot+3); ctx.lineTo(bx1+3,bot+3); ctx.lineTo(bx1,bot); ctx.closePath(); ctx.fill()  // bottom clamp ▲
+      }
+      ctx.restore()
 }
 var traj_z_means = []                                       // ⟨z⟩ lines of the last drawing: {y (canvas px), value, mass, radius, color} -> hover tooltip
 var traj_v_means = []                                       // ⟨|v|⟩ lines of the last drawing (same shape) -> hover tooltip on v(t)
@@ -1687,14 +1737,7 @@ function _bind_traj_zoom(canvasId, key){
       cv.style.cursor = 'crosshair'
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
       function inPlot(v,p){ return p.x>=v.L-EDGE && p.x<=v.L+v.W+EDGE && p.y>=v.T-EDGE && p.y<=v.T+v.H+EDGE }
-      function edgeAt(v,p){
-            var onRow = p.y>=v.T-EDGE && p.y<=v.T+v.H+EDGE, onCol = p.x>=v.L-EDGE && p.x<=v.L+v.W+EDGE
-            if (onRow && Math.abs(p.x-v.L)     <= EDGE){ return 'left'  }
-            if (onRow && Math.abs(p.x-(v.L+v.W)) <= EDGE){ return 'right' }
-            if (onCol && Math.abs(p.y-v.T)     <= EDGE){ return 'top'   }
-            if (onCol && Math.abs(p.y-(v.T+v.H)) <= EDGE){ return 'bottom' }
-            return null
-      }
+      function edgeAt(v,p){ return traj_handle_at(v,p) }   // grab the triangle handle under the cursor (hit-box, no corner ambiguity)
       function curDomain(v){ var z=traj_zoom[key]; return z ? {a0:z.a0,a1:z.a1,b0:z.b0,b1:z.b1} : {a0:v.a0,a1:v.a1,b0:v.b0,b1:v.b1} }
 
       cv.addEventListener('mousedown', function(e){
@@ -1764,11 +1807,17 @@ function _bind_traj_zoom(canvasId, key){
                         }
                   } else if (!isUp){ traj_sel[key] = d.prevSel } // left the canvas without a real click -> keep the previous window
             } else if (d.mode === 'edge' && d.moved && v){       // APPLY the new bound now (deferred from the drag)
-                  var dom = d.base, px = d.previewX, py = d.previewY
-                  if (d.edge==='left'){       var a=traj_data_x(v,px);  if (a  < dom.a1){ dom.a0=a } }
-                  else if (d.edge==='right'){ var a2=traj_data_x(v,px); if (a2 > dom.a0){ dom.a1=a2 } dom.followX=false }
-                  else if (d.edge==='top'){   var b1=traj_data_y(v,py); if (b1 > dom.b0){ dom.b1=b1 } }
-                  else if (d.edge==='bottom'){var b0=traj_data_y(v,py); if (b0 < dom.b1){ dom.b0=b0 } }
+                  // Modify the LIVE domain in place so a real-time-following window KEEPS sliding:
+                  // only the dragged bound changes, a0/a1 and followX are preserved. Exception: the
+                  // right edge = an explicit manual "end of time", which stops the follow.
+                  var dom = traj_zoom[key] || curDomain(v), px = d.previewX, py = d.previewY
+                  // A VALUE bound (top/bottom) must never break the time scrolling: the auto view is
+                  // already "real-time" (newest sample at the right), so adjusting only the y-window
+                  // keeps the time axis following (followX) instead of freezing it into a fixed zoom.
+                  var keepsFollow = (!d.wasZoom && key !== 'xy')  // from the auto view (already real-time) -> keep following (grow by default)
+                  if (d.edge==='left'){       var a=traj_data_x(v,px);  if (a  < dom.a1){ dom.a0=a } if (keepsFollow){ dom.followX=true } }
+                  else if (d.edge==='top'){   var b1=traj_data_y(v,py); if (b1 > dom.b0){ dom.b1=b1 } if (keepsFollow){ dom.followX=true } }
+                  else if (d.edge==='bottom'){var b0=traj_data_y(v,py); if (b0 < dom.b1){ dom.b0=b0 } if (keepsFollow){ dom.followX=true } }
                   traj_zoom[key] = dom
                   if (!d.wasZoom){ traj_tool[key] = 'pan' }       // came from auto view -> land in pan mode
             }
@@ -1783,15 +1832,18 @@ function _bind_traj_zoom(canvasId, key){
       })
       cv.addEventListener('dblclick',  function(e){ e.stopPropagation(); traj_zoom[key]=null; traj_sel[key]=null; traj_tool[key]='pan'; traj_drag=null; draw_trajectories() })
 
-      // Right-click: on the RIGHT time handle -> toggle real-time follow (window stuck to the
-      // latest sample); anywhere else while zoomed -> switch tool pan <-> select (zoom inside the zoom).
+      // Right-click: on the LEFT time handle (a0) -> toggle the real-time window between GROWING
+      // (a0 fixed, a1 follows -> the window widens, the default) and FIXED-WIDTH (slides, keeps its
+      // width). Anywhere else while zoomed -> switch tool pan <-> select (zoom inside the zoom).
       cv.addEventListener('contextmenu', function(e){
             e.preventDefault(); e.stopPropagation()
             var v = traj_view[key]; if (!v){ return }
             var p = pos(e), edge = inPlot(v,p) ? edgeAt(v,p) : null
-            if (edge === 'right' && key !== 'xy'){            // real-time follow toggle (time axis only)
-                  if (!traj_zoom[key]){ traj_zoom[key] = curDomain(v); traj_tool[key]='pan' }
-                  traj_zoom[key].followX = !traj_zoom[key].followX
+            if (edge === 'left' && key !== 'xy'){             // grow <-> fixed-width real-time window (time axis only)
+                  if (!traj_zoom[key]){ traj_zoom[key] = curDomain(v); traj_zoom[key].followX = true; traj_zoom[key].fixedWidth = false; traj_tool[key]='pan' }
+                  var z = traj_zoom[key]
+                  if (!z.followX){ z.followX = true; z.fixedWidth = false }   // frozen -> growing (default)
+                  else { z.fixedWidth = !z.fixedWidth }                       // growing <-> fixed-width
                   draw_trajectories()
             } else if (traj_zoom[key]){                        // toggle pan <-> select while zoomed
                   traj_tool[key] = (traj_tool[key] === 'select' ? 'pan' : 'select')

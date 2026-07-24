@@ -299,7 +299,23 @@
          })
     }
 
+    function scene_toast(text){                  // brief confirmation banner on a light-green background
+         var el = document.getElementById('scene_toast')
+         if (!el){
+               el = document.createElement('div'); el.id = 'scene_toast'
+               el.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:100000;'
+                     + ' padding:12px 28px; border-radius:6px; font-family:sans-serif; font-size:16px; letter-spacing:normal;'
+                     + ' background:#d6f5d6; color:#1b5e20; border:1px solid #9bd89b; box-shadow:0 2px 14px rgba(0,0,0,0.25);'
+                     + ' opacity:0; transition:opacity 0.25s; pointer-events:none;'
+               document.body.appendChild(el)
+         }
+         el.textContent = text
+         el.style.opacity = '1'
+         clearTimeout(el._hide); el._hide = setTimeout(function(){ el.style.opacity = '0' }, 1100)  // visible ~1.1 s then fades
+    }
+
     function load_named_scene(name){             // loads a saved scene from the server
+         $('.panel_scene').hide()                // close the Scene panel as soon as loading starts
          $.ajax({ url: '/scene/' + encodeURIComponent(name), dataType: 'json', cache: false })  // cache:false -> always the latest version
           .done(function(data){
                clear_scene_local()
@@ -311,6 +327,7 @@
                $('#scene_name').val(name)
                update_scene_name_display()
                if (typeof history_seed === 'function'){ history_seed() }   // undo/redo: history specific to this scene
+               scene_toast('loaded')              // brief "loaded" confirmation (light green)
           })
     }
 

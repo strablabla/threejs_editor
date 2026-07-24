@@ -81,7 +81,7 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
 ## Créer des objets
 
 1. **Choisir un outil** — au choix :
-   - panneau **Object** → liste déroulante (wall, cube, sphere, box, string…) ;
+   - panneau **Object** → **grille d'icônes cliquables** (wall, cube, plane, pavement, track, box, sphere, string, no tool), une bulle d'info par icône ; l'icône choisie est mise en évidence ;
    - **clavier** : `o` sphère · `e` chaîne · `n` mur · `w` boîte · `m` cube texturé · `t` piste (appui = on, 2ᵉ appui = off ; `b` coupe tout) ;
    - **voix** : « cube », « boule », « mur », « boîte », « chaîne », « piste », « pavé », « plan », « pas d'outil ».
 2. **Cliquer dans le plan** pour déposer l'objet (la **boîte** se dessine en 2 clics). Les
@@ -365,14 +365,17 @@ survol invisible, pas de ligne dessinée) — affiche une bulle **couleur — ma
   vers les zones contiguës ; **double-clic** → retour vue auto.
   **Clic droit** dans le graphe bascule l'outil **pan ↔ zoom** : en mode zoom, on redessine
   une fenêtre pour **re-zoomer dans le zoom**.
-- **Poignées triangulaires** (aux 4 bords) : un **petit triangle** — visible **seulement au
-  survol du bord** (pour ne pas encombrer les graphes) — pointe l'endroit de la courbe qui
-  définit cette borne : en bas = début/fin de l'**intervalle de temps**, à gauche = min/max de
-  l'**intervalle de valeurs**. On **tire un triangle** (une ligne-guide pointillée montre où
-  sera la coupe) ; le **changement d'échelle n'intervient qu'au relâchement**, pas avant.
-- **Suivi temps réel** : **clic droit sur la poignée droite** (axe des temps de z(t)/MSD/|v|(t))
-  colle le bord droit au **dernier échantillon** ; la fenêtre **glisse** en gardant sa largeur
-  (badge vert **⏱ live**). Tirer manuellement la poignée droite désactive le suivi.
+- **Poignées triangulaires** : un **petit triangle** — visible **seulement au survol** (pour ne
+  pas encombrer les graphes) — pointe l'endroit de la courbe qui définit une borne : **un en bas
+  à gauche** = **début** de l'intervalle de temps (la fin = temps courant, sans poignée), **deux
+  à gauche** = min/max de l'**intervalle de valeurs**. On **tire un triangle** (une ligne-guide
+  pointillée montre où sera la coupe) ; le **changement d'échelle n'intervient qu'au
+  relâchement**, pas avant.
+- **Suivi temps réel** : sur z(t)/MSD/|v|(t), l'axe des temps suit toujours le **dernier
+  échantillon**. Par défaut la **fenêtre grandit** (bord gauche fixe) — petit badge vert
+  **fixed** (deux barres, la gauche pincée par deux triangles). **Clic droit sur la poignée
+  gauche** bascule en **fenêtre glissante à largeur fixe** — badge **moving** (deux barres +
+  flèche gauche) — et inversement.
 
 ## Profil d'altitude
 
