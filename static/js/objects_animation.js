@@ -1130,7 +1130,13 @@ function distinct_colors(list){                               // distinct colors
 
 //===================================================================== Altitude histogram
 
-var ALT_HIST_BINS = 24                                        // number of altitude slices
+var ALT_HIST_BINS = 24                                        // DEFAULT number of altitude slices
+var alt_bins = ALT_HIST_BINS                                 // current bin count (slider) — stays constant when the window shrinks
+var alt_win = null                                           // observation window {zlo,zhi} in z (set by the triangles), or null = auto data range
+var alt_view = null                                          // last histogram geometry {L,T,W,H,zlo,zhi} (pixel <-> z)
+var alt_hover = null                                         // hovered z-axis handle: 'top' | 'bottom' | null (triangle shows only on hover)
+var alt_drag = null                                          // active handle drag (deferred: axis changes only on release)
+var _alt_hist_setup = false
 var altitude_fit = null                                      // fit curve { z:[], y:[] } (overlay), evaluated in Python
 var altitude_fit_expr = ''                                   // Python expression of the fit (saved with the scene)
 var alt_zmin = 0, alt_zmax = 1                               // current altitude range (for the fit request)
@@ -1229,58 +1235,69 @@ function draw_altitude_hist(){
       /*
       Number of particles as a function of altitude (z).
       VERTICAL axis = altitude (top = z max), horizontal bars = count per slice.
+      The z range shown is the OBSERVATION WINDOW (alt_win, set by the triangle handles) or, by
+      default, the auto data range. Binning is done over that window with a FIXED number of bins
+      (alt_bins, slider) -> a smaller window keeps the same bin count = finer resolution.
       */
 
       if (!show_altitude_hist){ return }
       var cv = document.getElementById('altitude_hist')
       if (!cv){ return }
+      setup_alt_hist_handles()                                // z-axis window handles (idempotent)
       refresh_alt_color_options()                             // updates the select if the scene's colors have changed
       var ctx = cv.getContext('2d')
       var W = cv.width, H = cv.height
       ctx.clearRect(0, 0, W, H)
       var zs = collect_altitudes()
       var n = zs.length
-      ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'
-      ctx.textAlign = 'right'; ctx.textBaseline = 'top'
-      ctx.fillText('N = ' + n, W - 4, 2)
-      if (n === 0){ return }
-      //--- altitude range
+      if (n === 0){
+            alt_view = null
+            ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'
+            ctx.fillText('N = 0', W - 4, 2); return
+      }
+      //--- data range
       var zmin = Infinity, zmax = -Infinity
       for (var k=0;k<n;k++){ if (zs[k]<zmin) zmin=zs[k]; if (zs[k]>zmax) zmax=zs[k] }
       if (zmin === zmax){ zmax = zmin + 1; zmin = zmin - 1 }
-      alt_zmin = zmin; alt_zmax = zmax                        // stored for the Python fit request
-      //--- bins
-      var bins = new Array(ALT_HIST_BINS).fill(0)
+      //--- displayed observation window (triangles) or auto data range
+      var zlo = alt_win ? alt_win.zlo : zmin, zhi = alt_win ? alt_win.zhi : zmax
+      if (zhi <= zlo){ zhi = zlo + 1 }
+      alt_zmin = zlo; alt_zmax = zhi                          // the Python fit is evaluated over the shown window
+      //--- bins over the WINDOW, fixed count -> smaller window = finer resolution
+      var NB = Math.max(1, alt_bins|0)
+      var bins = new Array(NB).fill(0), nwin = 0
       for (var k=0;k<n;k++){
-            var b = Math.floor((zs[k]-zmin)/(zmax-zmin)*ALT_HIST_BINS)
-            if (b >= ALT_HIST_BINS){ b = ALT_HIST_BINS - 1 }
-            if (b < 0){ b = 0 }
-            bins[b]++
+            var z = zs[k]; if (z < zlo || z > zhi){ continue }   // outside the observation window -> not counted
+            var b = Math.floor((z-zlo)/(zhi-zlo)*NB); if (b >= NB){ b = NB-1 } if (b < 0){ b = 0 }
+            bins[b]++; nwin++
       }
       var cmax = 0
-      for (var b=0;b<ALT_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
+      for (var b=0;b<NB;b++){ if (bins[b] > cmax) cmax = bins[b] }
       if (cmax <= 0){ cmax = 1 }
-      //--- geometry: altitude on Y (top = zmax), count on X (horizontal bars)
-      //    ML leaves room for the ticks + the "z" title; MB for the bounds + the "N" title
+      //--- geometry: altitude on Y (top = zhi), count on X (horizontal bars)
       var ML = 56, MT = 6, MB = 30, MR = 6
       var plotW = W - ML - MR, plotH = H - MT - MB
-      //--- Y axis: altitude ticks (top = zmax, bottom = zmin)
+      alt_view = { L:ML, T:MT, W:plotW, H:plotH, zlo:zlo, zhi:zhi }
+      //--- N = objects within the window
+      ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'; ctx.textAlign = 'right'; ctx.textBaseline = 'top'
+      ctx.fillText('N = ' + nwin, W - 4, 2)
+      //--- Y axis: altitude ticks (top = zhi, bottom = zlo)
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
       for (var t=0; t<=4; t++){
-            var zval = zmax - (zmax - zmin) * t / 4
+            var zval = zhi - (zhi - zlo) * t / 4
             var y = MT + t / 4 * plotH
             ctx.strokeStyle = '#eee'; ctx.lineWidth = 1
             ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W - MR, y); ctx.stroke()
             ctx.fillText(fmt_energy(zval), ML - 4, y)
       }
       //--- horizontal bars (bin 0 = low altitude -> at the bottom)
-      var bh = plotH / ALT_HIST_BINS
+      var bh = plotH / NB
       ctx.fillStyle = '#3949ab'                                // indigo
-      for (var b=0;b<ALT_HIST_BINS;b++){
+      for (var b=0;b<NB;b++){
             var w = bins[b] / cmax * plotW
             var y = MT + plotH - (b + 1) * bh                  // b increasing -> upward
-            ctx.fillRect(ML, y + 1, w, bh - 2)
+            ctx.fillRect(ML, y + Math.min(1, bh/4), w, Math.max(1, bh - Math.min(2, bh/2)))
       }
       //--- Python fit curve (overlay N(z), in red)
       if (altitude_fit && altitude_fit.z && altitude_fit.z.length > 1){
@@ -1288,7 +1305,7 @@ function draw_altitude_hist(){
             for (var k=0;k<altitude_fit.z.length;k++){
                   var zz = altitude_fit.z[k], yy = altitude_fit.y[k]
                   var X = ML + Math.max(0, Math.min(1, yy / cmax)) * plotW    // count -> X (like the bars)
-                  var Y = MT + (1 - (zz - zmin) / (zmax - zmin)) * plotH      // altitude -> Y (top = zmax)
+                  var Y = MT + (1 - (zz - zlo) / (zhi - zlo)) * plotH         // altitude -> Y (top = zhi)
                   if (k === 0){ ctx.moveTo(X, Y) } else { ctx.lineTo(X, Y) }
             }
             ctx.stroke()
@@ -1300,14 +1317,79 @@ function draw_altitude_hist(){
       //--- axis names: z (altitude, vertical) and N (count, horizontal)
       ctx.font = 'bold 12px sans-serif'; ctx.fillStyle = '#333'
       ctx.textAlign = 'center'; ctx.textBaseline = 'top'
-      ctx.fillText('N', ML + plotW / 2, MT + plotH + 15)      // below the bounds 0/cmax
+      ctx.fillText('N', ML + plotW / 2, MT + plotH + 15)
       ctx.save()                                              // "z" written vertically along the altitude axis
       ctx.translate(9, MT + plotH / 2)
       ctx.rotate(-Math.PI / 2)
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
       ctx.fillText('z', 0, 0)
       ctx.restore()
+      //--- observation-window handles (triangles on the z axis, on hover / while dragging)
+      draw_alt_hist_handles(ctx)
 
+}
+
+// ---- Altitude histogram: vertical observation-window handles (two triangles on the z axis) ----
+function alt_z_at_y(y){ var v=alt_view; return v.zlo + (1-(y-v.T)/(v.H||1))*(v.zhi-v.zlo) }
+function alt_handle_points(){
+      var v=alt_view; if (!v){ return [] }
+      var O=11
+      return [ { edge:'top',    cx:v.L, cy:v.T+O },           // zhi (max altitude)
+               { edge:'bottom', cx:v.L, cy:v.T+v.H } ]        // zlo (min altitude) — sits on the abscissa (x) axis
+}
+function alt_handle_at(p){
+      var pts=alt_handle_points(), best=null, bd=1e9
+      for (var i=0;i<pts.length;i++){ var h=pts[i], d=Math.max(Math.abs(p.x-h.cx), Math.abs(p.y-h.cy)); if (d<=10 && d<bd){ bd=d; best=h.edge } }
+      return best
+}
+function draw_alt_hist_handles(ctx){
+      var v=alt_view; if (!v){ return }
+      var active = alt_drag ? alt_drag.edge : alt_hover; if (!active){ return }
+      var pts=alt_handle_points(), hp=null
+      for (var i=0;i<pts.length;i++){ if (pts[i].edge===active){ hp=pts[i] } }
+      if (!hp){ return }
+      var y = alt_drag ? alt_drag.previewY : hp.cy
+      if (alt_drag){ ctx.save(); ctx.strokeStyle='rgba(236,106,160,0.7)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.restore() }
+      ctx.save(); ctx.fillStyle = alt_drag ? '#ec6aa0' : '#f4a9c7'; ctx.beginPath()   // pale pink (deeper while dragging)
+      ctx.moveTo(v.L+7, y); ctx.lineTo(v.L, y-4); ctx.lineTo(v.L, y+4); ctx.closePath(); ctx.fill(); ctx.restore()
+}
+function setup_alt_hist_handles(){
+      if (_alt_hist_setup){ return }
+      var cv = document.getElementById('altitude_hist'); if (!cv){ return }
+      _alt_hist_setup = true
+      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+      cv.addEventListener('mousedown', function(e){
+            if (!alt_view){ return }
+            var p=pos(e), edge=alt_handle_at(p); if (!edge){ return }
+            e.stopPropagation(); e.preventDefault()
+            var base = alt_win ? { zlo:alt_win.zlo, zhi:alt_win.zhi } : { zlo:alt_view.zlo, zhi:alt_view.zhi }
+            alt_drag = { edge:edge, previewY:Math.max(alt_view.T, Math.min(alt_view.T+alt_view.H, p.y)), base:base }
+      })
+      cv.addEventListener('mousemove', function(e){
+            if (!alt_view){ return }
+            if (!alt_drag){                                   // idle: reveal the handle on hover
+                  var p=pos(e), ed=alt_handle_at(p)
+                  cv.style.cursor = ed ? 'pointer' : 'default'
+                  if (alt_hover !== ed){ alt_hover = ed; draw_altitude_hist() }
+                  return
+            }
+            e.stopPropagation()
+            alt_drag.previewY = Math.max(alt_view.T, Math.min(alt_view.T+alt_view.H, pos(e).y))
+            draw_altitude_hist()                              // moves the triangle preview only; the axis changes on release
+      })
+      function finish(isUp){
+            if (!alt_drag){ return }
+            if (isUp && alt_view){                            // APPLY the new bound (deferred from the drag)
+                  var z = alt_z_at_y(alt_drag.previewY), base = alt_drag.base
+                  if (alt_drag.edge==='top'){ if (z > base.zlo){ base.zhi = z } }
+                  else { if (z < base.zhi){ base.zlo = z } }
+                  alt_win = { zlo:base.zlo, zhi:base.zhi }
+            }
+            alt_drag = null; draw_altitude_hist()
+      }
+      cv.addEventListener('mouseup',    function(e){ e.stopPropagation(); finish(true) })
+      cv.addEventListener('mouseleave', function(){ var had=alt_hover!=null; alt_hover=null; if (alt_drag){ finish(false) } else if (had){ draw_altitude_hist() } })
+      cv.addEventListener('dblclick',   function(e){ e.stopPropagation(); alt_win=null; alt_drag=null; draw_altitude_hist() })   // back to the auto range
 }
 
 //===================================================================== Trajectories + MSD

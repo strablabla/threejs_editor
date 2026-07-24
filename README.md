@@ -381,10 +381,17 @@ survol invisible, pas de ligne dessinée) — affiche une bulle **couleur — ma
 
 `Dynamics → Monitoring → ☑ altitude histogram` affiche (en haut à droite) le **nombre de
 particules en fonction de l'altitude `z`** : axe **vertical = altitude** (haut = z max,
-gradué), **barres horizontales = comptage** par tranche (24 tranches, échelle z auto), et
-`N = …` = total compté (mêmes exclusions que l'énergie cinétique). Surtout parlant avec
-**Gravity (z) activée** : on observe alors le **profil barométrique** — densité qui décroît
-avec l'altitude (`n(z) ∝ e^{−mgz/kT}`) une fois le gaz thermalisé.
+gradué), **barres horizontales = comptage** par tranche, et `N = …` = nombre compté dans la
+fenêtre (mêmes exclusions que l'énergie cinétique). Surtout parlant avec **Gravity (z)
+activée** : on observe alors le **profil barométrique** — densité qui décroît avec l'altitude
+(`n(z) ∝ e^{−mgz/kT}`) une fois le gaz thermalisé.
+
+- **Fenêtre d'observation en z** : deux **triangles** (survol de l'axe vertical, en haut/en bas)
+  fixent le `z` max / min observé ; le **rééchelonnement se fait au relâchement**. Double-clic =
+  retour à l'étendue auto. Le **nombre de bins reste constant** quand la fenêtre rétrécit → on
+  gagne en **résolution** sur la zone regardée.
+- **Nombre de bins** : une **glissière** (défaut **24**) règle la résolution de l'histogramme,
+  indépendamment de la fenêtre d'observation.
 
 **Ajustement Python** : sous le graphe, le champ **« N(z) ≈ »** accepte une **expression
 Python de `z`** (ex. `50*exp(-z/300)`). Un clic sur **fit** (ou Entrée) l'évalue **côté

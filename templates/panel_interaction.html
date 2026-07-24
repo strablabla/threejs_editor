@@ -432,6 +432,8 @@
     // rectangle on a graph; the wheel over the window used to zoom the scene).
     // We do NOT block 'click': the .mon_close close cross is a DELEGATED handler on document.
     $('#trajectories_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
+    // Same isolation for the altitude histogram: its canvas now has draggable z-window handles.
+    $('#altitude_hist_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
 
     // --- Monitoring: altitude histogram (N vs z) ---
     $('#chk_altitude_hist').prop('checked', show_altitude_hist)
@@ -455,6 +457,12 @@
         this.blur()                                        // a <select> kept focused captures scene shortcuts (typeahead: « x »…)
         if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }   // immediate draw, without waiting for the animation
         save_monitoring_prefs()
+    })
+    // Bins slider: number of histogram compartments (resolution), independent of the z window.
+    $('#alt_bins_slider').on('input', function(){
+        alt_bins = parseInt(this.value, 10) || ALT_HIST_BINS
+        $('#alt_bins_val').text(alt_bins)
+        if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }
     })
     // ESSENTIAL for the dropdown list to open: TrackballControls is built without a domElement
     // (init_scene.js) -> it attaches to DOCUMENT and does preventDefault() on EVERY mousedown of the page.

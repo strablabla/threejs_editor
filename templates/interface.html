@@ -71,6 +71,12 @@ function bs_prompt(title, message, defaultValue, onOk){
     </select>
   </div>
   <canvas id="altitude_hist" width="220" height="240" style="display:block; background:#fafafa"></canvas>
+  <div style="margin-top:4px; display:flex; gap:6px; align-items:center">
+    <span style="color:#888">bins&nbsp;:</span>
+    <input type="range" id="alt_bins_slider" min="4" max="100" value="24" style="flex:1; min-width:0"
+           title="nombre de compartiments de l'histogramme (résolution) — indépendant de la fenêtre d'observation">
+    <span id="alt_bins_val" style="color:#555; min-width:24px; text-align:right">24</span>
+  </div>
   <div style="margin-top:4px; display:flex; gap:4px; align-items:center">
     <span style="color:#888">N(z)&nbsp;≈</span>
     <input type="text" id="altitude_fit_expr" placeholder="50*exp(-z/300)" spellcheck="false"

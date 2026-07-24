@@ -440,6 +440,17 @@
          load_named_scene(selected_scene)
     })
 
+    // Navbar reload arrow (↻): reload the CURRENT scene without opening the Scene panel.
+    $('#reload_scene').click(function(){
+         if (typeof scene !== 'undefined' && scene && scene.name){
+               load_named_scene(scene.name)        // reload the saved state of the named scene (+ "loaded" toast)
+         } else {                                  // unnamed working scene -> reload the current working state (pos.json)
+               $.ajax({ url:'static/pos.json', dataType:'json', cache:false })
+                .done(function(data){ clear_scene_local(); load_scene(data)
+                      if (typeof scene_toast === 'function'){ scene_toast('loaded') } })
+         }
+    })
+
     $('#rename_scene').click(function(){          // renames the selected scene (server file)
          if (!selected_scene){ return }
          var old = selected_scene
