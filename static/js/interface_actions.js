@@ -16,7 +16,10 @@ function position_panel_under_icon(name_obj, class_obj){
       var iconCenter = r.left + r.width/2
       var panelW = $panel.outerWidth()
       var winW = $(window).width()
-      var left = Math.round(iconCenter - 30)
+      // Icon on the right of the screen (e.g. Help "?") -> open the panel leftward with the caret at
+      // the FAR RIGHT, under the icon. Otherwise open it just left of the icon (caret near the left).
+      var rightSide = iconCenter > winW * 0.6
+      var left = rightSide ? Math.round(iconCenter - panelW + 15) : Math.round(iconCenter - 30)
       if (left + panelW > winW - 6){ left = winW - panelW - 6 }   // no overflow on the right
       if (left < 6){ left = 6 }
       $panel.css({ left: left + 'px', right: 'auto' })
@@ -114,6 +117,33 @@ function one_element_dicths(name_panel){
     dicths[name_panel] = function(){ generic_action_panel("#" + name_panel, '.panel_' + name_panel) }}
 for (var i in list_panels){ one_element_dicths(list_panels[i]) } // make_dicths
 
+// Cap the Help tab content so its bottom never spills past the panel background ("into the void"):
+// max-height = distance from the visible tab's top to the panel bottom, minus a small margin.
+function size_help_tabs(){
+      var panel = document.querySelector('.panel_help')
+      if (!panel || !$(panel).is(':visible')){ return }
+      var tabs = panel.querySelectorAll('.dyn_tab'), vis = null
+      for (var i=0;i<tabs.length;i++){ if (tabs[i].offsetParent !== null){ vis = tabs[i]; break } }
+      if (!vis){ return }
+      var mh = Math.max(80, Math.round(panel.getBoundingClientRect().bottom - vis.getBoundingClientRect().top - 14))
+      $('.panel_help .dyn_tab').css('max-height', mh + 'px')
+}
+// Delegated on document: robust whatever the load order (a direct $('#help') binding can miss if
+// the navbar isn't in the DOM yet when this script runs -> size_help_tabs never fired on open).
+$(document).on('click', '#help', function(){ setTimeout(size_help_tabs, 0) })                      // when the Help panel opens
+$(document).on('click', '.panel_help .dyn_tab_btn', function(){ setTimeout(size_help_tabs, 0) })   // when switching Help tabs
+
+// On window resize, re-align each OPEN panel (and its ▲ caret) under its navbar icon: the icons
+// use relative positions (e.g. Help at 90%) and move, while the panels were placed once in px.
+$(window).on('resize', function(){
+      for (var k in list_panels){
+            var nm = list_panels[k]
+            if ($('.panel_' + nm).is(':visible')){ position_panel_under_icon('#' + nm, '.panel_' + nm) }
+      }
+      size_help_tabs()
+})
+
+
 //------------------------
 
 function hide_show_keys(){
@@ -138,7 +168,7 @@ function hide_show_keys(){
                   {k:['s'], d:'select an area'}, {k:['p'], d:'pick several objects'},
                   {k:['g'], d:'move a group'} ]},
             { title:'Animation', rows:[
-                  {k:['a'], d:'start animation'}, {k:['x'], d:'play / pause'} ]},
+                  {k:['x'], d:'start / pause / resume'} ]},
             { title:'View', rows:[
                   {k:['k'], d:'set camera view (drag: A → look-at)'},
                   {k:['V'], d:'show / hide view arrows'},
@@ -150,22 +180,23 @@ function hide_show_keys(){
                   {k:['right-click'], d:'elastic → edit stiffness'} ]}
       ]
 
-      var html = '<span class="pk_close" title="close">&times;</span>'
-      html += '<h2>Keyboard shortcuts</h2><div class="pk_grid">'
+      var inner = '<div class="pk_grid">'
       for (var g in groups){
-            html += '<div class="pk_section"><h3>' + groups[g].title + '</h3>'
+            inner += '<div class="pk_section"><h3>' + groups[g].title + '</h3>'
             for (var r in groups[g].rows){
                   var row = groups[g].rows[r], kb = []
                   for (var i in row.k){ kb.push('<kbd class="pk">' + row.k[i] + '</kbd>') }
-                  html += '<div class="pk_row"><span class="pk_desc">' + row.d + '</span>'
+                  inner += '<div class="pk_row"><span class="pk_desc">' + row.d + '</span>'
                        +  '<span class="pk_keys">' + kb.join('<span class="pk_plus">+</span>') + '</span></div>'
             }
-            html += '</div>'
+            inner += '</div>'
       }
-      html += '</div>'
+      inner += '</div>'
 
-      $('.panel_keys').html(html)
-      $('#keys').click(function(){ $('.panel_keys').toggle() })          // ouvre/ferme depuis Help > keys
+      // Same content in two places: the Help panel "Keys" tab (no title, no wasted space) and the
+      // floating Ctrl+K card (which keeps a title as it has no other header).
+      $('#help_keys_content').html(inner)
+      $('.panel_keys').html('<span class="pk_close" title="close">&times;</span><h2>Keyboard shortcuts</h2>' + inner)
       $('.panel_keys').on('click', '.pk_close', function(){ $('.panel_keys').hide() })
 
 }
@@ -309,7 +340,8 @@ function init_interf_actions(){
 
       //---------------------- Tooltips of the menu icons
 
-      $('[data-toggle="tooltip"]').tooltip({ container: 'body', placement: 'bottom' })
+      $('[data-toggle="tooltip"]').not('#scene').tooltip({ container: 'body', placement: 'bottom' })
+      $('#scene').tooltip({ container: 'body', placement: 'right' })   // leftmost icon: tooltip to the RIGHT (arrow on the left), not clipped
 
       //---------------------- Click on the tool name (navbar) -> no tool
 

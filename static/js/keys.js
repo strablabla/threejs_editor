@@ -103,7 +103,7 @@ function keyDownTextField1(event){
       if (event.ctrlKey && (event.keyCode === 67 || event.key === 'c' || event.key === 'C')){ event.preventDefault(); do_copy(); return }
       if (event.ctrlKey && (event.keyCode === 86 || event.key === 'v' || event.key === 'V')){ event.preventDefault(); do_paste(); return }
 
-      if ( keyev('a', event) ){ scene_animation_ok = true; apply_to_one_obj_or_group(apply_movement, false) } // starts the animation (+ records the hovered object)
+      // 'a' removed: every created/loaded object is already in list_moving_objects, so 'x' (play/pause) animates everything.
       if ( keyev('d', event) && !event.shiftKey ){ delete_object() }   				  // Delete object selected (only « d » deletes; Shift+D does nothing)
       //if ( keyev('b', event) ){ delete_area() }               // Delete selection area
       if ( keyev('r', event) ){ apply_to_one_obj_or_group(rotate_obj, true) } 						// Rotation

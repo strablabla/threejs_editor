@@ -1,12 +1,43 @@
 <div class="panel_help input_interface" hidden >
 
+  <style>
+    /* tab content scrolls vertically inside the panel when it overflows (max-height refined by
+       size_help_tabs() so the bottom never spills past the panel background) */
+    .panel_help .dyn_tab { max-height: 240px; overflow-y: auto; overflow-x: hidden; }
+    .panel_help #help_keys_content .pk_grid { margin-top: 0; }   /* no wasted space at the top */
+  </style>
+
   <div class="titlepanel" > Help </div>
 
-      <br><br><br>
+  <div class="dyn_tabs" style="margin:8px 0 6px">
+    <button type="button" class="dyn_tab_btn active" data-tab="tab_help_keys">Keys</button>
+    <button type="button" class="dyn_tab_btn"        data-tab="tab_help_doc">Documentation</button>
+  </div>
 
-      <div  class="help" id="keys" > keys </div><br>
-      <div  class="help" id="doc" > Documentation </div><br>
-      <div  class="help" id="ex" > Examples </div><br>
-      <div  class="help" id="controls" > Controls </div><br>
+  <!-- Keys tab: the keyboard-shortcuts card, injected by hide_show_keys() -->
+  <div id="tab_help_keys" class="dyn_tab">
+    <div id="help_keys_content"></div>
+  </div>
+
+  <!-- Documentation tab -->
+  <div id="tab_help_doc" class="dyn_tab" style="display:none; font-family:sans-serif; letter-spacing:normal; font-size:1em; line-height:1.5; text-align:left; padding:4px 12px 12px">
+    <h3 style="margin:6px 0">3D scene editor — physics sandbox</h3>
+    <p>Create objects, animate them with a physics engine (gravity, elastic collisions, springs),
+       and save your scenes as JSON on the server.</p>
+    <p><b>Create</b> — pick a tool in the <b>Object</b> panel (clickable icons) or with the keyboard
+       (see the <b>Keys</b> tab), then click in the plane. A box is drawn in 2 clicks.</p>
+    <p><b>Animate</b> — <kbd class="pk">a</kbd> start, <kbd class="pk">x</kbd> play / pause.</p>
+    <p><b>Physics</b> — the <b>Parameters</b> panel controls gravity, springs, the 1/r² interaction
+       (with its strength / softening), <i>Fast collisions</i> (cell lists) and <i>Fast attraction</i>
+       (Barnes–Hut).</p>
+    <p><b>Monitoring</b> (Parameters → Monitoring): energy graph, velocity histogram, altitude
+       histogram (with a z observation window + bins slider), and the <b>trajectories</b> window
+       (x–y, z(t), MSD, |v|(t) — zoom, pan, real-time follow).</p>
+    <p><b>Scenes</b> — the <b>Scene</b> panel saves / loads / renames experiments and organises
+       them in virtual folders (right-click a scene). The <b>↻</b> arrow in the navbar reloads the
+       current scene without opening the panel.</p>
+    <p><b>View</b> — drag with the mouse to rotate / zoom (TrackballControls).</p>
+    <p style="color:#888">Full documentation: see the project <code>README.md</code>.</p>
+  </div>
 
 </div>

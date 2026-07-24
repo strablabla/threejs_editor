@@ -39,10 +39,12 @@ Navigation bar..
 	top: 10px;
 	z-index: 10010;
 	opacity: 1;
-	filter: brightness(0);   /* icônes emoji rendues en noir (silhouette) */
+	color: #111;             /* vraies icônes SVG noires (currentColor) */
 	cursor: pointer;
 
 }
+.menu svg { width: 26px; height: 26px; display: block; vertical-align: middle; }
+.menu:hover svg { color: #000; }
 
 /* Croix de fermeture des panneaux */
 .panel_close {
@@ -64,6 +66,11 @@ Navigation bar..
 /* Tooltips au-dessus des panneaux (panneaux = z-index 9999) */
 .tooltip {
 	z-index: 10050 !important;
+}
+
+/* Largeur des bulles (noms de scène en navbar + liste du panneau Scene) plafonnée à 300px */
+.tooltip-inner {
+	max-width: 300px !important;
 }
 
 /* Modales (dialogues) au-dessus de tout le reste */
@@ -272,10 +279,10 @@ Panel help
 	top: 50px;
 	right:2px;
 	margin-left:5px;
-	padding-left: 5px;
-	padding-top: 20px;
-	width: 400px;
-	height: 400px;
+	box-sizing: border-box;
+	padding: 16px 24px 16px 24px;   /* marges de chaque côté */
+	width: 600px;
+	height: 600px;                  /* +50% */
 	/* background-color:#ccffe6;  */
 	background-color: #fff; /* green */
 	z-index: 9999;

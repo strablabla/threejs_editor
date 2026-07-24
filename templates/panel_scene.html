@@ -33,6 +33,7 @@
       .scene-ctx-item:hover { background:#e8f0fe; }
       .scene-ctx-danger:hover { background:#fdecea; }
       .scene-ctx-sep  { border-top:1px solid #eee; margin:4px 0; }
+      /* Tooltip width cap (600px) moved to create_3d.css (.tooltip-inner) so it applies globally */
     </style>
 
     <div class="panel_scene input_interface" hidden >
@@ -50,27 +51,34 @@
           <!-- ===== Page: handle scenes ===== -->
           <div id="tab_handle_scenes" class="dyn_tab">
           <div style="margin-left:-20px">   <!-- top part shifted 20px to the left -->
-          <div  class="help" > <span style="font-size:0.75em"> Name: </span>
-                  <input  value="" placeholder="nom" size=6 id="scene_name" style="font-size:0.75em">
+          <div  class="help" >
+                  <button id="new_scene"     type="button" class="btn btn-primary" data-toggle="tooltip" title="Start a blank scene (archives the current one first if it is named)"> New scene </button>
+          </div> <br>
+          <div  class="help" > <span style="font-size:0.75em"> Current Scene: </span> </div>
+          <div  class="help" >
+                  <input  value="" placeholder="(unnamed)" size=6 id="scene_name" readonly data-toggle="tooltip" title="Name is set via Save as / Rename" style="font-size:0.75em; max-width:340px; background:#f2f2f2; color:#555; cursor:default; border:none">
+          </div>
+          <div  class="help" style="margin-top:5px">
                   <button id="save_as_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="Save as">💾</button>
-                  <button id="new_scene"     type="button" class="btn btn-primary"> New scene </button>
+                  <button id="rename_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="Rename">✏️</button>
           </div> <br>
           <div  class="help" > <span style="font-size:0.75em"> Scenes : </span> </div>
-          <div  class="help" >
-                  <div class="dropdown" style="display:inline-block; text-align:left">
+          <div  class="help" style="white-space:nowrap">
+                  <div class="dropdown" style="display:inline-block; text-align:left; vertical-align:middle">
                     <button class="btn btn-default dropdown-toggle" type="button"
                             id="scene_dropdown_btn" data-toggle="dropdown"
-                            aria-haspopup="true" aria-expanded="false">
-                      <span id="scene_dropdown_label">choose&hellip;</span> <span class="caret"></span>
+                            aria-haspopup="true" aria-expanded="false"
+                            style="width:180px; text-align:left; white-space:nowrap; overflow:hidden; vertical-align:middle">
+                      <span id="scene_dropdown_label" style="display:inline-block; max-width:calc(100% - 18px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle">choose&hellip;</span>
+                      <span class="caret" style="float:right; margin-top:7px"></span>
                     </button>
                     <ul class="dropdown-menu" id="scene_dropdown_menu" aria-labelledby="scene_dropdown_btn"
                         style="max-height:60vh; overflow-y:auto; overflow-x:hidden"></ul>
                   </div>
                   <button id="load_scene"   type="button" class="btn btn-warning" data-toggle="tooltip" title="Load">⤓</button>
-                  <button id="rename_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="Rename">✏️</button>
                   <button id="delete_scene" type="button" class="btn btn-default" style="background:#ffc0cb" data-toggle="tooltip" title="Remove">❌</button>
+                  <button id="clear_scene"  type="button" class="btn btn-default" data-toggle="tooltip" title="clear the scene"> Clear </button>
           </div> <br>
-          <center> <button id="clear_scene" type="button" class="btn btn-default" data-toggle="tooltip" title="clear the scene"> Clear </button> </center> <br>
           </div>
           </div>
 
@@ -90,8 +98,22 @@
 
     <script>
 
+    function autosize_scene_name(){               // the Current-Scene input grows/shrinks with the name length
+         var el = document.getElementById('scene_name')
+         if (!el){ return }
+         el.size = Math.max(6, (el.value || '').length + 1)
+         var panel = document.querySelector('.panel_scene')      // never let it spill past the panel: keep a 50px right margin
+         if (panel && el.offsetParent){
+               var mw = panel.getBoundingClientRect().right - el.getBoundingClientRect().left - 50
+               el.style.maxWidth = Math.max(60, Math.round(mw)) + 'px'
+         }
+    }
+    $('#scene_name').on('input', autosize_scene_name)
+
     function update_scene_name_display(){         // scene name shown in the navbar (to the left of the ?)
-         $('#scene_name_navbar').text(scene.name || '')
+         $('#scene_name_navbar').text(scene.name ? 'Scene : ' + scene.name : '')
+         autosize_scene_name()                    // resize the input after a programmatic name change (load / rename / new)
+         if (typeof update_scene_name_tooltip === 'function'){ update_scene_name_tooltip() }   // navbar tooltip = this scene's description
          if (typeof report_bind_scene === 'function'){ report_bind_scene() }   // switch the report to THIS scene
     }
 
@@ -198,7 +220,8 @@
     var scene_descriptions = {}
     function refresh_scene_descriptions(done){
          $.ajax({ url: '/reports', dataType: 'json', cache: false })
-          .done(function(d){ scene_descriptions = d || {} })
+          .done(function(d){ scene_descriptions = d || {}
+                             if (typeof update_scene_name_tooltip === 'function'){ update_scene_name_tooltip() } })   // refresh the navbar description tooltip
           .always(function(){ if (typeof done === 'function'){ done() } })
     }
 
@@ -245,7 +268,7 @@
                var f = node.folders[fn], open = !!exp[f.path]
                var subs = _all_folders.filter(function(p){ return p.indexOf(f.path+'/') === 0 })  // strict sub-folders
                var allOpen = subs.length && subs.every(function(p){ return !!exp[p] })
-               var btn = subs.length ? '<span class="scene-folder-all" title="Ouvrir/fermer tous les sous-dossiers">'+(allOpen?'⊟':'⊞')+'</span>' : ''
+               var btn = subs.length ? '<span class="scene-folder-all" title="Expand/collapse all sub-folders">'+(allOpen?'⊟':'⊞')+'</span>' : ''
                var $row = $('<li class="scene-folder">').attr('data-path', f.path)
                      .css('padding-left', (8 + depth*14) + 'px')
                      .html('<span class="tw">'+(open?'▾':'▸')+'</span> <span class="fname">'+_esc(fn)+'</span>'+btn)
@@ -269,6 +292,9 @@
                      list = (list || []).map(function(x){ return (typeof x === 'string') ? {name:x, folder:''} : x })  // tolerate old shape
                      var menu = $('#scene_dropdown_menu').empty()
                      _render_scene_node(_build_scene_tree(list), 0, menu)
+                     // scene descriptions can be long: use Bootstrap tooltips (capped at 600px via
+                     // .tooltip-inner CSS) instead of native title tooltips (which can't be width-limited)
+                     if ($.fn && $.fn.tooltip){ menu.find('.scene-link[title]').tooltip({ container:'body', placement:'right' }) }
                })
          })
     }
@@ -512,6 +538,11 @@
          }, 'btn-danger', 'Quit')
     })
 
+    function size_scene_dropdown(){               // scenes select = TWICE the width of the New scene button
+         var w = $('#new_scene').outerWidth()
+         if (w > 0){ $('#scene_dropdown_btn').css('width', Math.round(2 * w) + 'px') }
+    }
+
     populate_scene_list()                         // fills the list on load
     $('#scene').click(function(){                 // when opening the Scene menu: list + selection = current scene
          populate_scene_list()
@@ -519,6 +550,7 @@
                selected_scene = scene.name
                $('#scene_dropdown_label').text(scene.name)
          }
+         setTimeout(function(){ size_scene_dropdown(); autosize_scene_name() }, 0)   // once the panel is shown: real widths
     })
 
     // Cap the scenes dropdown so it never spills past the bottom of the Scene panel: with many

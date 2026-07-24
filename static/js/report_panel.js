@@ -23,7 +23,7 @@
 
 var REPORT_LS_PREFIX = 'report::'              // OLD browser storage — only read, for the one-time migration
 var REPORT_LS_OLD_KEY = 'threejs_report_v1'   // even older single key
-var report_state = { md: '', figs: {}, seq: 0 }   // figs: { id -> {kind, url} } ; seq: id counter
+var report_state = { md: '', figs: {}, seq: 0, descr: '' }   // figs: { id -> {kind, url} } ; seq: id counter ; descr: short scene description (tooltip)
 var _report_wired = false
 var _report_scene = null                      // name of the scene whose report is loaded in the editor
 var _report_dirty = false                     // edits not yet written to disk
@@ -43,11 +43,16 @@ function report_scene_key(){
 // with a few PNG figures each blew the quota and the figures were silently lost.
 
 function report_apply(s){                     // adopts a state coming from the server
-      report_state = { md: '', figs: {}, seq: 0 }        // blank first: a report must never leak between scenes
+      report_state = { md: '', figs: {}, seq: 0, descr: '' }   // blank first: a report must never leak between scenes
       if (s){
-            report_state.md   = typeof s.md === 'string' ? s.md : ''
-            report_state.figs = (s.figs && typeof s.figs === 'object') ? s.figs : {}
-            report_state.seq  = s.seq | 0
+            report_state.md    = typeof s.md === 'string' ? s.md : ''
+            report_state.figs  = (s.figs && typeof s.figs === 'object') ? s.figs : {}
+            report_state.seq   = s.seq | 0
+            report_state.descr = typeof s.descr === 'string' ? s.descr : ''
+            // backward compat: old reports carried the description as a !descr block inside the md
+            if (!report_state.descr && /^\s*!descr\b/m.test(report_state.md) && typeof report_extract_descr === 'function'){
+                  report_state.descr = report_extract_descr(report_state.md)
+            }
       }
 }
 
@@ -80,7 +85,7 @@ function report_save_now(name, state){
       keeps targeting the RIGHT scene even if the user switches scene in the meantime.
       */
 
-      state.descr = (typeof report_extract_descr === 'function') ? report_extract_descr(state.md) : ''
+      if (typeof state.descr !== 'string'){ state.descr = '' }   // description edited directly in the Description panel (no more !descr)
       return $.ajax({ url: '/report/' + encodeURIComponent(name), method: 'POST',
                       contentType: 'application/json', data: JSON.stringify(state) })
 }
@@ -163,6 +168,8 @@ function report_reload(){                                // forces a re-read (af
 function report_show_state(){                            // puts the loaded state into the editor
       var ta = document.getElementById('report_md')
       if (ta){ ta.value = report_state.md }
+      var dt = document.getElementById('scene_descr_ta')   // keep the Description panel in sync
+      if (dt){ dt.value = report_state.descr || '' }
       report_render()
 }
 
@@ -442,7 +449,7 @@ function report_init(){
       $(window).on('beforeunload', function(){
             if (!_report_dirty || !_report_scene){ return }
             if (_report_save_timer){ clearTimeout(_report_save_timer); _report_save_timer = null }
-            report_state.descr = (typeof report_extract_descr === 'function') ? report_extract_descr(report_state.md) : ''
+            if (typeof report_state.descr !== 'string'){ report_state.descr = '' }   // description is edited directly now
             try {
                   $.ajax({ url: '/report/' + encodeURIComponent(_report_scene), method: 'POST',
                            contentType: 'application/json', data: JSON.stringify(report_state), async: false })
@@ -488,9 +495,54 @@ function report_toggle(){
       if (typeof save_monitoring_prefs === 'function'){ save_monitoring_prefs() }   // open/closed saved with the scene
 }
 
-// The report opens/closes by clicking the experiment name (navbar), not a Monitoring checkbox.
-// Delegated so it works whatever moment the name is (re)populated.
+// --- Description panel (short scene description = tooltip in the scene list) --------
+// Opens on a click on the scene name. Its text is report_state.descr, saved with the report
+// (server /reports still reads the `descr` field to fill the scene-list tooltips).
+function description_set_visible(on){
+      if (on){
+            report_init()                                  // ensures the report of the CURRENT scene is loaded (sets _report_scene)
+            var dt = document.getElementById('scene_descr_ta')
+            if (dt){ dt.value = report_state.descr || '' }
+            $('#description_scene').text((typeof scene !== 'undefined' && scene && scene.name) ? '— ' + scene.name : '')
+            var box = document.getElementById('description_box')
+            var nb  = document.getElementById('scene_name_navbar')
+            if (box && nb){                                // place it UNDER the scene name (right side), not on the left
+                  var r = nb.getBoundingClientRect(), w = box.offsetWidth || 340
+                  box.style.top  = Math.round(r.bottom + 8) + 'px'
+                  box.style.left = Math.round(Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))) + 'px'
+            }
+            $('#description_box').show()
+            if (dt){ dt.focus() }
+      } else {
+            $('#description_box').hide()
+      }
+}
+function description_toggle(){ description_set_visible($('#description_box').css('display') === 'none') }
+
+// The navbar scene name shows the scene DESCRIPTION as a (Bootstrap, ≤600px) tooltip — like the
+// items of the scene dropdown. `descOverride` lets the Description editor update it live; otherwise
+// it reads the persisted scene_descriptions map.
+function update_scene_name_tooltip(descOverride){
+      var el = document.getElementById('scene_name_navbar'); if (!el){ return }
+      var d = (typeof descOverride === 'string') ? descOverride
+            : ((typeof scene_descriptions !== 'undefined' && typeof scene !== 'undefined' && scene && scene.name) ? (scene_descriptions[scene.name] || '') : '')
+      var title = (d && d.trim()) ? d : 'No description yet — click to write one'
+      if ($.fn && $.fn.tooltip){
+            if (!el._descTipInit){ $(el).tooltip({ container: 'body', placement: 'bottom' }); el._descTipInit = true }  // init once
+            $(el).attr('data-original-title', title)                                                                    // update content
+      } else { el.title = title }
+}
+
 $(function(){
-      $('#scene_name_navbar').css('cursor', 'pointer').attr('title', 'compte rendu de cette expérience (clic)')
-      $(document).on('click', '#scene_name_navbar', report_toggle)
+      // Click on the scene name -> Description panel (the Report opens from its navbar icon instead).
+      $('#scene_name_navbar').css('cursor', 'pointer')
+      update_scene_name_tooltip()
+      $(document).on('click', '#scene_name_navbar', description_toggle)
+      $(document).on('click', '#report_nav', report_toggle)                 // navbar notebook+pencil -> Report panel
+
+      // Description editing -> report_state.descr -> saved with the report (feeds the tooltips) + live navbar tooltip.
+      $(document).on('input', '#scene_descr_ta', function(){ report_state.descr = this.value; report_save(); update_scene_name_tooltip(this.value) })
+      $('#description_close_btn').on('click', function(){ description_set_visible(false) })
+      // Isolate from TrackballControls (bound to document) so typing / clicking works in the box.
+      $('#description_box').on('mousedown click dblclick wheel keydown keypress keyup', function(e){ e.stopPropagation() })
 })

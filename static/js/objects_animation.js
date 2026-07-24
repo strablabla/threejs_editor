@@ -1460,6 +1460,12 @@ function traj_mass_label(lo, hi){                           // "masse 1.0", or "
       return 'masse ' + (a === b ? a : a + '…' + b)
 }
 
+function traj_radius_label(lo, hi){                         // "rayon 40", or "rayon 20…40" if the color mixes radii ('' if unknown)
+      if (lo === undefined){ return '' }
+      var a = fmt_energy(lo), b = fmt_energy(hi)
+      return 'rayon ' + (a === b ? a : a + '…' + b)
+}
+
 var _traj_colors_sig = null                                 // signature (colors + checked state + masses) -> only rebuilds the checkboxes if it changes
 
 function refresh_traj_color_filters(){
@@ -1476,7 +1482,7 @@ function refresh_traj_color_filters(){
       if (!box){ return }
       var a = traj_candidate_objects()
       var cols = distinct_colors(a)
-      var counts = {}, tracked = {}, mmin = {}, mmax = {}
+      var counts = {}, tracked = {}, mmin = {}, mmax = {}, rmin = {}, rmax = {}
       for (var i=0;i<a.length;i++){
             var h = obj_hex(a[i])
             counts[h] = (counts[h] || 0) + 1
@@ -1485,11 +1491,16 @@ function refresh_traj_color_filters(){
                   if (mmin[h] === undefined || m < mmin[h]){ mmin[h] = m }
                   if (mmax[h] === undefined || m > mmax[h]){ mmax[h] = m }
             }
+            var rad = a[i].radius                         // min/max radii of the color (idem)
+            if (typeof rad === 'number' && isFinite(rad)){
+                  if (rmin[h] === undefined || rad < rmin[h]){ rmin[h] = rad }
+                  if (rmax[h] === undefined || rad > rmax[h]){ rmax[h] = rad }
+            }
             if (a[i].track_trajectory){ tracked[h] = true }
       }
       var nsel = 0
       for (var i=0;i<cols.length;i++){ if (tracked[cols[i]]){ nsel++ } }
-      var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] + '/' + mmin[h] + '-' + mmax[h] }).join(',')
+      var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] + '/' + mmin[h] + '-' + mmax[h] + '/' + rmin[h] + '-' + rmax[h] }).join(',')
       if (sig === _traj_colors_sig){ return }
       _traj_colors_sig = sig
       $(box).empty()
@@ -1515,7 +1526,8 @@ function refresh_traj_color_filters(){
                   $(box).append($('<label style="cursor:pointer; white-space:nowrap; display:flex; align-items:center">')
                         .append($cb).append($sw)
                         .append($('<span style="color:#888">').text(counts[hex]))
-                        .attr('title', hex + ' — ' + counts[hex] + ' objet(s) — ' + traj_mass_label(mmin[hex], mmax[hex])))
+                        .attr('title', hex + ' — ' + counts[hex] + ' objet(s) — ' + traj_mass_label(mmin[hex], mmax[hex])
+                                       + (traj_radius_label(rmin[hex], rmax[hex]) ? ' — ' + traj_radius_label(rmin[hex], rmax[hex]) : '')))
             })(cols[i])
       }
 

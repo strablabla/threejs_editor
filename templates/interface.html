@@ -177,9 +177,23 @@ function bs_prompt(title, message, defaultValue, onOk){
   </div>
   <!-- Edit area: textarea (edit) OR rendering (preview). Resizable in height. -->
   <textarea id="report_md" spellcheck="false"
-            placeholder="!tit Titre centré du compte rendu&#10;&#10;!descr Description de l'expérience — sert de bulle d'aide dans la liste des scènes.&#10;Elle s'arrête au premier «#».&#10;&#10;# Section&#10;&#10;Décris l'expérience ici. **gras**, *italique*, listes avec «- ».&#10;&#10;Utilise le menu « insérer un graphe… » pour ajouter x–y / z(t) / MSD / |v|(t)."
+            placeholder="!tit Centred report title&#10;&#10;# Section&#10;&#10;Describe the experiment here. **bold**, *italic*, lists with «- ».&#10;&#10;Use the « insert a graph… » menu to add x–y / z(t) / MSD / |v|(t).&#10;&#10;(The scene's short description — the scene-list tooltip — is edited in the « Description » panel: click the scene name.)"
             style="display:none; box-sizing:border-box; width:100%; height:320px; border:0; border-radius:0 0 6px 6px; padding:8px; resize:vertical; outline:none; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.45;"></textarea>
   <div id="report_preview" style="box-sizing:border-box; width:100%; height:320px; overflow:auto; padding:10px 12px; border-radius:0 0 6px 6px; background:#fff; color:#222; line-height:1.5;"></div>
+</div>
+
+<!-- Description panel (short scene description = tooltip in the scene list). Opens on a click on
+     the scene name. Stored in the scene's report JSON under `descr` (no more !descr in the report). -->
+<div id="description_box" style="display:none; position:fixed; top:70px; left:360px; z-index:9999; width:340px; background:rgba(255,255,255,0.97); border:1px solid #888; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,0.3); font-family:sans-serif; font-size:12px;">
+  <div style="display:flex; align-items:center; gap:6px; padding:5px 8px; background:#3949ab; color:#fff; border-radius:6px 6px 0 0;">
+    <b style="flex:1">Description <span id="description_scene" style="font-weight:normal; opacity:0.85"></span></b>
+    <span id="description_close_btn" title="close" style="cursor:pointer; font-size:15px; line-height:1">&times;</span>
+  </div>
+  <div style="padding:8px">
+    <div style="color:#888; margin-bottom:5px; font-size:11px">Shown as the tooltip in the scene list.</div>
+    <textarea id="scene_descr_ta" spellcheck="false" placeholder="Describe the experiment in a sentence or two…"
+              style="box-sizing:border-box; width:100%; height:110px; resize:vertical; font-family:sans-serif; font-size:12px; padding:6px; outline:none; border:1px solid #ccc; border-radius:4px"></textarea>
+  </div>
 </div>
 
 <!-- Hover tooltip for the ⟨z⟩ means of the z(t) graph (populated by show_traj_tooltip) -->

@@ -157,7 +157,7 @@ function load_sphere(name, msg){
       listorig[name] = basic_sphere( name, msg[name]['pos'], msg[name]['rot'], color_sphere_default )
       load_params(name, msg, curr_tex_addr)
       if (msg[name]['radius'] !== undefined){ set_sphere_radius(listorig[name], msg[name]['radius']) }  // saved radius
-      list_moving_objects.push(listorig[name])   // becomes dynamic again (animates on next 'a')
+      list_moving_objects.push(listorig[name])   // becomes dynamic again (animates with 'x')
 
 }
 

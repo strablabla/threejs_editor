@@ -1,12 +1,11 @@
 # Éditeur de scènes 3D — bac à sable physique
 
 Éditeur de scènes 3D dans le navigateur : on crée des objets (murs, cubes, sphères,
-boîtes, chaînes de ressorts…) à la souris, au clavier ou **à la voix**, on les anime
+boîtes, chaînes de ressorts…) à la souris ou au clavier, on les anime
 avec un moteur physique (gravité newtonienne, collisions élastiques, ressorts), et
 l'état est sauvegardé en JSON côté serveur.
 
-- **Client** : [Three.js](https://threejs.org) (r75), jQuery, Bootstrap 3, Dropzone,
-  [Artyom.js](https://github.com/sdkcarlos/artyom.js) (reconnaissance vocale).
+- **Client** : [Three.js](https://threejs.org) (r75), jQuery, Bootstrap 3, Dropzone.
   Toute la logique métier est dans `static/js/` (≈20 fichiers, **variables globales partagées**).
 - **Serveur** : Flask + Flask-SocketIO. Sert la page et persiste les scènes en JSON.
 - **Interface en anglais.**
@@ -17,8 +16,7 @@ l'état est sauvegardé en JSON côté serveur.
 
 - **Python 3.8** (versions épinglées dans `requirements.txt`).
 - **Chrome** recommandé.
-- **Connexion Internet** : Three.js, socket.io et les polices viennent de CDN, et la
-  reconnaissance vocale utilise l'API Web Speech de Google.
+- **Connexion Internet** : Three.js, socket.io et les polices viennent de CDN.
 
 ## Installation & lancement
 
@@ -69,12 +67,15 @@ son icône** (avec une flèche et une ombre), **un seul à la fois**, et se ferm
 | 🎬 | **Scene** | nommer / sauvegarder / charger / effacer des scènes |
 | 📦 | **Object** | sélecteur d'outil de création + paramètres par défaut |
 | 🔧 | **Tools** | distance, propriétés de groupe, stats de zone |
-| 🧲 | **Dynamics** | pilotage de la physique en direct — onglets **Interactions / Initial speeds / Monitoring** |
-| ? | **Help** | aide / raccourcis |
+| ⚙️ | **Parameters** | pilotage de la physique en direct — onglets **Interactions / Initial speeds / Monitoring** |
+| ↻ | **Reload** | recharge la scène courante (sans passer par le panneau Scene) |
+| 📝 | **Report** | ouvre le compte rendu de la scène |
+| ? | **Help** | aide / raccourcis (onglets **Keys** / **Documentation**) |
 | ⏻ | **Quit** | arrête le serveur (route `/shutdown`), tout à droite de la barre |
 
-Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer dessus =
-**no tool**), et le **nom de la scène** courante à gauche du `?`.
+Dans la barre : le **nom de l'outil actif** s'affiche à droite des icônes (cliquer dessus =
+**no tool**), et le **nom de la scène** (préfixé « Scene : ») à gauche du `?` — un **clic dessus
+ouvre le panneau Description** (bulle d'aide de la liste des scènes).
 
 ---
 
@@ -82,15 +83,14 @@ Dans la barre : le **nom de l'outil actif** s'affiche à droite de 🧲 (cliquer
 
 1. **Choisir un outil** — au choix :
    - panneau **Object** → **grille d'icônes cliquables** (wall, cube, plane, pavement, track, box, sphere, string, no tool), une bulle d'info par icône ; l'icône choisie est mise en évidence ;
-   - **clavier** : `o` sphère · `e` chaîne · `n` mur · `w` boîte · `m` cube texturé · `t` piste (appui = on, 2ᵉ appui = off ; `b` coupe tout) ;
-   - **voix** : « cube », « boule », « mur », « boîte », « chaîne », « piste », « pavé », « plan », « pas d'outil ».
+   - **clavier** : `o` sphère · `e` chaîne · `n` mur · `w` boîte · `m` cube texturé · `t` piste (appui = on, 2ᵉ appui = off ; `b` coupe tout).
 2. **Cliquer dans le plan** pour déposer l'objet (la **boîte** se dessine en 2 clics). Les
    boules sont déposées **coplanaires** (plan `z = 0`) et **roses** par défaut.
 
 `TrackballControls` : rotation / zoom de la vue à la souris.
 
 ### Autres raccourcis clavier
-`a` lancer l'animation · `x` play/pause · `d` supprimer · `r` rotation ·
+`x` animation (démarrer / pause / reprendre) · `d` supprimer · `r` rotation ·
 `p` sélection multiple · `h` plan horizontal · `i` infos objet · `k` position caméra ·
 `u` relier deux objets par un ressort · flèches haut/bas pour monter/descendre.
 **Ctrl+Z** annuler · **Ctrl+Y** (ou **Ctrl+Maj+Z**) rétablir.
@@ -170,10 +170,6 @@ de déplacement).
 Le menu se ferme par sa **×** ou en cliquant ailleurs. Les couleurs des objets sont
 **préservées pendant l'animation** (pas de recoloration automatique).
 
-### Voix — pilotage
-« animation » (démarre) · « stoppe l'animation » · « reprends l'animation » ·
-« vitesse zéro ».
-
 ---
 
 ## Physique
@@ -187,7 +183,7 @@ une **simple force optionnelle**. Un **nuage coplanaire reste coplanaire** tout 
 normales de choc n'ont pas de composante `z`), donc un gaz 2D se comporte comme tel sans
 traitement spécial — et l'énergie est **réellement conservée**.
 
-Réglages en direct dans le panneau **Dynamics**, organisé en **trois onglets** :
+Réglages en direct dans le panneau **Parameters**, organisé en **trois onglets** :
 
 **Onglet « Interactions »**
 - **Gravity (z)** — gravité verticale. **Décochée** = pas de force de gravité (ni de sol) ;
@@ -305,7 +301,7 @@ en **O(n²)**. Deux optimisations réduisent ce coût **sans changer la physique
 
 ## Diagnostic d'énergie
 
-`Dynamics → Monitoring → ☑ energy graph` affiche un **graphe temporel** (en bas à gauche) des énergies
+`Parameters → Monitoring → ☑ energy graph` affiche un **graphe temporel** (en bas à gauche) des énergies
 **total / cinétique / potentielle**, avec axe gradué (unités arbitraires). La potentielle
 inclut la **gravité uniforme (z) + la gravité newtonienne (−G·mᵢ·mⱼ/r)** et l'élastique
 `½·k·(L−L₀)²`. Avec Verlet, la courbe **totale doit rester quasi constante** — c'est le
@@ -317,7 +313,7 @@ diagnostic de conservation.
 
 ## Distribution des vitesses
 
-`Dynamics → Monitoring → ☑ velocity histogram` affiche (en bas à droite) un **histogramme instantané** des
+`Parameters → Monitoring → ☑ velocity histogram` affiche (en bas à droite) un **histogramme instantané** des
 **normes de vitesse** `|v|` des objets massifs mobiles (mêmes exclusions que l'énergie
 cinétique : ni statiques/ancres, ni ressorts/élastiques/pions). Axe X = `|v|` (0 → max
 courant, échelle auto), axe Y = nombre d'objets par classe (20 classes). Le **nombre
@@ -326,7 +322,7 @@ qu'on coche la case** puis se met à jour à chaque frame pendant l'animation.
 
 ## Trajectoires & MSD
 
-`Dynamics → Monitoring → ☑ trajectories` ouvre la fenêtre **Monitoring** (en haut à gauche)
+`Parameters → Monitoring → ☑ trajectories` ouvre la fenêtre **Monitoring** (en haut à gauche)
 avec **quatre graphes que l'on coche indépendamment** (toutes les combinaisons sont possibles) :
 
 - **Trajectories** — le **chemin x-y** de chaque boule suivie (échelle isotrope en vue auto,
@@ -379,7 +375,7 @@ survol invisible, pas de ligne dessinée) — affiche une bulle **couleur — ma
 
 ## Profil d'altitude
 
-`Dynamics → Monitoring → ☑ altitude histogram` affiche (en haut à droite) le **nombre de
+`Parameters → Monitoring → ☑ altitude histogram` affiche (en haut à droite) le **nombre de
 particules en fonction de l'altitude `z`** : axe **vertical = altitude** (haut = z max,
 gradué), **barres horizontales = comptage** par tranche, et `N = …` = nombre compté dans la
 fenêtre (mêmes exclusions que l'énergie cinétique). Surtout parlant avec **Gravity (z)
@@ -454,7 +450,7 @@ boîte) sont persistés. Les **groupes persistants** (`group_id`) et l'**ajustem
 d'altitude (dans `_dynamics`) le sont aussi. Une copie horodatée de l'ancien `pos.json` est
 gardée dans `static/old/`.
 
-**Réglages Dynamics sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
+**Réglages Parameters sauvegardés avec la scène** (clé `_dynamics`) : chaque scène
 embarque sa **configuration physique** — `Gravity`, `Springs`, `Object interaction (1/r²)`
 avec sa **Strength** (signe compris), son **softening ε**, l'option **Fast collisions**
 (cell lists) et l'option **Fast attraction** (Barnes-Hut + son **θ**), ainsi que les paramètres
@@ -533,7 +529,6 @@ threejs_editor/
 │   │   ├── make_objects.js   ┘
 │   │   ├── *_interact.js           souris/clavier : sélection, magnétisme, pistes, groupes, vues, copier/coller
 │   │   ├── keys.js / keys_interactions1.js   raccourcis clavier
-│   │   └── interaction_voice.js    commandes vocales (Artyom)
 │   ├── pos.json                    état de travail (auto-save à chaque relâchement souris)
 │   ├── scenes/*.json               scènes nommées (figées sur « Save as »)
 │   └── old/*.json                  copies horodatées de pos.json
@@ -581,7 +576,6 @@ animate()                              boucle de rendu (requestAnimationFrame)
 | `static/js/box_interact.js` | Boîtes : regroupement des parois (`box_id`), ajout de boules, couvercle, hauteur |
 | `static/js/copy_paste_interact.js` | Copier/coller d'objets (Ctrl+C / Ctrl+V) : objet survolé, groupe, ou sélection |
 | `static/js/keys.js`, `keys_interactions1.js` | Raccourcis clavier |
-| `static/js/interaction_voice.js` | Commandes vocales (Artyom) |
 | `static/css/create_3d.css` | Styles (panneaux, icônes, graphe…) |
 
 ---
