@@ -1558,6 +1558,7 @@ function reset_trajectory(obj){                             // (re)starts record
 }
 
 function reset_all_trajectories(){
+      if (typeof report_library_capture === 'function'){ report_library_capture() }   // safety net: save the finished run's curves before we zero them
       if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // restart with an auto-fit view
       sim_time = 0                                                      // the timer restarts with the plots ("since the last Reset")
       var t = acquired_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }  // Reset zeroes ALL curves (visible AND hidden)
@@ -2542,6 +2543,7 @@ function interactions_and_movement(delta){
 }
 
 var MAX_PHYS_DELTA = 0.5    // max time step: avoids a giant step after a pause (tab in background)
+var _prev_anim_ok = false   // previous frame's run state -> detect the run->pause edge (end of a run)
 
 function animate_physics(){
 
@@ -2556,8 +2558,15 @@ function animate_physics(){
             interactions_and_movement(delta)                       //  -> on return, we bound the step instead of blowing up
             sim_time += delta                                      // simulation time (u.a.): it's the physics step that we accumulate,
             prevTime = time;                                       // so it freezes on pause — consistent with z(t) and the MSD
+            _prev_anim_ok = true
         }
-        else{ prevTime = performance.now() }
+        else{
+            prevTime = performance.now()
+            if (_prev_anim_ok){                                    // run just stopped: auto-save this run's curves to the scene's library
+                  _prev_anim_ok = false
+                  if (typeof report_library_capture === 'function'){ report_library_capture() }
+            }
+        }
 }
 
 // When the tab becomes visible again, restart from a delta ~0 (no jump on return from background)

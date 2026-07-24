@@ -143,9 +143,18 @@ function bs_prompt(title, message, defaultValue, onOk){
   </div>
 </div>
 
-<!-- Report: lightweight markdown editor + snapshots of the trajectory graphs.
-     Opened by clicking the experiment name (navbar). Draggable by the title bar.
-     The content (text + PNG figures) is persisted in localStorage, per scene. -->
+<!-- Report: lightweight markdown editor + NUMERIC curve figures.
+     Opened from the notebook icon (navbar). Draggable by the title bar. Curves are inserted by
+     RIGHT-CLICK (choose scene ▸ graph), stored numerically (not PNG) so they can be overlaid across
+     scenes, with an editable legend outside each graph. Persisted on disk per scene (static/reports). -->
+<style>
+  .report-legend{ display:flex; flex-wrap:wrap; gap:3px 10px; justify-content:center; align-items:center; margin:4px 0 2px; }
+  .report-legend-row{ display:inline-flex; align-items:center; gap:3px; }
+  .report-legend-sw{ width:11px; height:11px; border:1px solid #999; border-radius:2px; cursor:pointer; flex:none; }
+  .report-legend-label{ border:1px solid transparent; background:transparent; font-size:11px; color:#333; min-width:40px; max-width:180px; padding:0 2px; border-radius:2px; }
+  .report-legend-label:hover,.report-legend-label:focus{ border-color:#ccc; background:#fff; outline:none; }
+  .report-legend-del{ cursor:pointer; color:#c33; font-weight:bold; padding:0 2px; line-height:1; }
+</style>
 <div id="report_box" style="display:none; position:fixed; top:70px; left:360px; z-index:9999; width:380px; background:rgba(255,255,255,0.97); border:1px solid #888; border-radius:6px; box-shadow:0 6px 22px rgba(0,0,0,0.3); font-family:sans-serif; font-size:12px;">
   <div id="report_header" style="display:flex; align-items:center; gap:6px; padding:5px 8px; background:#2e7d32; color:#fff; border-radius:6px 6px 0 0; cursor:move; user-select:none; -webkit-user-select:none;">
     <b style="flex:1">Compte rendu</b>
@@ -157,27 +166,14 @@ function bs_prompt(title, message, defaultValue, onOk){
     <span id="report_close_btn" title="fermer" style="cursor:pointer; padding-left:4px; font-size:14px; line-height:1">&times;</span>
   </div>
   <div id="report_toolbar" style="display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:5px 8px; border-bottom:1px solid #ddd;">
-    <select id="report_snap_select" title="insérer un graphe des trajectoires (état courant)" style="font-size:11px; cursor:pointer">
-      <option value="">insérer un graphe…</option>
-      <optgroup label="trajectoires">
-        <option value="xy">x–y</option>
-        <option value="z">z(t)</option>
-        <option value="msd">MSD</option>
-        <option value="v">|v|(t) — vitesse</option>
-      </optgroup>
-      <optgroup label="monitoring">
-        <option value="vhist">histogramme des vitesses</option>
-        <option value="zhist">histogramme des altitudes</option>
-        <option value="energy">énergies</option>
-      </optgroup>
-    </select>
+    <span style="font-size:11px; color:#888">clic droit pour insérer une courbe</span>
     <span style="flex:1"></span>
     <button type="button" id="report_pdf_btn"   title="ouvrir la version imprimable (PDF via le navigateur)" style="font-size:10px; cursor:pointer">PDF</button>
     <button type="button" id="report_clear_btn" title="effacer le compte rendu (texte + figures)" style="font-size:10px; cursor:pointer">vider</button>
   </div>
   <!-- Edit area: textarea (edit) OR rendering (preview). Resizable in height. -->
   <textarea id="report_md" spellcheck="false"
-            placeholder="!tit Centred report title&#10;&#10;# Section&#10;&#10;Describe the experiment here. **bold**, *italic*, lists with «- ».&#10;&#10;Use the « insert a graph… » menu to add x–y / z(t) / MSD / |v|(t).&#10;&#10;(The scene's short description — the scene-list tooltip — is edited in the « Description » panel: click the scene name.)"
+            placeholder="!tit Centred report title&#10;&#10;# Section&#10;&#10;Describe the experiment here. **bold**, *italic*, lists with «- ».&#10;&#10;Right-click to insert a curve (choose scene ▸ graph); right-click a figure to overlay another curve.&#10;&#10;(The scene's short description — the scene-list tooltip — is edited in the « Description » panel: click the scene name.)"
             style="display:none; box-sizing:border-box; width:100%; height:320px; border:0; border-radius:0 0 6px 6px; padding:8px; resize:vertical; outline:none; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.45;"></textarea>
   <div id="report_preview" style="box-sizing:border-box; width:100%; height:320px; overflow:auto; padding:10px 12px; border-radius:0 0 6px 6px; background:#fff; color:#222; line-height:1.5;"></div>
 </div>
