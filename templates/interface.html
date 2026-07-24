@@ -176,6 +176,8 @@ function bs_prompt(title, message, defaultValue, onOk){
             placeholder="!tit Centred report title&#10;&#10;# Section&#10;&#10;Describe the experiment here. **bold**, *italic*, lists with «- ».&#10;&#10;Right-click to insert a curve (choose scene ▸ graph); right-click a figure to overlay another curve.&#10;&#10;(The scene's short description — the scene-list tooltip — is edited in the « Description » panel: click the scene name.)"
             style="display:none; box-sizing:border-box; width:100%; height:320px; border:0; border-radius:0 0 6px 6px; padding:8px; resize:vertical; outline:none; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.45;"></textarea>
   <div id="report_preview" style="box-sizing:border-box; width:100%; height:320px; overflow:auto; padding:10px 12px; border-radius:0 0 6px 6px; background:#fff; color:#222; line-height:1.5;"></div>
+  <!-- Resize grip (bottom-right): drag to change the window's width + content height. -->
+  <div id="report_resize" title="redimensionner (glisser)" style="position:absolute; right:1px; bottom:1px; width:15px; height:15px; cursor:nwse-resize; z-index:3; border-radius:0 0 6px 0; background:repeating-linear-gradient(135deg, transparent 0 2px, #999 2px 3px);"></div>
 </div>
 
 <!-- Description panel (short scene description = tooltip in the scene list). Opens on a click on

@@ -900,7 +900,36 @@ function report_init(){
       })
 
       report_make_draggable()
+      report_make_resizable()
       report_set_mode(false)                               // opens in preview
+}
+
+// Bottom-right grip: drag to resize the window (box width + the edit/preview area height).
+// The two panes (textarea + preview) are kept the same height so toggling edit/preview
+// doesn't change the window size.
+function report_make_resizable(){
+      var box  = document.getElementById('report_box')
+      var grip = document.getElementById('report_resize')
+      var ta   = document.getElementById('report_md')
+      var pv   = document.getElementById('report_preview')
+      if (!box || !grip || !ta || !pv){ return }
+      var sx = 0, sy = 0, sw = 0, sh = 0, resizing = false
+      grip.addEventListener('mousedown', function(e){
+            resizing = true
+            sx = e.clientX; sy = e.clientY
+            sw = box.getBoundingClientRect().width
+            sh = ($('#report_md').is(':visible') ? ta : pv).offsetHeight   // current pane height
+            e.preventDefault(); e.stopPropagation()                        // don't start a scene rotation / text selection
+      })
+      document.addEventListener('mousemove', function(e){
+            if (!resizing){ return }
+            var w = Math.max(280, sw + (e.clientX - sx))
+            var h = Math.max(160, sh + (e.clientY - sy))
+            box.style.width = w + 'px'
+            ta.style.height = h + 'px'
+            pv.style.height = h + 'px'
+      })
+      document.addEventListener('mouseup', function(){ resizing = false })
 }
 
 // Makes the window draggable by its title bar (the other windows are fixed;
