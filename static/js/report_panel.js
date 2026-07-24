@@ -547,7 +547,7 @@ function report_fig_print_html(id, caption){        // rasterized figure for the
       var leg = ''
       if (f.series && f.series.length){ leg = '<ul style="list-style:none; padding:0; margin:4px 0; font-size:0.85em; text-align:center">'
             for (var k = 0; k < f.series.length; k++){ var s = f.series[k]
-                  leg += '<li><span style="display:inline-block; width:10px; height:10px; background:' + report_esc(s.color || '#000') + '; margin-right:5px"></span>' + report_esc(s.label || '') + '</li>' }
+                  leg += '<li><span style="display:inline-block; width:10px; height:10px; background:' + report_esc(s.color || '#000') + '; border:1px solid #999; margin-right:5px; -webkit-print-color-adjust:exact; print-color-adjust:exact"></span>' + report_esc(s.label || '') + '</li>' }
             leg += '</ul>' }
       var cap = caption ? '<figcaption style="text-align:center; color:#666; font-size:0.9em; margin-top:2px">' + report_inline(report_esc(caption)) + '</figcaption>' : ''
       return '<figure style="margin:10px 0; text-align:center"><img src="' + url + '" style="max-width:100%; border:1px solid #ddd; border-radius:4px">' + leg + cap + '</figure>'
@@ -839,7 +839,8 @@ function report_print(){
       _report_print_mode = false
       w.document.write(
             '<!doctype html><html><head><meta charset="utf-8"><title>Compte rendu</title>' +
-            '<style>body{font-family:sans-serif; max-width:760px; margin:24px auto; padding:0 16px; color:#222; line-height:1.55}' +
+            '<style>*{-webkit-print-color-adjust:exact; print-color-adjust:exact}' +   // keep legend swatch colours when printing
+            'body{font-family:sans-serif; max-width:760px; margin:24px auto; padding:0 16px; color:#222; line-height:1.55}' +
             'img{max-width:100%}</style></head><body>' + body + '</body></html>')
       w.document.close()
       // Lets the images (data-URL) decode before opening the print dialog.
