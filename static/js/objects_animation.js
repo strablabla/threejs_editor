@@ -819,13 +819,22 @@ function mon_draw_frozen(w){                                     // draw a windo
             if (traj_show.v){   _mon_frozen_plot('v_canvas',    'v',   run) }
       } else { _mon_frozen_plot(MON_WINDOWS[w].canvas, MON_WINDOWS[w].plots[0], run) }
 }
-function mon_update_chrono_display(){                            // show the COUNTDOWN (remaining time, h:m:s) in each armed chrono input
-      for (var w in mon_chrono){
-            if (mon_chrono[w] == null){ continue }
+function mon_update_chrono_display(){                            // fill each window's chrono field per its state
+      for (var w in MON_WINDOWS){
             var inp = document.querySelector('.mon-chrono[data-win="' + w + '"]')
             if (!inp || inp === document.activeElement){ continue }   // don't fight the user while they type
-            var rem = mon_chrono[w] - (typeof sim_time !== 'undefined' ? sim_time : 0)
-            inp.value = mon_fmt_hms(rem < 0 ? 0 : rem)
+            if (mon_view[w]){                                    // viewing a saved figure -> show the ELAPSED sim-time it took
+                  var t = (typeof mon_view[w].t === 'number') ? mon_view[w].t : null
+                  inp.value = (t != null) ? mon_fmt_hms(t) : ''
+                  inp.title = 'elapsed observation time of this saved figure'
+            } else if (mon_chrono[w] != null){                   // armed -> COUNTDOWN (remaining time)
+                  var rem = mon_chrono[w] - (typeof sim_time !== 'undefined' ? sim_time : 0)
+                  inp.value = mon_fmt_hms(rem < 0 ? 0 : rem)
+                  inp.title = 'observation time (h:m:s) — auto-save + pause when reached'
+            } else {                                             // live, no limit
+                  inp.value = ''
+                  inp.title = 'observation time (h:m:s) — auto-save + pause when reached'
+            }
       }
 }
 function mon_chrono_tick(){                                      // called each frame after sim_time advances

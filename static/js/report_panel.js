@@ -415,7 +415,7 @@ function report_library_capture(){                 // append a decimated snapsho
       }
       if (!any){ return }
       _report_lib_sig = sig
-      var run = { ts: Date.now(), sig: sig, plots: plots }
+      var run = { ts: Date.now(), sig: sig, t: (typeof sim_time !== 'undefined' ? sim_time : 0), plots: plots }   // t = elapsed sim-time (u.a.) it took to obtain this figure
       var name = report_scene_key()
       // Append the run to the scene's history, reading md/figs/descr/seq + the existing runs
       // from DISK (authoritative) — never the in-memory report_state.md, so a stale state can

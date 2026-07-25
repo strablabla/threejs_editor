@@ -485,6 +485,7 @@
         var w = sel.getAttribute('data-win'); if (typeof mon_view === 'undefined'){ return }
         mon_view[w] = sel.value ? _mon_find_run(sel.value) : null
         _mon_sync_ctrls(sel); _mon_redraw(w)
+        if (typeof mon_update_chrono_display === 'function'){ mon_update_chrono_display() }   // frozen -> show its elapsed time ; live -> countdown / empty
     }
     function _mon_goto(sel, idx){                 // select option #idx (clamped) and apply
         if (!sel || !sel.options.length){ return }
