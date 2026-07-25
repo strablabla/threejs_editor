@@ -787,8 +787,63 @@ function fmt_energy(v){                                       // compact format 
 
 }
 
+// ===================== Monitoring windows: observation chrono + saved-figure freeze =====================
+// Each window can (a) auto-save + pause when sim_time reaches an observation target (mon_chrono),
+// and (b) DISPLAY a saved dated run frozen (mon_view) instead of the live data. Saved figures live
+// in the shared per-scene library (report_state.library.runs) built for the Report panel.
+var MON_WINDOWS = {
+      traj:   { plots:['xy','z','v','msd'] },                 // multi-canvas window (traj_canvas / z_canvas / msd_canvas / v_canvas)
+      energy: { plots:['energy'], canvas:'energy_graph' },
+      vel:    { plots:['vhist'],  canvas:'velocity_hist' },
+      alt:    { plots:['zhist'],  canvas:'altitude_hist' }
+}
+var mon_chrono = { traj:null, energy:null, vel:null, alt:null }   // observation target sim_time (u.a.) or null
+var mon_fired  = { traj:false, energy:false, vel:false, alt:false }  // target already reached this run (re-armed on Reset)
+var mon_view   = { traj:null, energy:null, vel:null, alt:null }      // selected saved run (frozen) or null = live
+
+function _mon_scene(){ return (typeof report_scene_key === 'function') ? report_scene_key() : '' }
+function _mon_frozen_plot(canvasId, plot, run){                  // render one saved plot onto its window canvas
+      var cv = document.getElementById(canvasId); if (!cv){ return }
+      var ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height)
+      var series = (run && run.plots && run.plots[plot] && typeof report_series_from_run === 'function')
+            ? report_series_from_run(run, plot, _mon_scene(), (typeof _fmt_run_date === 'function' ? _fmt_run_date(run.ts) : '')) : []
+      if (series.length && typeof report_plot_figure === 'function'){ report_plot_figure(cv, plot, series) }
+      else { ctx.fillStyle = '#999'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('no data', cv.width/2, cv.height/2) }
+}
+function mon_draw_frozen(w){                                     // draw a window entirely from its selected saved run
+      var run = mon_view[w]; if (!run){ return }
+      if (w === 'traj'){
+            if (traj_show.xy){  _mon_frozen_plot('traj_canvas', 'xy',  run) }
+            if (traj_show.z){   _mon_frozen_plot('z_canvas',    'z',   run) }
+            if (traj_show.msd){ _mon_frozen_plot('msd_canvas',  'msd', run) }
+            if (traj_show.v){   _mon_frozen_plot('v_canvas',    'v',   run) }
+      } else { _mon_frozen_plot(MON_WINDOWS[w].canvas, MON_WINDOWS[w].plots[0], run) }
+}
+function mon_update_chrono_display(){                            // show the COUNTDOWN (remaining time, h:m:s) in each armed chrono input
+      for (var w in mon_chrono){
+            if (mon_chrono[w] == null){ continue }
+            var inp = document.querySelector('.mon-chrono[data-win="' + w + '"]')
+            if (!inp || inp === document.activeElement){ continue }   // don't fight the user while they type
+            var rem = mon_chrono[w] - (typeof sim_time !== 'undefined' ? sim_time : 0)
+            inp.value = mon_fmt_hms(rem < 0 ? 0 : rem)
+      }
+}
+function mon_chrono_tick(){                                      // called each frame after sim_time advances
+      mon_update_chrono_display()                               // tick the countdown
+      for (var w in mon_chrono){
+            if (mon_chrono[w] != null && !mon_fired[w] && sim_time >= mon_chrono[w]){
+                  mon_fired[w] = true
+                  if (typeof report_library_capture === 'function'){ report_library_capture() }   // save this run (all plots) to the library
+                  scene_animation_ok = false                                                       // "observation finished" -> pause
+                  if (typeof color_toggle === 'function'){ color_toggle('scene_animation_ok') }    // update the play/pause indicator
+                  if (typeof mon_refresh_saved === 'function'){ setTimeout(mon_refresh_saved, 400) }   // the new dated run appears in the selects
+            }
+      }
+}
+
 function draw_energy_graph(){
 
+      if (mon_view.energy){ mon_draw_frozen('energy'); return }   // a saved figure is displayed -> skip the live graph
       var cv = document.getElementById('energy_graph')
       if (!cv){ return }
       var ctx = cv.getContext('2d')
@@ -937,6 +992,7 @@ function draw_velocity_hist(){
       */
 
       if (!show_velocity_hist){ return }
+      if (mon_view.vel){ mon_draw_frozen('vel'); return }         // a saved figure is displayed -> skip the live histogram
       var cv = document.getElementById('velocity_hist')
       if (!cv){ return }
       var ctx = cv.getContext('2d')
@@ -1241,6 +1297,7 @@ function draw_altitude_hist(){
       */
 
       if (!show_altitude_hist){ return }
+      if (mon_view.alt){ mon_draw_frozen('alt'); return }        // a saved figure is displayed -> skip the live histogram
       var cv = document.getElementById('altitude_hist')
       if (!cv){ return }
       setup_alt_hist_handles()                                // z-axis window handles (idempotent)
@@ -1547,6 +1604,26 @@ function fmt_hms(sec){                                      // seconds -> H:MM:S
       return (h > 0 ? h + ':' : '') + mm + ':' + (s < 10 ? '0' : '') + s
 }
 
+// The observation chrono is entered as h:m:s (or m:s, or plain seconds). Internally the target
+// is kept in simulation units (u.a.): 1 u.a. = 100 ms of real time, so 1 s = 10 u.a. (same
+// convention as the « t = … u.a. (h:m:s) » readout, which shows fmt_hms(sim_time/10)).
+var UA_PER_SEC = 10
+function mon_parse_hms(str){                                // "h:m:s" | "m:s" | "s" -> u.a. (or null)
+      str = ('' + (str || '')).trim(); if (!str){ return null }
+      var parts = str.split(':')
+      for (var i = 0; i < parts.length; i++){ if (parts[i].trim() !== '' && isNaN(parseFloat(parts[i]))){ return null } }
+      var sec
+      if (parts.length === 1){ sec = parseFloat(parts[0]) || 0 }
+      else if (parts.length === 2){ sec = (parseInt(parts[0], 10) || 0) * 60 + (parseFloat(parts[1]) || 0) }
+      else if (parts.length === 3){ sec = (parseInt(parts[0], 10) || 0) * 3600 + (parseInt(parts[1], 10) || 0) * 60 + (parseFloat(parts[2]) || 0) }
+      else { return null }
+      return sec > 0 ? sec * UA_PER_SEC : null
+}
+function mon_fmt_hms(ua){                                   // u.a. -> "h:m:s" for display
+      if (ua == null){ return '' }
+      return fmt_hms(Math.round(ua / UA_PER_SEC))
+}
+
 function update_traj_time(){                                // simulation time elapsed since the last reset / start of tracking
       var el = document.getElementById('traj_time')
       if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a. (' + fmt_hms(sim_time / 10) + ')' }
@@ -1567,6 +1644,8 @@ function reset_trajectory(obj){                             // (re)starts record
 
 function reset_all_trajectories(){
       if (typeof report_library_capture === 'function'){ report_library_capture() }   // safety net: save the finished run's curves before we zero them
+      if (typeof mon_fired !== 'undefined'){ for (var _w in mon_fired){ mon_fired[_w] = false } }   // re-arm the observation chronos
+      if (typeof mon_update_chrono_display === 'function'){ setTimeout(mon_update_chrono_display, 0) }   // countdown back to the full target (sim_time just zeroed)
       if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // restart with an auto-fit view
       sim_time = 0                                                      // the timer restarts with the plots ("since the last Reset")
       var t = acquired_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }  // Reset zeroes ALL curves (visible AND hidden)
@@ -1997,6 +2076,7 @@ function setup_traj_zoom(){                                 // idempotent: attac
 
 function draw_trajectories(){
 
+      if (mon_view.traj){ mon_draw_frozen('traj'); return }      // a saved figure is displayed -> skip the live graphs
       setup_traj_zoom()
       refresh_traj_color_filters()                              // checkboxes: colors to track
       update_traj_time()
@@ -2566,6 +2646,7 @@ function animate_physics(){
             interactions_and_movement(delta)                       //  -> on return, we bound the step instead of blowing up
             sim_time += delta                                      // simulation time (u.a.): it's the physics step that we accumulate,
             prevTime = time;                                       // so it freezes on pause — consistent with z(t) and the MSD
+            if (typeof mon_chrono_tick === 'function'){ mon_chrono_tick() }   // observation chrono: auto-save + pause at the target time
             _prev_anim_ok = true
         }
         else{

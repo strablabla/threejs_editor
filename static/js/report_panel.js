@@ -436,6 +436,21 @@ function report_library_capture(){                 // append a decimated snapsho
       if (_report_wired && _report_scene === name && _report_dirty){ report_save_now(name, report_state).always(merge_library) }
       else { merge_library() }
 }
+// Delete one saved run (by ts) from the current scene's library. Read-merge-write like the
+// capture, so md/figs/descr are taken from DISK and never clobbered.
+function report_library_delete_run(ts, done){
+      var name = report_scene_key()
+      $.ajax({ url: '/report/' + encodeURIComponent(name), dataType: 'json', cache: false })
+       .done(function(s){
+             s = s || {}
+             var runs = _report_lib_runs(s.library).filter(function(r){ return r.ts !== ts })
+             var library = { runs: runs }
+             report_save_now(name, { md: s.md || '', figs: s.figs || {}, seq: s.seq | 0, descr: s.descr || '', library: library })
+                   .always(function(){ if (typeof done === 'function'){ done() } })
+             if (_report_wired && _report_scene === name){ report_state.library = library }
+       })
+       .fail(function(){ if (typeof done === 'function'){ done() } })
+}
 
 // --- self-contained plotter (renders a saved figure with NO live scene) ------
 function report_plot_figure(canvas, plot, series){

@@ -464,6 +464,90 @@
         $('#alt_bins_val').text(alt_bins)
         if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }
     })
+
+    // ---- Monitoring windows: observation chrono + saved-figures select ----
+    // Saved figures live in the shared per-scene dated library (report_state.library.runs).
+    function _mon_redraw(w){
+        if (w === 'traj' && typeof draw_trajectories === 'function'){ draw_trajectories() }
+        else if (w === 'energy' && typeof draw_energy_graph === 'function'){ draw_energy_graph() }
+        else if (w === 'vel' && typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }
+        else if (w === 'alt' && typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }
+    }
+    function _mon_sel(w){ return document.querySelector('.mon-saved[data-win="' + w + '"]') }
+    function _mon_sync_ctrls(sel){                // enable/disable × and the ▲▼ arrows at the list bounds
+        var $c = $(sel).closest('.mon-ctrls')
+        $c.find('.mon-saved-del').toggleClass('on', !!sel.value)
+        $c.find('.mon-nav[data-dir="-1"]').toggleClass('off', sel.selectedIndex <= 0)
+        $c.find('.mon-nav[data-dir="1"]').toggleClass('off', sel.selectedIndex >= sel.options.length - 1)
+    }
+    function _mon_find_run(ts){ var a = window._mon_runs || []; for (var i=0;i<a.length;i++){ if (String(a[i].ts) === String(ts)){ return a[i] } } return null }
+    function _mon_apply(sel){                     // reflect the select's current value: freeze / live + redraw + sync controls
+        var w = sel.getAttribute('data-win'); if (typeof mon_view === 'undefined'){ return }
+        mon_view[w] = sel.value ? _mon_find_run(sel.value) : null
+        _mon_sync_ctrls(sel); _mon_redraw(w)
+    }
+    function _mon_goto(sel, idx){                 // select option #idx (clamped) and apply
+        if (!sel || !sel.options.length){ return }
+        sel.selectedIndex = Math.max(0, Math.min(idx, sel.options.length - 1))
+        _mon_apply(sel)
+    }
+    window.mon_refresh_saved = function(done){    // (re)populate every window's saved-figures select from the current scene's library
+        if (typeof report_fetch_library !== 'function' || typeof report_scene_key !== 'function'){ if (done){ done() } return }
+        report_fetch_library(report_scene_key(), function(lib){
+            var runs = (typeof _report_lib_runs === 'function') ? _report_lib_runs(lib) : []
+            window._mon_runs = runs
+            $('.mon-saved').each(function(){
+                var w = this.getAttribute('data-win'), plots = (typeof MON_WINDOWS !== 'undefined' && MON_WINDOWS[w]) ? MON_WINDOWS[w].plots : []
+                var cur = this.value
+                var $s = $(this).empty().append($('<option value="">').text('● live'))
+                runs.forEach(function(r){
+                    var has = plots.some(function(pk){ return r.plots && r.plots[pk] && r.plots[pk].length })
+                    if (has){ $s.append($('<option>').attr('value', String(r.ts)).text((typeof _fmt_run_date === 'function') ? _fmt_run_date(r.ts) : String(r.ts))) }
+                })
+                if (cur && $s.find('option[value="' + cur + '"]').length){ this.value = cur }   // keep the selection if still there
+                else { this.value = ''; if (typeof mon_view !== 'undefined'){ mon_view[w] = null } }   // else back to live (run gone / scene changed)
+                _mon_sync_ctrls(this)
+            })
+            if (done){ done() }
+        })
+    }
+    // Isolate the controls from TrackballControls (document mousedown preventDefault) + keys.js shortcuts.
+    $(document).on('mousedown click keydown keypress keyup wheel', '.mon-ctrls', function(e){ e.stopPropagation() })
+    $(document).on('mousedown focus', '.mon-saved', function(){ mon_refresh_saved() })   // fresh list each time it opens
+    $(document).on('change', '.mon-saved', function(){ _mon_apply(this) })
+    // ▲ newer / ▼ older : step through the saved dates (skip the ones you keep).
+    $(document).on('click', '.mon-nav', function(){
+        var sel = $(this).closest('.mon-ctrls').find('.mon-saved')[0]; if (!sel){ return }
+        _mon_goto(sel, sel.selectedIndex + (parseInt(this.getAttribute('data-dir'), 10) || 0))
+    })
+    $(document).on('click', '.mon-saved-del', function(){
+        var w = this.getAttribute('data-win'), sel = $(this).closest('.mon-ctrls').find('.mon-saved')[0]
+        if (!sel || !sel.value){ return }
+        var ts = parseFloat(sel.value), idx = sel.selectedIndex   // remember the slot -> after delete, land on the NEXT (older) date
+        if (typeof report_library_delete_run !== 'function'){ return }
+        report_library_delete_run(ts, function(){
+            mon_refresh_saved(function(){
+                var s = _mon_sel(w); if (!s){ return }
+                _mon_goto(s, Math.min(idx, s.options.length - 1))   // same slot now holds the next-older date (or the newest remaining / live)
+            })
+        })
+    })
+    $(document).on('change', '.mon-chrono', function(){       // arm the observation target (entered as h:m:s)
+        var w = this.getAttribute('data-win')
+        var ua = (typeof mon_parse_hms === 'function') ? mon_parse_hms(this.value) : null
+        if (typeof mon_chrono !== 'undefined'){ mon_chrono[w] = ua }
+        if (typeof mon_fired !== 'undefined'){ mon_fired[w] = false }
+        this.value = (ua != null && typeof mon_fmt_hms === 'function') ? mon_fmt_hms(ua) : (ua != null ? this.value : '')   // normalize display
+    })
+    $(document).on('click', '.mon-chrono', function(){        // click the chrono -> drop the time limit (run without a target)
+        var w = this.getAttribute('data-win')
+        if (typeof mon_chrono !== 'undefined' && mon_chrono[w] != null){
+            mon_chrono[w] = null
+            if (typeof mon_fired !== 'undefined'){ mon_fired[w] = false }
+            this.value = ''; this.blur()
+        }
+    })
+    $(function(){ setTimeout(function(){ if (typeof mon_refresh_saved === 'function'){ mon_refresh_saved() } }, 800) })
     // ESSENTIAL for the dropdown list to open: TrackballControls is built without a domElement
     // (init_scene.js) -> it attaches to DOCUMENT and does preventDefault() on EVERY mousedown of the page.
     // But opening a <select> is precisely the default action of mousedown: without this stopPropagation,

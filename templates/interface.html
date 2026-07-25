@@ -49,20 +49,51 @@ function bs_prompt(title, message, defaultValue, onOk){
 </script>
 
 <!-- Energy vs time graph (toggle in the Tools panel) -->
+<!-- Per-window observation chrono (auto-save + pause) + saved-figures select (freeze/delete). -->
+<style>
+  .mon-ctrls{ font-weight:normal; white-space:nowrap; color:#555; }
+  .mon-ctrls input.mon-chrono{ width:62px; font-size:11px; padding:0 2px; vertical-align:middle; text-align:center; }
+  .mon-ctrls select.mon-saved{ font-size:11px; max-width:150px; vertical-align:middle; }
+  .mon-ctrls .mon-nav{ cursor:pointer; color:#555; font-size:9px; line-height:1; padding:0 1px; vertical-align:middle; user-select:none; }
+  .mon-ctrls .mon-nav.off{ opacity:0.25; cursor:default; }
+  .mon-ctrls .mon-saved-del{ cursor:pointer; color:#c33; font-weight:bold; padding:0 3px; opacity:0.35; }
+  .mon-ctrls .mon-saved-del.on{ opacity:1; }
+</style>
 <div id="energy_graph_box" style="display:none; position:fixed; bottom:10px; left:10px; z-index:9998; background:rgba(255,255,255,0.93); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_energy_graph" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Energy</b> <span style="color:#888">(a.u.)</span> &nbsp;<span style="color:#000">▬ total</span> &nbsp;<span style="color:#e53935">▬ kinetic</span> &nbsp;<span style="color:#1e88e5">▬ potential</span> &nbsp;<span style="color:#888">— time →</span></div>
+  <div class="mon-ctrls" data-win="energy" style="margin-bottom:3px">
+    <span title="observation time (u.a.): auto-save + pause when reached" style="cursor:default">⏱</span>
+    <input type="text" class="mon-chrono" data-win="energy" placeholder="h:m:s" title="observation time (h:m:s) — auto-save + pause when reached">
+    <select class="mon-saved" data-win="energy" title="saved figures"><option value="">● live</option></select>
+    <span class="mon-nav" data-win="energy" data-dir="-1" title="newer date">&#9650;</span><span class="mon-nav" data-win="energy" data-dir="1" title="older date">&#9660;</span>
+    <span class="mon-saved-del" data-win="energy" title="delete the selected saved figure">&times;</span>
+  </div>
   <canvas id="energy_graph" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
 <!-- Histogram of velocity magnitudes (toggle in the Tools panel) -->
 <div id="velocity_hist_box" style="display:none; position:fixed; bottom:10px; right:10px; z-index:9998; background:rgba(255,255,255,0.93); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_velocity_hist" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Velocities</b> <span style="color:#888">(count vs |v|)</span></div>
+  <div class="mon-ctrls" data-win="vel" style="margin-bottom:3px">
+    <span title="observation time (u.a.): auto-save + pause when reached" style="cursor:default">⏱</span>
+    <input type="text" class="mon-chrono" data-win="vel" placeholder="h:m:s" title="observation time (h:m:s) — auto-save + pause when reached">
+    <select class="mon-saved" data-win="vel" title="saved figures"><option value="">● live</option></select>
+    <span class="mon-nav" data-win="vel" data-dir="-1" title="newer date">&#9650;</span><span class="mon-nav" data-win="vel" data-dir="1" title="older date">&#9660;</span>
+    <span class="mon-saved-del" data-win="vel" title="delete the selected saved figure">&times;</span>
+  </div>
   <canvas id="velocity_hist" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
 <!-- Altitude histogram: number of particles vs z (toggle "altitude histogram" in Monitoring) -->
 <div id="altitude_hist_box" style="display:none; position:fixed; top:70px; right:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_altitude_hist" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Altitude</b> <span style="color:#888">(N vs z)</span></div>
+  <div class="mon-ctrls" data-win="alt" style="margin-bottom:4px">
+    <span title="observation time (u.a.): auto-save + pause when reached" style="cursor:default">⏱</span>
+    <input type="text" class="mon-chrono" data-win="alt" placeholder="h:m:s" title="observation time (h:m:s) — auto-save + pause when reached">
+    <select class="mon-saved" data-win="alt" title="saved figures"><option value="">● live</option></select>
+    <span class="mon-nav" data-win="alt" data-dir="-1" title="newer date">&#9650;</span><span class="mon-nav" data-win="alt" data-dir="1" title="older date">&#9660;</span>
+    <span class="mon-saved-del" data-win="alt" title="delete the selected saved figure">&times;</span>
+  </div>
   <!-- Counted objects: « all » or a single color (options populated by refresh_alt_color_options) -->
   <div style="margin-bottom:4px; display:flex; gap:4px; align-items:center">
     <span style="color:#888">objets&nbsp;:</span>
@@ -91,6 +122,13 @@ function bs_prompt(title, message, defaultValue, onOk){
   <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_trajectories" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Trajectories</b>
     <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
     <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause) — 1 u.a. = 100 ms de temps réel">t = 0.0 u.a. (0:00)</span>
+    <div class="mon-ctrls" data-win="traj" style="margin-top:2px">
+      <span title="observation time (u.a.): auto-save + pause when reached" style="cursor:default">⏱</span>
+      <input type="text" class="mon-chrono" data-win="traj" placeholder="h:m:s" title="observation time (h:m:s) — auto-save + pause when reached">
+      <select class="mon-saved" data-win="traj" title="saved figures"><option value="">● live</option></select>
+      <span class="mon-nav" data-win="traj" data-dir="-1" title="newer date">&#9650;</span><span class="mon-nav" data-win="traj" data-dir="1" title="older date">&#9660;</span>
+      <span class="mon-saved-del" data-win="traj" title="delete the selected saved figure">&times;</span>
+    </div>
     <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
     <!-- Plots displayed: collapsible, stacked vertically (a row of buttons widened the
          window for good). Same pattern as « suivre par couleur » just below. -->

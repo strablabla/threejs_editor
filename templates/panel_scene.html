@@ -125,6 +125,7 @@
          autosize_scene_name()                    // resize the input after a programmatic name change (load / rename / new)
          if (typeof update_scene_name_tooltip === 'function'){ update_scene_name_tooltip() }   // navbar tooltip = this scene's description
          if (typeof report_bind_scene === 'function'){ report_bind_scene() }   // switch the report to THIS scene
+         if (typeof mon_refresh_saved === 'function'){ mon_refresh_saved() }   // refresh the monitoring saved-figure selects for THIS scene
     }
 
     function archive_scene(name){                 // saves the current scene as <name> (-> scenes/<name>.json)
