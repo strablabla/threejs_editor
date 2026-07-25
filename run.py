@@ -176,7 +176,11 @@ def list_scenes():
     for path in glob.glob('static/scenes/*.json'):
         name = opb(path)[:-5]              # strip the .json extension
         if name.strip():                   # skip the empty-named archive
-            out.append({'name': name, 'folder': _scene_folder(path)})
+            try:
+                mtime = os.path.getmtime(path)
+            except OSError:
+                mtime = 0
+            out.append({'name': name, 'folder': _scene_folder(path), 'mtime': mtime})
     out.sort(key=lambda s: s['name'].lower())
     return flask.jsonify(out)
 

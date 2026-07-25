@@ -105,7 +105,7 @@ function report_save(immediate){
       if (immediate){
             return report_save_now(name, state)
                   .done(function(){ _report_dirty = false })
-                  .fail(function(){ alert('Compte rendu : écriture sur le disque impossible.\nVérifie que le serveur tourne.') })
+                  .fail(function(){ alert('Report: cannot write to disk.\nCheck that the server is running.') })
       }
       _report_save_timer = setTimeout(function(){
             _report_save_timer = null
@@ -172,6 +172,7 @@ function report_show_state(){                            // puts the loaded stat
       var dt = document.getElementById('scene_descr_ta')   // keep the Description panel in sync
       if (dt){ dt.value = report_state.descr || '' }
       report_render()
+      if (typeof report_history_reset === 'function'){ report_history_reset() }   // undo history starts fresh per scene
 }
 
 // --- Snapshots of the trajectory graphs -------------------------------------
@@ -256,8 +257,8 @@ function report_snapshot(kind){
 //  Old PNG figs {kind,url} keep rendering read-only (report_fig_html branches on the shape).
 // ============================================================================
 
-var REPORT_PLOT_LABELS = { xy:'x–y', z:'z(t)', v:'|v|(t)', msd:'MSD', energy:'énergies',
-                           vhist:'histogramme des vitesses', zhist:'histogramme des altitudes' }
+var REPORT_PLOT_LABELS = { xy:'x–y', z:'z(t)', v:'|v|(t)', msd:'MSD', energy:'energy',
+                           vhist:'velocity histogram', zhist:'altitude histogram' }
 var REPORT_PLOT_KINDS  = ['xy','z','v','msd','energy','vhist','zhist']
 var _report_print_mode = false                     // during report_print: figures rasterize to <img> instead of live <canvas>
 
@@ -283,10 +284,11 @@ function _rp_expand_hid(rle, len){                  // flip-index list -> boolea
 function _rp_hex6(c){ return (/^#[0-9a-fA-F]{6}$/.test(c||'')) ? c : '#000000' }   // sanitize for <input type=color>
 
 // --- capture the CURRENT scene's live data into decimated series -------------
-function _rp_obj_label(obj){
-      var m = (typeof traj_mass_label === 'function') ? traj_mass_label(obj.mass, obj.mass) : ('masse ' + obj.mass)
-      var r = (typeof traj_radius_label === 'function') ? traj_radius_label(obj.radius, obj.radius) : ''
-      return m + (r ? ' — ' + r : '')
+function _rp_obj_label(obj){                        // English per-object label (the Trajectories panel keeps its own French labels)
+      var fmt = (typeof fmt_energy === 'function') ? fmt_energy : function(v){ return '' + v }
+      var m = (typeof obj.mass === 'number') ? ('mass ' + fmt(obj.mass)) : 'mass ?'
+      var r = (typeof obj.radius === 'number') ? (' — radius ' + fmt(obj.radius)) : ''
+      return m + r
 }
 function _rp_line_series(obj, field){
       var tr = obj.traj; if (!tr || !tr[field] || tr[field].length < 2){ return null }
@@ -340,7 +342,7 @@ function report_series_from_current(plot){         // one series per tracked obj
             for (var i = 0; i < t.length; i++){ var s = (plot === 'xy') ? _rp_xy_series(t[i]) : _rp_line_series(t[i], field); if (s){ out.push(s) } }
       } else if (plot === 'energy'){
             if (typeof energy_hist !== 'undefined' && energy_hist.tot && energy_hist.tot.length > 1){
-                  var defs = [['tot','énergie totale','#000000'], ['kin','énergie cinétique','#e53935'], ['pot','énergie potentielle','#1e88e5']]
+                  var defs = [['tot','total energy','#000000'], ['kin','kinetic energy','#e53935'], ['pot','potential energy','#1e88e5']]
                   for (var d = 0; d < defs.length; d++){
                         var arr = energy_hist[defs[d][0]], idx = _rp_idx(arr.length), y = []
                         for (var i = 0; i < idx.length; i++){ y.push(_rp_round(arr[idx[i]])) }
@@ -354,13 +356,30 @@ function report_series_from_current(plot){         // one series per tracked obj
       }
       return out
 }
-function report_series_from_library(lib, plot, sceneName){   // pull another scene's saved series (deep-copied, scene-tagged)
-      if (!lib || !lib.plots || !lib.plots[plot]){ return [] }
-      var src = lib.plots[plot], out = []
+// The library is a dated HISTORY of runs: { runs:[ {ts,sig,plots}, ... ] } (newest first).
+// _report_lib_runs normalises any stored shape (incl. the old single {ts,plots}) to that list.
+function _report_lib_runs(lib){
+      if (!lib){ return [] }
+      if (lib.runs && lib.runs.length){ return lib.runs.slice().sort(function(a,b){ return (b.ts||0) - (a.ts||0) }) }
+      if (lib.plots){ return [ { ts: lib.ts || 0, plots: lib.plots } ] }     // legacy single snapshot
+      return []
+}
+function _report_run_plot_keys(run){                // plot types present in one run
+      var keys = []; if (run && run.plots){ for (var pk in run.plots){ if (run.plots[pk] && run.plots[pk].length){ keys.push(pk) } } } return keys
+}
+function _fmt_run_date(ts){                          // compact local date+time label for a run
+      if (!ts){ return 'undated' }
+      try { var d = new Date(ts); function z(n){ return (n<10?'0':'')+n }
+            return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes())+':'+z(d.getSeconds()) }
+      catch(e){ return 'undated' }
+}
+function report_series_from_run(run, plot, sceneName, dateLabel){   // pull one run's series (deep-copied, scene+date-tagged)
+      if (!run || !run.plots || !run.plots[plot]){ return [] }
+      var src = run.plots[plot], out = [], tag = (sceneName || '') + (dateLabel ? ' · ' + dateLabel : '')
       for (var i = 0; i < src.length; i++){
             var s = JSON.parse(JSON.stringify(src[i]))
             s.scene = sceneName
-            if (sceneName){ s.label = (s.label || '') + ' (' + sceneName + ')' }    // prefix so overlaid same-colour curves stay distinguishable
+            if (tag){ s.label = (s.label || '') + ' (' + tag + ')' }     // so overlaid same-colour curves from different runs stay distinguishable
             out.push(s)
       }
       return out
@@ -377,29 +396,44 @@ function report_available_plots_current(){         // plot types that have live 
       return out
 }
 
-// --- automatic per-scene curve library (captured on each run) ----------------
+// --- automatic per-scene curve library (a dated HISTORY, captured on each run) ------
 var _report_lib_sig = null
-function report_library_capture(){                 // decimated snapshot of the CURRENT scene's curves -> its report JSON
+var REPORT_LIB_MAX_RUNS = 15                        // keep the last N runs per scene (bounds the report file size)
+function report_library_capture(){                 // append a decimated snapshot of the CURRENT scene's curves to its history
       if (typeof report_scene_key !== 'function'){ return }
       var sig = ''
       var t = (typeof tracked_objects === 'function') ? tracked_objects() : []
       for (var i = 0; i < t.length; i++){ if (t[i].traj && t[i].traj.x){ sig += t[i].traj.x.length + ',' } }
       sig += (typeof energy_hist !== 'undefined' && energy_hist.tot ? energy_hist.tot.length : 0) + ';'
       sig += (typeof sim_time !== 'undefined' ? sim_time.toFixed(1) : '0')
-      if (sig === _report_lib_sig){ return }                              // identical run already captured
-      var lib = { ts: Date.now(), plots: {} }, any = false
+      if (sig === _report_lib_sig){ return }                              // identical run already captured this session
+      var plots = {}, any = false
       for (var p = 0; p < REPORT_PLOT_KINDS.length; p++){
             var arr = report_series_from_current(REPORT_PLOT_KINDS[p])
-            if (arr && arr.length){ lib.plots[REPORT_PLOT_KINDS[p]] = arr; any = true }
+            if (arr && arr.length){ plots[REPORT_PLOT_KINDS[p]] = arr; any = true }
       }
       if (!any){ return }
       _report_lib_sig = sig
+      var run = { ts: Date.now(), sig: sig, plots: plots }
       var name = report_scene_key()
-      if (_report_wired && _report_scene === name){ report_state.library = lib; report_save(true) }
-      else {                                                              // panel never opened: merge into the file without disturbing anything
+      // Append the run to the scene's history, reading md/figs/descr/seq + the existing runs
+      // from DISK (authoritative) — never the in-memory report_state.md, so a stale state can
+      // never clobber another scene's text. Flush this scene's unsaved edits first.
+      function merge_library(){
             $.ajax({ url: '/report/' + encodeURIComponent(name), dataType: 'json', cache: false })
-             .done(function(s){ s = s || {}; report_save_now(name, { md: s.md || '', figs: s.figs || {}, seq: s.seq | 0, descr: s.descr || '', library: lib }) })
+             .done(function(s){
+                   s = s || {}
+                   var runs = _report_lib_runs(s.library)                  // normalised, newest first
+                   if (runs.length && runs[0].sig === sig){ runs[0] = run }  // same run re-captured -> refresh in place
+                   else { runs.unshift(run) }                              // otherwise a NEW dated entry
+                   if (runs.length > REPORT_LIB_MAX_RUNS){ runs = runs.slice(0, REPORT_LIB_MAX_RUNS) }
+                   var library = { runs: runs }
+                   report_save_now(name, { md: s.md || '', figs: s.figs || {}, seq: s.seq | 0, descr: s.descr || '', library: library })
+                   if (_report_wired && _report_scene === name){ report_state.library = library }   // keep the in-memory copy in sync
+             })
       }
+      if (_report_wired && _report_scene === name && _report_dirty){ report_save_now(name, report_state).always(merge_library) }
+      else { merge_library() }
 }
 
 // --- self-contained plotter (renders a saved figure with NO live scene) ------
@@ -521,11 +555,12 @@ function report_build_legend(leg, id, f){          // one editable row per serie
                   var lab = $('<input class="report-legend-label" type="text">').val(s.label || '')
                   lab.on('input', function(){ s.label = this.value; report_save() })
                   lab.on('mousedown click keydown keypress keyup wheel dblclick', function(e){ e.stopPropagation() })   // let typing work despite the box isolation
-                  var del = $('<span class="report-legend-del" title="retirer cette courbe">×</span>')
+                  var del = $('<span class="report-legend-del" title="remove this curve">×</span>')
                   del.on('click', function(ev){ ev.stopPropagation()
+                        report_history_commit()                    // record the pre-removal state
                         f.series.splice(idx, 1)
                         if (!f.series.length){ report_remove_fig(id) }
-                        report_save(true); report_render()
+                        report_save(true); report_render(); report_history_commit()
                   })
                   row.append(sw).append(lab).append(del); $leg.append(row)
             })(k)
@@ -555,7 +590,8 @@ function report_fig_print_html(id, caption){        // rasterized figure for the
 
 // --- insert a new figure / add a curve to an existing one --------------------
 function report_new_figure(plot, series){
-      if (!series || !series.length){ alert('Aucune courbe disponible pour « ' + (REPORT_PLOT_LABELS[plot] || plot) + ' ».\nLance l’animation (touche X) pour produire des données.'); return }
+      if (!series || !series.length){ alert('No curve available for « ' + (REPORT_PLOT_LABELS[plot] || plot) + ' ».\nRun the animation (X key) to produce data.'); return }
+      report_history_commit()                        // record the pre-insert state (flushes any pending typing step)
       var id = ++report_state.seq
       report_state.figs[id] = { plot: plot, series: series }
       var token = '[[fig:' + id + '|' + (REPORT_PLOT_LABELS[plot] || 'figure') + ']]'
@@ -567,13 +603,14 @@ function report_new_figure(plot, series){
       var sb = (before && !/\n\s*$/.test(before)) ? '\n\n' : '', sa = (after && !/^\s*\n/.test(after)) ? '\n\n' : ''
       report_state.md = before + sb + token + sa + after
       if (ta){ ta.value = report_state.md }
-      report_save(true); report_render()
+      report_save(true); report_render(); report_history_commit()
 }
 function report_add_series(figId, extra){
       var f = report_state.figs[figId]; if (!f || !f.plot){ return }
-      if (!extra || !extra.length){ alert('Aucune courbe compatible dans cette scène.'); return }
+      if (!extra || !extra.length){ alert('No compatible curve in this scene.'); return }
+      report_history_commit()                        // record the pre-overlay state
       for (var i = 0; i < extra.length; i++){ f.series.push(extra[i]) }
-      report_save(true); report_render()
+      report_save(true); report_render(); report_history_commit()
 }
 
 // --- right-click context menu (reuses the global .scene-ctx* CSS) ------------
@@ -604,34 +641,17 @@ function report_ctx_open(cx, cy, rootBuild){
       render(rootBuild)
       setTimeout(function(){ document.addEventListener('click', report_ctx_close, true); document.addEventListener('keydown', _report_ctx_esc, true) }, 0)
 }
+// The drill-down is: choose scene ▸ choose a SOURCE (current live, or a dated saved run)
+// ▸ choose the graph (for a new figure) / insert directly (when overlaying onto a figure).
+// `action` is { type:'new' } or { type:'add', figId, plot }.
 function report_ctx_new_figure(e){                  // right-click on empty report area
       var cx = e.clientX, cy = e.clientY
       report_scene_names(function(names){
             report_ctx_open(cx, cy, function(api){
-                  api.head('Insérer une figure')
-                  api.item('Cette scène', report_ctx_plot_current)
+                  api.head('Insert a figure')
+                  api.item('This scene', function(){ report_ctx_choose_source(report_scene_key(), true, { type:'new' }) })
                   var others = _report_other_scenes(names)
-                  if (others.length){ api.sep(); for (var i = 0; i < others.length; i++){ (function(nm){ api.item(nm, function(){ report_ctx_plot_scene(nm) }) })(others[i]) } }
-            })
-      })
-}
-function report_ctx_plot_current(){
-      _report_ctx_render(function(a){
-            a.head('Cette scène')
-            var plots = report_available_plots_current()
-            if (!plots.length){ a.note('aucune courbe (lance l’animation)'); return }
-            for (var i = 0; i < plots.length; i++){ (function(pk){ a.item(REPORT_PLOT_LABELS[pk] || pk, function(){ report_new_figure(pk, report_series_from_current(pk)); report_ctx_close() }) })(plots[i]) }
-      })
-}
-function report_ctx_plot_scene(scene){
-      _report_ctx_render(function(a){ a.head(scene); a.note('chargement…') })
-      report_fetch_library(scene, function(lib){
-            if (!_report_ctx_box){ return }
-            _report_ctx_render(function(a){
-                  a.head(scene)
-                  var keys = _report_lib_keys(lib)
-                  if (!keys.length){ a.note('aucune courbe enregistrée'); return }
-                  for (var i = 0; i < keys.length; i++){ (function(pk){ a.item(REPORT_PLOT_LABELS[pk] || pk, function(){ report_new_figure(pk, report_series_from_library(lib, pk, scene)); report_ctx_close() }) })(keys[i]) }
+                  if (others.length){ api.sep(); for (var i = 0; i < others.length; i++){ (function(nm){ api.item(nm, function(){ report_ctx_choose_source(nm, false, { type:'new' }) }) })(others[i]) } }
             })
       })
 }
@@ -640,24 +660,47 @@ function report_ctx_add_to_figure(e, figId){        // right-click on an existin
       var cx = e.clientX, cy = e.clientY
       report_scene_names(function(names){
             report_ctx_open(cx, cy, function(api){
-                  api.head('Ajouter une courbe — ' + (REPORT_PLOT_LABELS[f.plot] || f.plot))
-                  api.item('Cette scène', function(){ report_add_series(figId, report_series_from_current(f.plot)); report_ctx_close() })
+                  api.head('Add a curve — ' + (REPORT_PLOT_LABELS[f.plot] || f.plot))
+                  api.item('This scene', function(){ report_ctx_choose_source(report_scene_key(), true, { type:'add', figId: figId, plot: f.plot }) })
                   var others = _report_other_scenes(names)
-                  if (others.length){ api.sep(); for (var i = 0; i < others.length; i++){ (function(nm){ api.item(nm, function(){ report_ctx_add_from_scene(figId, f.plot, nm) }) })(others[i]) } }
+                  if (others.length){ api.sep(); for (var i = 0; i < others.length; i++){ (function(nm){ api.item(nm, function(){ report_ctx_choose_source(nm, false, { type:'add', figId: figId, plot: f.plot }) }) })(others[i]) } }
                   api.sep()
-                  api.item('Supprimer la figure', function(){ report_remove_fig(figId); report_save(true); report_render(); report_ctx_close() }, 'scene-ctx-danger')
+                  api.item('Remove the figure', function(){ report_history_commit(); report_remove_fig(figId); report_save(true); report_render(); report_history_commit(); report_ctx_close() }, 'scene-ctx-danger')
             })
       })
 }
-function report_ctx_add_from_scene(figId, plot, scene){
-      _report_ctx_render(function(a){ a.head(scene); a.note('chargement…') })
+// Scene chosen -> list its sources: "current (live)" (only for the current scene) + one entry
+// per saved dated run (newest first). One source -> skip straight to it.
+function report_ctx_choose_source(scene, isCurrent, action){
+      _report_ctx_render(function(a){ a.head(scene); a.note('loading…') })
       report_fetch_library(scene, function(lib){
             if (!_report_ctx_box){ return }
-            report_add_series(figId, report_series_from_library(lib, plot, scene)); report_ctx_close()
+            var runs = _report_lib_runs(lib), sources = []
+            if (isCurrent && report_available_plots_current().length){ sources.push({ live: true, label: 'current (live)' }) }
+            for (var i = 0; i < runs.length; i++){ sources.push({ run: runs[i], label: _fmt_run_date(runs[i].ts) }) }
+            if (!sources.length){ _report_ctx_render(function(a){ a.head(scene); a.note('no saved curve') }); return }
+            if (sources.length === 1){ report_ctx_apply_source(scene, sources[0], action); return }
+            _report_ctx_render(function(a){
+                  a.head(scene)
+                  for (var i = 0; i < sources.length; i++){ (function(src){ a.item(src.label, function(){ report_ctx_apply_source(scene, src, action) }) })(sources[i]) }
+            })
+      })
+}
+function _report_src_series(scene, src, plot){      // series for (source, plot)
+      return src.live ? report_series_from_current(plot) : report_series_from_run(src.run, plot, scene, src.label)
+}
+function report_ctx_apply_source(scene, src, action){
+      if (action.type === 'add'){                   // plot fixed by the figure -> insert directly
+            report_add_series(action.figId, _report_src_series(scene, src, action.plot)); report_ctx_close(); return
+      }
+      _report_ctx_render(function(a){               // new figure -> choose the graph type available in this source
+            a.head(scene + (src.live ? '' : ' · ' + src.label))
+            var plots = src.live ? report_available_plots_current() : _report_run_plot_keys(src.run)
+            if (!plots.length){ a.note('no curve'); return }
+            for (var i = 0; i < plots.length; i++){ (function(pk){ a.item(REPORT_PLOT_LABELS[pk] || pk, function(){ report_new_figure(pk, _report_src_series(scene, src, pk)); report_ctx_close() }) })(plots[i]) }
       })
 }
 function _report_other_scenes(names){ var cur = report_scene_key(), out = []; for (var i = 0; i < names.length; i++){ if (names[i] && names[i] !== cur){ out.push(names[i]) } } return out }
-function _report_lib_keys(lib){ var keys = []; if (lib && lib.plots){ for (var pk in lib.plots){ if (lib.plots[pk] && lib.plots[pk].length){ keys.push(pk) } } } return keys }
 function report_scene_names(done){
       $.ajax({ url: '/scenes', dataType: 'json', cache: false })
        .done(function(arr){ var names = []; if (arr && arr.length){ for (var i = 0; i < arr.length; i++){ names.push(typeof arr[i] === 'string' ? arr[i] : arr[i].name) } } done(names) })
@@ -776,7 +819,7 @@ function report_to_html(md){
             var tit = line.match(/^!tit\s+(\S.*)$/)
             if (tit){
                   close_list()
-                  out.push('<h1 style="margin:18px 0 12px; text-align:center; font-size:1.8em; ' +
+                  out.push('<h1 data-ln="' + i + '" style="margin:18px 0 12px; text-align:center; font-size:1.8em; ' +
                            'font-weight:bold; color:#2e7d32; line-height:1.25">' +
                            report_inline(report_esc(tit[1])) + '</h1>')
                   continue
@@ -790,21 +833,21 @@ function report_to_html(md){
                   close_list()
                   var lvl = h[1].length
                   var sz = lvl === 1 ? '1.4em' : (lvl === 2 ? '1.2em' : '1.05em')
-                  out.push('<h' + lvl + ' style="margin:12px 0 6px; font-size:' + sz + '; color:#2e7d32">' + report_inline(report_esc(h[2])) + '</h' + lvl + '>')
+                  out.push('<h' + lvl + ' data-ln="' + i + '" style="margin:12px 0 6px; font-size:' + sz + '; color:#2e7d32">' + report_inline(report_esc(h[2])) + '</h' + lvl + '>')
                   continue
             }
             var uli = line.match(/^[-*]\s+(.*)$/)
             if (uli){
                   if (list !== 'ul'){ close_list(); out.push('<ul style="margin:4px 0 4px 18px">'); list = 'ul' }
-                  out.push('<li>' + report_apply_figs(report_inline(report_esc(uli[1]))) + '</li>'); continue
+                  out.push('<li data-ln="' + i + '">' + report_apply_figs(report_inline(report_esc(uli[1]))) + '</li>'); continue
             }
             var oli = line.match(/^\d+\.\s+(.*)$/)
             if (oli){
                   if (list !== 'ol'){ close_list(); out.push('<ol style="margin:4px 0 4px 18px">'); list = 'ol' }
-                  out.push('<li>' + report_apply_figs(report_inline(report_esc(oli[1]))) + '</li>'); continue
+                  out.push('<li data-ln="' + i + '">' + report_apply_figs(report_inline(report_esc(oli[1]))) + '</li>'); continue
             }
             close_list()
-            out.push('<p style="margin:6px 0">' + report_apply_figs(report_inline(report_esc(line))) + '</p>')
+            out.push('<p data-ln="' + i + '" style="margin:6px 0">' + report_apply_figs(report_inline(report_esc(line))) + '</p>')
       }
       close_list()
       return out.join('\n')
@@ -813,7 +856,7 @@ function report_to_html(md){
 function report_render(){
       var box = document.getElementById('report_preview')
       if (box){
-            box.innerHTML = report_to_html(report_state.md) || '<p style="color:#aaa">Compte rendu vide — passe en édition et écris, ou <b>clic droit</b> pour insérer une courbe.</p>'
+            box.innerHTML = report_to_html(report_state.md) || '<p style="color:#aaa">Empty report — switch to edit mode and write, or <b>right-click</b> to insert a curve.</p>'
             report_paint_figures()                         // numeric figures: draw the canvases + wire the editable legends
       }
 }
@@ -823,9 +866,86 @@ function report_render(){
 function report_set_mode(edit){
       var ta = $('#report_md'), pv = $('#report_preview'), btn = $('#report_mode_btn')
       if (edit){
-            ta.show(); pv.hide(); btn.text('aperçu')
+            ta.show(); pv.hide(); btn.text('preview')
       } else {
-            report_render(); ta.hide(); pv.show(); btn.text('éditer')
+            report_render(); ta.hide(); pv.show(); btn.text('edit')
+      }
+}
+
+// --- Undo / redo (report-level: text + figures) -----------------------------
+// A snapshot = { md, figs, seq }. Typing is grouped into one step per pause (debounced);
+// structural actions (insert / overlay / remove / clear) commit immediately. Loading a
+// scene's report resets the stack. This is what makes « clear » reversible.
+
+var _report_hist = [], _report_hist_i = -1, _report_hist_timer = null
+var REPORT_HIST_MAX = 80
+
+function _report_snapshot(){ return { md: report_state.md, figs: JSON.parse(JSON.stringify(report_state.figs || {})), seq: report_state.seq | 0 } }
+function _report_apply_snapshot(s){
+      report_state.md = s.md
+      report_state.figs = JSON.parse(JSON.stringify(s.figs || {}))
+      report_state.seq = s.seq | 0
+      var ta = document.getElementById('report_md'); if (ta){ ta.value = report_state.md }
+      report_render(); report_save(true); report_update_undo_buttons()
+}
+function report_history_reset(){                    // fresh stack for the just-loaded report
+      _report_hist = [ _report_snapshot() ]; _report_hist_i = 0
+      if (_report_hist_timer){ clearTimeout(_report_hist_timer); _report_hist_timer = null }
+      report_update_undo_buttons()
+}
+function report_history_commit(){                   // push the current state as a new step (dedupe identical, drop the redo tail)
+      if (_report_hist_timer){ clearTimeout(_report_hist_timer); _report_hist_timer = null }
+      var cur = _report_snapshot(), top = _report_hist[_report_hist_i]
+      if (top && top.md === cur.md && JSON.stringify(top.figs) === JSON.stringify(cur.figs)){ return }
+      _report_hist = _report_hist.slice(0, _report_hist_i + 1)
+      _report_hist.push(cur); _report_hist_i = _report_hist.length - 1
+      if (_report_hist.length > REPORT_HIST_MAX){ _report_hist.shift(); _report_hist_i-- }
+      report_update_undo_buttons()
+}
+function report_history_commit_soon(){              // debounced commit while typing
+      if (_report_hist_timer){ clearTimeout(_report_hist_timer) }
+      _report_hist_timer = setTimeout(function(){ _report_hist_timer = null; report_history_commit() }, 600)
+}
+function report_undo(){
+      if (_report_hist_timer){ report_history_commit() }        // flush the pending typing step so it can be undone
+      if (_report_hist_i <= 0){ return }
+      _report_hist_i--; _report_apply_snapshot(_report_hist[_report_hist_i])
+}
+function report_redo(){
+      if (_report_hist_i >= _report_hist.length - 1){ return }
+      _report_hist_i++; _report_apply_snapshot(_report_hist[_report_hist_i])
+}
+function report_update_undo_buttons(){
+      $('#report_undo_btn').prop('disabled', _report_hist_i <= 0)
+      $('#report_redo_btn').prop('disabled', _report_hist_i >= _report_hist.length - 1)
+}
+
+// --- Double-click a rendered block -> jump into the editor at that source line ---
+// report_to_html tags each block with data-ln (its line in the markdown source); we map
+// that back to a character offset and place the caret there — handy to edit long reports.
+function _report_line_start(md, ln){
+      var lines = md.split('\n'), pos = 0
+      for (var i = 0; i < ln && i < lines.length; i++){ pos += lines[i].length + 1 }   // +1 for the '\n'
+      return pos
+}
+function _report_scroll_ta(ta, pos){                // scroll the textarea so the caret line is roughly centred
+      var lineNo = ta.value.slice(0, pos).split('\n').length - 1
+      var lh = 12 * 1.45                             // matches the textarea font-size:12 / line-height:1.45
+      ta.scrollTop = Math.max(0, lineNo * lh - ta.clientHeight / 2)
+}
+function report_edit_at(e){
+      if ($(e.target).closest('.report-legend, figure[data-fig-id]').length){ return }   // let figure/legend interactions be
+      var sel = (window.getSelection && ('' + window.getSelection())) || ''              // the double-clicked word, if any
+      var host = $(e.target).closest('[data-ln]')
+      report_set_mode(true)
+      var ta = document.getElementById('report_md'); if (!ta){ return }
+      ta.focus()
+      if (host.length){
+            var ln = parseInt(host.attr('data-ln'), 10)
+            var pos = _report_line_start(report_state.md, ln)
+            if (sel){ var lineText = report_state.md.split('\n')[ln] || ''; var wi = lineText.indexOf(sel); if (wi >= 0){ pos += wi } }
+            ta.setSelectionRange(pos, pos + (sel ? sel.length : 0))
+            _report_scroll_ta(ta, pos)
       }
 }
 
@@ -833,12 +953,12 @@ function report_set_mode(edit){
 
 function report_print(){
       var w = window.open('', '_blank')
-      if (!w){ alert('Le navigateur a bloqué la fenêtre d’impression (autorise les pop-ups pour ce site).'); return }
+      if (!w){ alert('The browser blocked the print window (allow pop-ups for this site).'); return }
       _report_print_mode = true                            // numeric figs rasterize to <img> (no live canvas in the print window)
       var body = report_to_html(report_state.md)
       _report_print_mode = false
       w.document.write(
-            '<!doctype html><html><head><meta charset="utf-8"><title>Compte rendu</title>' +
+            '<!doctype html><html><head><meta charset="utf-8"><title>Report</title>' +
             '<style>*{-webkit-print-color-adjust:exact; print-color-adjust:exact}' +   // keep legend swatch colours when printing
             'body{font-family:sans-serif; max-width:760px; margin:24px auto; padding:0 16px; color:#222; line-height:1.55}' +
             'img{max-width:100%}</style></head><body>' + body + '</body></html>')
@@ -858,8 +978,8 @@ function report_init(){
       _report_scene = report_scene_key()
       report_load(_report_scene, report_show_state)      // asynchronous: the editor fills in on the answer
 
-      // Edit -> state + persistence (preview recomputed on toggle)
-      $('#report_md').on('input', function(){ report_state.md = this.value; report_save() })
+      // Edit -> state + persistence (preview recomputed on toggle) + a debounced undo step
+      $('#report_md').on('input', function(){ report_state.md = this.value; report_save(); report_history_commit_soon() })
 
       // Isolate the whole window from the 3D scene: TrackballControls is bound to `document`
       // and preventDefaults every mousedown (which steals the textarea focus AND rotates the
@@ -882,10 +1002,22 @@ function report_init(){
       $('#report_pdf_btn').on('click', report_print)
       $('#report_close_btn').on('click', function(){ report_set_visible(false) })
       $('#report_clear_btn').on('click', function(){
-            if (!confirm('Effacer tout le compte rendu (texte et figures) ?')){ return }
+            if (!confirm('Clear the whole report (text and figures)?')){ return }
+            report_history_commit()                          // so « clear » can be undone
             report_state.md = ''; report_state.figs = {}; report_state.seq = 0
             var t = document.getElementById('report_md'); if (t){ t.value = '' }
-            report_save(true); report_render()
+            report_save(true); report_render(); report_history_commit()
+      })
+      // Double-click a rendered block -> edit mode at that spot (see report_edit_at).
+      $('#report_preview').on('dblclick', report_edit_at)
+      // Undo / redo (buttons + Ctrl/Cmd-Z, Ctrl/Cmd-Y or Ctrl/Cmd-Shift-Z).
+      $('#report_undo_btn').on('click', report_undo)
+      $('#report_redo_btn').on('click', report_redo)
+      $('#report_box').on('keydown', function(e){
+            if (!(e.ctrlKey || e.metaKey)){ return }
+            var z = (e.key === 'z' || e.key === 'Z' || e.keyCode === 90), y = (e.key === 'y' || e.key === 'Y' || e.keyCode === 89)
+            if (z && !e.shiftKey){ e.preventDefault(); report_undo() }
+            else if (y || (z && e.shiftKey)){ e.preventDefault(); report_redo() }
       })
 
       // Closing the tab during the debounce window: the last keystrokes would be lost.
@@ -1007,10 +1139,31 @@ function update_scene_name_tooltip(descOverride){
 }
 
 $(function(){
-      // Click on the scene name -> Description panel (the Report opens from its navbar icon instead).
-      $('#scene_name_navbar').css('cursor', 'pointer')
+      // The scene name is SELECTABLE (Ctrl+C to copy it). TrackballControls is bound to `document`
+      // and preventDefaults every mousedown (which both rotates the scene AND cancels the browser's
+      // text selection), so we stop the mouse events at the element — the name can be dragged-over
+      // and copied without moving the scene. A plain click still opens the Description panel; a
+      // click that only finished a text selection does not.
+      $('#scene_name_navbar').css({ 'cursor': 'text', 'user-select': 'text', '-webkit-user-select': 'text' })
+      $('#scene_name_navbar').on('mousedown mousemove mouseup dblclick wheel', function(e){ e.stopPropagation() })
       update_scene_name_tooltip()
-      $(document).on('click', '#scene_name_navbar', description_toggle)
+      $(document).on('click', '#scene_name_navbar', function(){
+            var sel = (window.getSelection && ('' + window.getSelection())) || ''
+            if (sel && sel.length){ return }         // a selection was just made -> copying, not opening the panel
+            description_toggle()
+      })
+      // Ctrl/Cmd+C is bound to the scene's do_copy() in keys.js (with preventDefault), which
+      // BLOCKS the native clipboard copy. When the user has selected the scene name, intercept
+      // the shortcut in the CAPTURE phase (before keys.js's bubble listener) and stop it there,
+      // so the browser performs the normal text copy instead of cloning scene objects.
+      document.addEventListener('keydown', function(e){
+            if (!(e.ctrlKey || e.metaKey)){ return }
+            if (!(e.key === 'c' || e.key === 'C' || e.keyCode === 67)){ return }
+            var sel = window.getSelection && window.getSelection()
+            if (!sel || sel.isCollapsed || !('' + sel)){ return }
+            var nb = document.getElementById('scene_name_navbar'), a = sel.anchorNode
+            if (nb && a && nb.contains(a.nodeType === 1 ? a : a.parentNode)){ e.stopImmediatePropagation() }   // let the native copy run
+      }, true)
       $(document).on('click', '#report_nav', report_toggle)                 // navbar notebook+pencil -> Report panel
 
       // Description editing -> report_state.descr -> saved with the report (feeds the tooltips) + live navbar tooltip.
