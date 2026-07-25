@@ -1353,6 +1353,14 @@ function draw_alt_hist_handles(ctx){
       ctx.save(); ctx.fillStyle = alt_drag ? '#ec6aa0' : '#f4a9c7'; ctx.beginPath()   // pale pink (deeper while dragging)
       ctx.moveTo(v.L+7, y); ctx.lineTo(v.L, y-4); ctx.lineTo(v.L, y+4); ctx.closePath(); ctx.fill(); ctx.restore()
 }
+function reset_altitude_hist(){                             // double-click: restore the INITIAL params (auto z-window + default bins)
+      alt_win = null; alt_drag = null                      // limits back to the automatic data range
+      alt_bins = ALT_HIST_BINS                              // resolution back to the default bin count
+      var sl = document.getElementById('alt_bins_slider'); if (sl){ sl.value = alt_bins }   // keep the slider UI in sync
+      var vv = document.getElementById('alt_bins_val');    if (vv){ vv.textContent = alt_bins }
+      draw_altitude_hist()
+}
+
 function setup_alt_hist_handles(){
       if (_alt_hist_setup){ return }
       var cv = document.getElementById('altitude_hist'); if (!cv){ return }
@@ -1389,7 +1397,7 @@ function setup_alt_hist_handles(){
       }
       cv.addEventListener('mouseup',    function(e){ e.stopPropagation(); finish(true) })
       cv.addEventListener('mouseleave', function(){ var had=alt_hover!=null; alt_hover=null; if (alt_drag){ finish(false) } else if (had){ draw_altitude_hist() } })
-      cv.addEventListener('dblclick',   function(e){ e.stopPropagation(); alt_win=null; alt_drag=null; draw_altitude_hist() })   // back to the auto range
+      cv.addEventListener('dblclick',   function(e){ e.stopPropagation(); reset_altitude_hist() })   // back to auto limits + default bins
 }
 
 //===================================================================== Trajectories + MSD

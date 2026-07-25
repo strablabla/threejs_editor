@@ -335,24 +335,25 @@ function report_hist_bins(kind){                   // numeric bins of a live his
       return null
 }
 function report_series_from_current(plot){         // one series per tracked object (lines), 3 for energy, 1 per histogram
-      var out = []
+      var out = [], sc = report_scene_key()
+      // `src` (scene / scene·date) is metadata shown only in the legend TOOLTIP, never inline.
       if (plot === 'xy' || plot === 'z' || plot === 'v' || plot === 'msd'){
             var t = (typeof tracked_objects === 'function') ? tracked_objects() : []
             var field = plot === 'z' ? 'z' : (plot === 'v' ? 'v' : 'msd')
-            for (var i = 0; i < t.length; i++){ var s = (plot === 'xy') ? _rp_xy_series(t[i]) : _rp_line_series(t[i], field); if (s){ out.push(s) } }
+            for (var i = 0; i < t.length; i++){ var s = (plot === 'xy') ? _rp_xy_series(t[i]) : _rp_line_series(t[i], field); if (s){ s.src = sc; out.push(s) } }
       } else if (plot === 'energy'){
             if (typeof energy_hist !== 'undefined' && energy_hist.tot && energy_hist.tot.length > 1){
                   var defs = [['tot','total energy','#000000'], ['kin','kinetic energy','#e53935'], ['pot','potential energy','#1e88e5']]
                   for (var d = 0; d < defs.length; d++){
                         var arr = energy_hist[defs[d][0]], idx = _rp_idx(arr.length), y = []
                         for (var i = 0; i < idx.length; i++){ y.push(_rp_round(arr[idx[i]])) }
-                        out.push({ scene: report_scene_key(), label: defs[d][1], color: defs[d][2], data: { y: y } })
+                        out.push({ scene: sc, label: defs[d][1], color: defs[d][2], data: { y: y }, src: sc })
                   }
             }
       } else if (plot === 'vhist'){
-            var b = report_hist_bins('v'); if (b){ out.push({ scene: report_scene_key(), label: '|v| — ' + report_scene_key(), color: '#43a047', data: { edges: b.edges, counts: b.counts }, nbins: b.nbins, win: b.win }) }
+            var b = report_hist_bins('v'); if (b){ out.push({ scene: sc, label: '|v|', color: '#43a047', data: { edges: b.edges, counts: b.counts }, nbins: b.nbins, win: b.win, src: sc }) }
       } else if (plot === 'zhist'){
-            var b = report_hist_bins('z'); if (b){ out.push({ scene: report_scene_key(), label: 'z — ' + report_scene_key(), color: '#3949ab', data: { edges: b.edges, counts: b.counts }, nbins: b.nbins, win: b.win }) }
+            var b = report_hist_bins('z'); if (b){ out.push({ scene: sc, label: 'z', color: '#3949ab', data: { edges: b.edges, counts: b.counts }, nbins: b.nbins, win: b.win, src: sc }) }
       }
       return out
 }
@@ -379,7 +380,7 @@ function report_series_from_run(run, plot, sceneName, dateLabel){   // pull one 
       for (var i = 0; i < src.length; i++){
             var s = JSON.parse(JSON.stringify(src[i]))
             s.scene = sceneName
-            if (tag){ s.label = (s.label || '') + ' (' + tag + ')' }     // so overlaid same-colour curves from different runs stay distinguishable
+            if (tag){ s.src = tag }     // scene · date -> shown only in the legend TOOLTIP (keeps the visible label clean)
             out.push(s)
       }
       return out
@@ -466,7 +467,7 @@ function _rp_plot_lines(ctx, W, H, plot, series){
             a0 = 0; a1 = nmax-1
             if (isEnergy){ if (vmin === vmax){ vmax = vmin+1; vmin = vmin-1 } var pd = (vmax-vmin)*0.1; b0 = vmin-pd; b1 = vmax+pd }
             else { b0 = 0; b1 = vmax > 0 ? vmax : 1 }
-            var ML = isEnergy ? 48 : 46, MT = 6, MB = 6, MR = 4
+            var ML = isEnergy ? 48 : 46, MT = 14, MB = 14, MR = 6   // more top/bottom room so the first/last Y ticks clear the edges
             L = ML; T = MT; PW = W-ML-MR; PH = H-MT-MB
             ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
             for (var g = 0; g <= 4; g++){ var vv = b0 + (b1-b0)*g/4, yy = T + (1-(vv-b0)/((b1-b0)||1))*PH
@@ -493,7 +494,7 @@ function _rp_plot_hist(ctx, W, H, plot, series){
             for (k = 0; k < ct.length; k++){ if (ct[k] > cmax){ cmax = ct[k] } } }
       if (!isFinite(vlo)){ return } if (vhi <= vlo){ vhi = vlo + 1 } if (cmax <= 0){ cmax = 1 }
       if (vertical){                                  // value on X, count on Y (like draw_velocity_hist)
-            var ML = 26, MT = 6, MB = 16, MR = 6, PW = W-ML-MR, PH = H-MT-MB
+            var ML = 26, MT = 14, MB = 16, MR = 6, PW = W-ML-MR, PH = H-MT-MB
             ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
             var NT = Math.min(cmax, 4) || 1
             for (var t = 0; t <= NT; t++){ var val = Math.round(cmax*t/NT), y = MT + (1-t/NT)*PH; ctx.strokeStyle = '#eee'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W-MR, y); ctx.stroke(); ctx.fillText(val, ML-4, y) }
@@ -507,7 +508,7 @@ function _rp_plot_hist(ctx, W, H, plot, series){
             }
             ctx.fillStyle = '#666'; ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillText(fmt_energy(vlo), ML, MT+PH+3); ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vhi), W-MR, MT+PH+3)
       } else {                                        // value (z) on Y top=vhi, count on X (like draw_altitude_hist)
-            var ML = 56, MT = 6, MB = 30, MR = 6, PW = W-ML-MR, PH = H-MT-MB
+            var ML = 56, MT = 14, MB = 30, MR = 6, PW = W-ML-MR, PH = H-MT-MB
             ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
             for (var t = 0; t <= 4; t++){ var zval = vhi - (vhi-vlo)*t/4, y = MT + t/4*PH; ctx.strokeStyle = '#eee'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W-MR, y); ctx.stroke(); ctx.fillText(fmt_energy(zval), ML-4, y) }
             var ZY = function(zval){ return MT + (1-(zval-vlo)/((vhi-vlo)||1))*PH }
@@ -537,11 +538,23 @@ function report_paint_figures(){                   // called after report_render
             })(figs[i])
       }
 }
+// Split a series into its visible label (`base`) and the metadata shown only in a tooltip (`tip`
+// = scene · date). Old figures baked "(scene · date)" into the label: peel it once (and persist
+// via s.src) so it moves to the tooltip too. The « · » guard avoids touching user-written parens.
+function _report_series_display(s){
+      var base = s.label || '', tip = s.src || ''
+      if (!s.src && base){
+            var m = base.match(/^(.*\S)\s*\(([^()]*·[^()]*)\)\s*$/)
+            if (m){ base = m[1]; tip = m[2]; s.label = base; s.src = tip }   // normalize in place
+      }
+      return { base: base, tip: tip }
+}
 function report_build_legend(leg, id, f){          // one editable row per series (swatch + label + remove)
       var $leg = $(leg).empty()
       for (var k = 0; k < f.series.length; k++){
             (function(idx){
                   var s = f.series[idx]
+                  var disp = _report_series_display(s)
                   var row = $('<div class="report-legend-row">')
                   var sw = $('<span class="report-legend-sw">').css('background', s.color || '#000')
                   sw.on('click', function(ev){
@@ -552,7 +565,8 @@ function report_build_legend(leg, id, f){          // one editable row per serie
                               report_save() })
                         $('body').append(inp); inp[0].click(); setTimeout(function(){ inp.remove() }, 20000)
                   })
-                  var lab = $('<input class="report-legend-label" type="text">').val(s.label || '')
+                  var lab = $('<input class="report-legend-label" type="text">').val(disp.base)
+                  if (disp.tip){ lab.attr('title', disp.tip); row.attr('title', disp.tip) }   // scene · date -> hover only
                   lab.on('input', function(){ s.label = this.value; report_save() })
                   lab.on('mousedown click keydown keypress keyup wheel dblclick', function(e){ e.stopPropagation() })   // let typing work despite the box isolation
                   var del = $('<span class="report-legend-del" title="remove this curve">×</span>')
@@ -581,8 +595,8 @@ function report_fig_print_html(id, caption){        // rasterized figure for the
       var url = ''; try { url = comp.toDataURL('image/png') } catch(e){}
       var leg = ''
       if (f.series && f.series.length){ leg = '<ul style="list-style:none; padding:0; margin:4px 0; font-size:0.85em; text-align:center">'
-            for (var k = 0; k < f.series.length; k++){ var s = f.series[k]
-                  leg += '<li><span style="display:inline-block; width:10px; height:10px; background:' + report_esc(s.color || '#000') + '; border:1px solid #999; margin-right:5px; -webkit-print-color-adjust:exact; print-color-adjust:exact"></span>' + report_esc(s.label || '') + '</li>' }
+            for (var k = 0; k < f.series.length; k++){ var s = f.series[k], disp = _report_series_display(s)
+                  leg += '<li><span style="display:inline-block; width:10px; height:10px; background:' + report_esc(s.color || '#000') + '; border:1px solid #999; margin-right:5px; -webkit-print-color-adjust:exact; print-color-adjust:exact"></span>' + report_esc(disp.base) + '</li>' }
             leg += '</ul>' }
       var cap = caption ? '<figcaption style="text-align:center; color:#666; font-size:0.9em; margin-top:2px">' + report_inline(report_esc(caption)) + '</figcaption>' : ''
       return '<figure style="margin:10px 0; text-align:center"><img src="' + url + '" style="max-width:100%; border:1px solid #ddd; border-radius:4px">' + leg + cap + '</figure>'
@@ -770,7 +784,8 @@ function report_fig_html(id, caption){
       if (f.plot){                                        // numeric figure
             if (_report_print_mode){ return report_fig_print_html(id, caption) }
             var capN = caption ? '<figcaption style="text-align:center; color:#666; font-size:0.9em; margin-top:2px">' + report_inline(report_esc(caption)) + '</figcaption>' : ''
-            return '<figure data-fig-id="' + report_esc(id) + '" style="margin:10px 0; text-align:center">' +
+            return '<figure data-fig-id="' + report_esc(id) + '" style="position:relative; margin:10px 0; text-align:center">' +
+                   '<span class="report-fig-del" title="remove this figure">&times;</span>' +
                    '<canvas class="report-fig-canvas" width="340" height="220" style="max-width:100%; border:1px solid #ddd; border-radius:4px; background:#fff"></canvas>' +
                    '<div class="report-legend" data-fig-id="' + report_esc(id) + '"></div>' + capN + '</figure>'
       }
@@ -1010,6 +1025,12 @@ function report_init(){
       })
       // Double-click a rendered block -> edit mode at that spot (see report_edit_at).
       $('#report_preview').on('dblclick', report_edit_at)
+      // Corner × on a figure -> remove the whole figure (undoable via Ctrl+Z, so no confirm).
+      $('#report_preview').on('click', '.report-fig-del', function(e){
+            e.preventDefault(); e.stopPropagation()
+            var id = $(this).closest('figure[data-fig-id]').attr('data-fig-id'); if (!id){ return }
+            report_history_commit(); report_remove_fig(id); report_save(true); report_render(); report_history_commit()
+      })
       // Undo / redo (buttons + Ctrl/Cmd-Z, Ctrl/Cmd-Y or Ctrl/Cmd-Shift-Z).
       $('#report_undo_btn').on('click', report_undo)
       $('#report_redo_btn').on('click', report_redo)
