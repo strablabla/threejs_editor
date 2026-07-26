@@ -902,22 +902,35 @@ function draw_energy_graph(){
 
 var VELO_HIST_BINS = 20                                       // number of |v| bins
 
-function collect_speeds(){
-
-      /*
-      Speed magnitudes of the moving massive objects (same exclusions as the kinetic
-      energy: neither static/anchors, nor springs/elastics/pawns).
-      */
-
-      var speeds = []
+function velocity_objects(){                                  // moving massive objects (same exclusions as the kinetic energy)
+      var a = []
       for (var i in list_moving_objects){
             var obj = list_moving_objects[i]
             if (obj.blocked){ continue }
             if (list_forbid_obj_for_interact.indexOf(obj.type) != -1){ continue }
-            speeds.push(Math.sqrt(obj.speed.dot(obj.speed)))
+            a.push(obj)
+      }
+      return a
+}
+
+function collect_speeds(){
+
+      /*
+      Speed magnitudes of the moving massive objects, filtered by the histogram's color
+      select (velo_color_filter = 'all' -> all of them).
+      */
+
+      var a = velocity_objects(), speeds = []
+      for (var i=0;i<a.length;i++){
+            if (velo_color_filter !== 'all' && obj_hex(a[i]) !== velo_color_filter){ continue }
+            speeds.push(Math.sqrt(a[i].speed.dot(a[i].speed)))
       }
       return speeds
 
+}
+
+function refresh_velo_color_options(){                        // velocity histogram: color counted
+      velo_color_filter = refresh_color_select('velo_color_sel', velocity_objects(), velo_color_filter)
 }
 
 //===================================================================== 3D velocity arrows (show_speeds)
@@ -1004,6 +1017,7 @@ function draw_velocity_hist(){
       if (mon_view.vel){ mon_draw_frozen('vel'); return }         // a saved figure is displayed -> skip the live histogram
       var cv = document.getElementById('velocity_hist')
       if (!cv){ return }
+      refresh_velo_color_options()                            // updates the color select if the scene's colors have changed
       var ctx = cv.getContext('2d')
       var W = cv.width, H = cv.height
       ctx.clearRect(0, 0, W, H)
@@ -1042,9 +1056,9 @@ function draw_velocity_hist(){
             ctx.beginPath(); ctx.moveTo(ML, y); ctx.lineTo(W - 6, y); ctx.stroke()
             ctx.fillText(val, ML - 4, y)
       }
-      //--- bars
+      //--- bars: grey for « all », else the counted color
       var bw = plotW / VELO_HIST_BINS
-      ctx.fillStyle = '#43a047'                                // green
+      ctx.fillStyle = (velo_color_filter === 'all') ? '#999999' : velo_color_filter
       for (var b=0;b<VELO_HIST_BINS;b++){
             var h = bins[b] / cmax * plotH
             ctx.fillRect(ML + b * bw + 1, MT + plotH - h, bw - 2, h)
@@ -1359,7 +1373,7 @@ function draw_altitude_hist(){
       }
       //--- horizontal bars (bin 0 = low altitude -> at the bottom)
       var bh = plotH / NB
-      ctx.fillStyle = '#3949ab'                                // indigo
+      ctx.fillStyle = (alt_color_filter === 'all') ? '#999999' : alt_color_filter   // grey for « all », else the counted color
       for (var b=0;b<NB;b++){
             var w = bins[b] / cmax * plotW
             var y = MT + plotH - (b + 1) * bh                  // b increasing -> upward
@@ -2075,12 +2089,43 @@ function _bind_traj_means_hover(canvasId, viewKey, getMeans, label){
       cv.addEventListener('mouseleave', hide_traj_tooltip)
 }
 
+// Hover over the CURVES themselves (not a mean line): at the cursor's x = sample index, take each
+// tracked curve's value and, if its pixel y is close to the cursor, show the tooltip. Used for v(t),
+// which has no visible mean line — hovering a curve then identifies it (color/mass/radius + ⟨value⟩).
+function _bind_traj_curve_hover(canvasId, viewKey, field, label){
+      var cv = document.getElementById(canvasId); if (!cv){ return }
+      var THRESH = 6                                          // vertical capture distance (canvas px)
+      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+      cv.addEventListener('mousemove', function(e){
+            if (traj_drag){ hide_traj_tooltip(); return }     // in the middle of a zoom/pan -> no tooltip
+            var v = traj_view[viewKey]; if (!v){ hide_traj_tooltip(); return }
+            var p = pos(e)
+            if (p.x < v.L || p.x > v.L+v.W || p.y < v.T || p.y > v.T+v.H){ hide_traj_tooltip(); return }
+            var idxF = traj_data_x(v, p.x)                     // data x = sample index (float)
+            var t = tracked_objects(), groups = {}, order = []
+            for (var i=0;i<t.length;i++){
+                  var tr = t[i].traj; if (!tr || !tr[field] || tr[field].length < 2){ continue }
+                  var n = tr[field].length, k = Math.round(idxF); if (k < 0){ k = 0 } if (k > n-1){ k = n-1 }
+                  if (Math.abs(traj_px_y(v, tr[field][k]) - p.y) > THRESH){ continue }   // cursor near this curve?
+                  var col = traj_color(t[i])
+                  var mval = (field === 'v' && tr.vcount > 0) ? tr.vsum/tr.vcount : tr[field][k]   // ⟨|v|⟩ for v, else the local value
+                  var key = col + '|' + t[i].mass + '|' + t[i].radius
+                  if (!groups[key]){ groups[key] = { color:col, mass:t[i].mass, radius:t[i].radius, sum:0, count:0 }; order.push(key) }
+                  groups[key].sum += mval; groups[key].count++
+            }
+            if (!order.length){ hide_traj_tooltip(); return }
+            order.sort()
+            show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }), label)
+      })
+      cv.addEventListener('mouseleave', hide_traj_tooltip)
+}
+
 function setup_traj_zoom(){                                 // idempotent: attaches the handlers only once
       if (_traj_zoom_setup){ return }
       _traj_zoom_setup = true
       _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd'); _bind_traj_zoom('v_canvas','v')
-      _bind_traj_means_hover('z_canvas', 'z', function(){ return traj_z_means }, '⟨z⟩')
-      _bind_traj_means_hover('v_canvas', 'v', function(){ return traj_v_means }, '⟨|v|⟩')
+      _bind_traj_means_hover('z_canvas', 'z', function(){ return traj_z_means }, '⟨z⟩')   // z(t) has a visible ⟨z⟩ line
+      _bind_traj_curve_hover('v_canvas', 'v', 'v', '⟨|v|⟩')                                // v(t): hover the curves directly
 }
 
 function draw_trajectories(){

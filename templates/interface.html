@@ -81,6 +81,13 @@ function bs_prompt(title, message, defaultValue, onOk){
     <span class="mon-nav" data-win="vel" data-dir="-1" title="newer date">&#9650;</span><span class="mon-nav" data-win="vel" data-dir="1" title="older date">&#9660;</span>
     <span class="mon-saved-del" data-win="vel" title="delete the selected saved figure">&times;</span>
   </div>
+  <!-- Counted objects: « all » (grey bars) or a single color (bars in that color) -->
+  <div style="margin-bottom:4px; display:flex; gap:4px; align-items:center">
+    <span style="color:#888">objets&nbsp;:</span>
+    <select id="velo_color_sel" style="flex:0 0 50%; min-width:0; max-width:50%; font-family:monospace" title="ne compter que les objets de cette couleur">
+      <option value="all">all</option>
+    </select>
+  </div>
   <canvas id="velocity_hist" width="340" height="160" style="display:block; background:#fafafa"></canvas>
 </div>
 
@@ -162,21 +169,21 @@ function bs_prompt(title, message, defaultValue, onOk){
     </div>
   </div>
   <div id="traj_xy_wrap">
-    <div style="margin:6px 0 3px;"><b>x–y</b> <span style="color:#888">trajectoires dans le plan</span></div>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="xy" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>x–y</b> <span style="color:#888">trajectoires dans le plan</span></div>
     <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_z_wrap">
-    <div style="margin:6px 0 3px;"><b>z(t)</b> <span style="color:#888">altitude vs temps</span>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="z" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>z(t)</b> <span style="color:#888">altitude vs temps</span>
       <button type="button" id="btn_z_means" style="float:right; font-size:10px; cursor:pointer" title="n'afficher que les moyennes ⟨z⟩ (masque les courbes)">moyennes seules</button>
     </div>
     <canvas id="z_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_msd_wrap">
-    <div style="margin:6px 0 3px;"><b>MSD</b> <span style="color:#888">|r−r₀|² vs temps</span></div>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="msd" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>MSD</b> <span style="color:#888">|r−r₀|² vs temps</span></div>
     <canvas id="msd_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_v_wrap">
-    <div style="margin:6px 0 3px;"><b>|v|(t)</b> <span style="color:#888">module de la vitesse vs temps</span></div>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="v" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>|v|(t)</b> <span style="color:#888">module de la vitesse vs temps</span></div>
     <canvas id="v_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
 </div>

@@ -384,6 +384,17 @@
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
         save_monitoring_prefs()
     })
+    // Close cross on a graph header = uncheck that plot (kept in sync with the « tracés » checkbox).
+    $(document).on('mousedown', '.traj-close', function(e){ e.stopPropagation() })   // don't rotate the scene
+    $(document).on('click', '.traj-close', function(e){
+        e.stopPropagation()
+        var m = this.getAttribute('data-plot')
+        if (typeof traj_show !== 'undefined'){ traj_show[m] = false }
+        if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }   // sync the checkbox + the "(n affiché(s))" counter
+        if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
+        if (typeof draw_trajectories === 'function'){ draw_trajectories() }
+        if (typeof save_monitoring_prefs === 'function'){ save_monitoring_prefs() }
+    })
     highlight_traj_mode()
     // z(t): only show the ⟨z⟩ means (hides the curves)
     if (typeof z_means_only === 'undefined'){ z_means_only = false }
@@ -458,6 +469,14 @@
         if (typeof draw_altitude_hist === 'function'){ draw_altitude_hist() }   // immediate draw, without waiting for the animation
         save_monitoring_prefs()
     })
+    // Velocity histogram color filter (same pattern as #alt_color_sel).
+    $('#velo_color_sel').on('change', function(){
+        velo_color_filter = this.value
+        this.blur()
+        if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }
+        save_monitoring_prefs()
+    })
+    $('#velo_color_sel').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
     // Bins slider: number of histogram compartments (resolution), independent of the z window.
     $('#alt_bins_slider').on('input', function(){
         alt_bins = parseInt(this.value, 10) || ALT_HIST_BINS

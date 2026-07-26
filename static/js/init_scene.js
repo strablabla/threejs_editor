@@ -279,6 +279,7 @@ function restore_dynamics(d){
       if (d.traj_colors_open !== undefined){ traj_colors_open = d.traj_colors_open }
       if (d.traj_modes_open !== undefined){ traj_modes_open = d.traj_modes_open }
       if (d.alt_color_filter !== undefined){ alt_color_filter = d.alt_color_filter }
+      if (d.velo_color_filter !== undefined){ velo_color_filter = d.velo_color_filter }
       if (d.mon_chrono && typeof mon_chrono !== 'undefined'){         // per-window observation time (u.a.), re-armed on load
             for (var _mw in mon_chrono){ if (d.mon_chrono[_mw] !== undefined){ mon_chrono[_mw] = d.mon_chrono[_mw]
                   if (typeof mon_fired !== 'undefined'){ mon_fired[_mw] = false }
@@ -423,6 +424,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           traj_colors_open: traj_colors_open,          // "suivre par couleur" list expanded or not
           traj_modes_open: traj_modes_open,            // "tracés" list expanded or not
           alt_color_filter: alt_color_filter,          // altitude histogram: color counted
+          velo_color_filter: velo_color_filter,        // velocity histogram: color counted
           speed_color_filter: speed_color_filter,      // Initial speeds: color acted upon
           mon_chrono: (typeof mon_chrono !== 'undefined') ? mon_chrono : undefined   // per-window observation time (u.a.)
     }
