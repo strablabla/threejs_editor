@@ -563,6 +563,15 @@ the tracked colors) and, for a **track segment**, **`is_track`** + **`track_soli
 reloaded track is still recognized as one and keeps its solidity. A segment drawn before
 `is_track` existed is recognized by shape (a `wall_box` belonging to no box).
 
+**Opacity** is restored too. In three.js a material's `opacity` is **ignored as long as
+`transparent` is false**, and the loaders build most materials opaque (`basic_sphere`,
+`load_wall_box`) — writing the number back on load therefore repainted every reloaded wall or
+ball **fully opaque**. The loader now turns `transparent` on (only below 1, so nothing pays
+for blending needlessly) and flags `needsUpdate`, as the lids already did. Textured cubes
+follow: their `MeshFaceMaterial` carries nothing itself, so both the slider and the
+save/restore walk its **six sub-materials** — their opacity used to be silently ignored in
+both directions.
+
 **Parameters settings saved with the scene** (key `_dynamics`): each scene
 carries its **physics configuration** — `Gravity`, `Springs`, `Object interaction (1/r²)`
 with its **Strength** (sign included), its **softening ε**, the **Fast collisions**

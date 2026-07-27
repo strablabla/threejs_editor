@@ -87,6 +87,34 @@ function load_speed(msg,name){
 
 }
 
+function each_object_material(obj, fn){          // the material of an object, or each sub-material (MeshFaceMaterial)
+
+    var m = obj && obj.material
+    if (!m){ return }
+    if (m.materials){ for (var j in m.materials){ fn(m.materials[j]) } }
+    else { fn(m) }
+
+}
+
+function restore_opacity(obj, op){
+
+    /*
+    Restores a saved opacity. In three.js the 'opacity' of a material is IGNORED as long as
+    'transparent' is false, and the loaders build most materials opaque (basic_sphere and
+    load_wall_box do; only load_parallelepiped_shapes asks for transparent). Writing back the
+    number alone therefore repainted every reloaded wall / ball FULLY OPAQUE — the opacity set
+    from the context menu was lost at the next load. Same treatment as the lids (restore_lids).
+    */
+
+    if (op === undefined || op === null || isNaN(op)){ return }
+    each_object_material(obj, function(mat){
+          mat.opacity = op
+          if (op < 1){ mat.transparent = true }    // no point paying for blending at opacity 1
+          mat.needsUpdate = true
+    })
+
+}
+
 function load_params(name, msg, curr_tex_addr){
 
     /*
@@ -95,7 +123,7 @@ function load_params(name, msg, curr_tex_addr){
 
     listorig[name]['tex_addr'] =  curr_tex_addr               									 // texture address
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
-    listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
+    restore_opacity(listorig[name], msg[name]['opacity'])                            // opacity
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
                           'magnet', 'friction', 'group_id', 'track_trajectory']
@@ -376,7 +404,11 @@ function make_infos_obj_of(obj){
       var y = obj.rotation.y
       var z = obj.rotation.z
       var mat = obj.material
-      var opacity = (mat && mat._origOpacity !== undefined) ? mat._origOpacity : (mat ? mat.opacity : 1)  // original opacity if objects dimmed by the arrows
+      // representative material: a MeshFaceMaterial (textured cube) carries nothing itself,
+      // the opacity lives in its sub-materials
+      var omat = (mat && mat.materials && mat.materials.length) ? mat.materials[0] : mat
+      var opacity = (omat && omat._origOpacity !== undefined) ? omat._origOpacity          // original opacity if objects dimmed by the arrows
+                  : ((omat && omat.opacity !== undefined) ? omat.opacity : 1)
       var infos_obj = {
                        "pos": obj.position,
                        "rot": {x,y,z},
