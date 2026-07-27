@@ -120,6 +120,9 @@ function random_speed_chose_xyz(obj, list_coord){
                   select_coord_random_speed(obj,coord)
               }
       }
+      // |v| AT INITIALIZATION, kept aside: the Trajectories window lists the colors by initial
+      // speed, and obj.speed itself keeps changing as soon as the simulation runs.
+      obj.v0 = Math.sqrt(obj.speed.x*obj.speed.x + obj.speed.y*obj.speed.y + obj.speed.z*obj.speed.z)
 
 }
 

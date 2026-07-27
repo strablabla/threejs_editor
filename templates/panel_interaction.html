@@ -291,6 +291,7 @@
         if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }
         if (typeof highlight_z_means === 'function'){ highlight_z_means() }
         if (typeof apply_traj_colors_open === 'function'){ apply_traj_colors_open() }
+        if (typeof apply_traj_color_sort === 'function'){ apply_traj_color_sort() }
         if (typeof apply_traj_modes_open === 'function'){ apply_traj_modes_open() }
         if (typeof report_set_visible === 'function'){ report_set_visible(show_report) }
         $('#chk_trajectories').prop('checked', show_trajectories).trigger('change')
@@ -374,12 +375,12 @@
             if (on){ n++ }
             $(this).prop('checked', on)
         })
-        $('#traj_modes_count').text('(' + n + ' affiché(s))')    // stays readable once the list is collapsed
+        $('#traj_modes_count').text('(' + n + ' shown)')          // stays readable once the list is collapsed
     }
     $('.traj_mode_chk').on('change', function(){
         traj_show[this.getAttribute('data-mode')] = this.checked   // this plot only, independently of the others
         this.blur()                                            // return keyboard focus to the scene (the 'x' shortcut stays functional)
-        highlight_traj_mode()                                  // refreshes the "(n affiché(s))" counter
+        highlight_traj_mode()                                  // refreshes the "(n shown)" counter
         if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
         save_monitoring_prefs()
@@ -390,7 +391,7 @@
         e.stopPropagation()
         var m = this.getAttribute('data-plot')
         if (typeof traj_show !== 'undefined'){ traj_show[m] = false }
-        if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }   // sync the checkbox + the "(n affiché(s))" counter
+        if (typeof highlight_traj_mode === 'function'){ highlight_traj_mode() }   // sync the checkbox + the "(n shown)" counter
         if (typeof apply_traj_mode === 'function'){ apply_traj_mode() }
         if (typeof draw_trajectories === 'function'){ draw_trajectories() }
         if (typeof save_monitoring_prefs === 'function'){ save_monitoring_prefs() }
@@ -430,8 +431,20 @@
     if (typeof traj_colors_open === 'undefined'){ traj_colors_open = true }   // safeguard (JS served from cache)
     window.apply_traj_colors_open = function(){
         $('#traj_color_filters').toggle(!!traj_colors_open)
+        $('#traj_color_sort_wrap').toggle(!!traj_colors_open)
         $('#traj_colors_caret').text(traj_colors_open ? '▾' : '▸')
     }
+    // Listing of the colors: compact grid ('color') or one per line sorted by mass / initial speed.
+    if (typeof traj_color_sort === 'undefined'){ traj_color_sort = 'color' }   // safeguard (JS served from cache)
+    window.apply_traj_color_sort = function(){ $('#traj_color_sort_sel').val(traj_color_sort) }
+    $('#traj_color_sort_sel').on('change', function(){
+        traj_color_sort = this.value
+        this.blur()                                        // a <select> kept focused captures the scene shortcuts (typeahead: « x »…)
+        if (typeof _traj_colors_sig !== 'undefined'){ _traj_colors_sig = null }   // force the list to be rebuilt
+        if (typeof draw_trajectories === 'function'){ draw_trajectories() }
+        save_monitoring_prefs()
+    })
+    apply_traj_color_sort()
     $('#traj_colors_toggle').on('click', function(){
         traj_colors_open = !traj_colors_open
         apply_traj_colors_open()

@@ -21,6 +21,9 @@ env/
 /static/scenes/*.json
 !/static/scenes/.gitkeep
 
+# Dossiers virtuels vides créés au runtime (non versionnés)
+/static/scene_folders.json
+
 # Rapports d'expérience générés au runtime (non versionnés)
 /static/reports/*.json
 !/static/reports/.gitkeep

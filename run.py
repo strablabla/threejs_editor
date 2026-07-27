@@ -208,6 +208,80 @@ def set_scene_folder(name):
     _folder_cache.pop(path, None)          # invalidate (mtime changed anyway)
     return flask.jsonify({'ok': True, 'name': name, 'folder': folder})
 
+# ---- Empty virtual folders -------------------------------------------------
+# A folder normally EXISTS only because a scene claims it ('_folder'). To let the
+# user create a folder (or sub-folder) before filing anything into it, the extra
+# (still empty) paths are kept in a small side file; /scenes stays the source of
+# truth for the folders that do hold scenes, and the client merges both lists.
+_FOLDERS_FILE = os.path.join('static', 'scene_folders.json')   # NOT in static/scenes/: that glob lists the scenes
+
+def _clean_folder(p):
+    return (p or '').strip().strip('/')
+
+def _read_extra_folders():
+    try:
+        with open(_FOLDERS_FILE, 'r') as f:
+            data = json.load(f)
+    except (OSError, IOError, ValueError):
+        return []
+    if not isinstance(data, list):
+        return []
+    return sorted(set(_clean_folder(p) for p in data if _clean_folder(p)))
+
+def _write_extra_folders(paths):
+    paths = sorted(set(_clean_folder(p) for p in paths if _clean_folder(p)))
+    d = opd(_FOLDERS_FILE)
+    if d and not os.path.isdir(d):
+        os.makedirs(d)
+    with open(_FOLDERS_FILE, 'w') as f:
+        json.dump(paths, f)
+    return paths
+
+@app.route('/folders')
+def list_folders():
+    '''Virtual folders declared empty (no scene inside yet).'''
+    return flask.jsonify(_read_extra_folders())
+
+@app.route('/folder_add', methods=['POST'])
+def add_folder():
+    '''Create an empty virtual folder (its ancestors are created along with it).'''
+    folder = _clean_folder(flask.request.values.get('folder'))
+    if not folder:
+        return flask.jsonify({'error': 'empty path'}), 400
+    paths, acc = _read_extra_folders(), ''
+    for seg in folder.split('/'):
+        seg = seg.strip()
+        if not seg:
+            continue
+        acc = acc + '/' + seg if acc else seg
+        paths.append(acc)
+    return flask.jsonify({'ok': True, 'folders': _write_extra_folders(paths)})
+
+@app.route('/folder_delete', methods=['POST'])
+def delete_folder():
+    '''Forget an empty virtual folder and its sub-folders (scenes are untouched).'''
+    folder = _clean_folder(flask.request.values.get('folder'))
+    if not folder:
+        return flask.jsonify({'error': 'empty path'}), 400
+    kept = [p for p in _read_extra_folders()
+            if p != folder and not p.startswith(folder + '/')]
+    return flask.jsonify({'ok': True, 'folders': _write_extra_folders(kept)})
+
+@app.route('/folder_rename', methods=['POST'])
+def rename_folder():
+    '''Re-prefix the empty folders when their parent is renamed (cf. _rename_folder).'''
+    old = _clean_folder(flask.request.values.get('old'))
+    new = _clean_folder(flask.request.values.get('new'))
+    if not old or not new:
+        return flask.jsonify({'error': 'empty path'}), 400
+    out = []
+    for p in _read_extra_folders():
+        if p == old or p.startswith(old + '/'):
+            out.append(new + p[len(old):])
+        else:
+            out.append(p)
+    return flask.jsonify({'ok': True, 'folders': _write_extra_folders(out)})
+
 @app.route('/eval_fit', methods=['POST'])
 def eval_fit():
     '''

@@ -15,6 +15,12 @@
       }
       #scene_dropdown_menu .scene-folder .scene-folder-all:hover { color:#000; }
       #scene_dropdown_menu .scene-link { white-space:nowrap; letter-spacing:normal; }
+      #scene_dropdown_menu .scene-newfolder {
+            cursor:pointer; padding:4px 12px; white-space:nowrap; color:#337ab7; letter-spacing:normal;
+            border-top:1px solid #eee; margin-top:3px;
+            -webkit-user-select:none; user-select:none;
+      }
+      #scene_dropdown_menu .scene-newfolder:hover { background:#e8f0fe; }
 
       /* Custom right-click menu */
       .scene-ctx {
@@ -253,22 +259,26 @@
     function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
     function _cmp(a,b){ a=a.toLowerCase(); b=b.toLowerCase(); return a<b?-1:(a>b?1:0) }
 
-    function _build_scene_tree(list){             // list = [{name, folder}] -> nested node
+    function _folder_node(root, folder, fset){    // walks/creates the chain of nodes of a path, returns the leaf
+         var node = root
+         folder = (folder || '').replace(/^\/+|\/+$/g,'')
+         if (!folder){ return node }
+         var parts = folder.split('/'), acc = ''
+         for (var i=0;i<parts.length;i++){
+               var seg = parts[i].trim(); if (!seg){ continue }
+               acc = acc ? acc+'/'+seg : seg; fset[acc] = true
+               if (!node.folders[seg]){ node.folders[seg] = { path:acc, folders:{}, scenes:[] } }
+               node = node.folders[seg]
+         }
+         return node
+    }
+
+    // list = [{name, folder}] -> nested node. `extras` = folders created EMPTY (server-side
+    // /folders): they hold no scene, so nothing else would make them appear in the tree.
+    function _build_scene_tree(list, extras){
          var root = { path:'', folders:{}, scenes:[] }, fset = {}
-         list.forEach(function(it){
-               var folder = (it.folder || '').replace(/^\/+|\/+$/g,'')
-               var node = root
-               if (folder){
-                     var parts = folder.split('/'), acc = ''
-                     for (var i=0;i<parts.length;i++){
-                           var seg = parts[i].trim(); if (!seg){ continue }
-                           acc = acc ? acc+'/'+seg : seg; fset[acc] = true
-                           if (!node.folders[seg]){ node.folders[seg] = { path:acc, folders:{}, scenes:[] } }
-                           node = node.folders[seg]
-                     }
-               }
-               node.scenes.push(it.name)
-         })
+         list.forEach(function(it){ _folder_node(root, it.folder, fset).scenes.push(it.name) })
+         ;(extras || []).forEach(function(p){ _folder_node(root, p, fset) })
          _all_folders = Object.keys(fset).sort(_cmp)
          return root
     }
@@ -318,20 +328,75 @@
                $ul.append($('<li>').append($a))
          })
     }
-    function populate_scene_list(){
+    var _scene_list_cache = []                    // last /scenes payload (tells which folders still hold scenes)
+    var _extra_folders    = []                    // folders created empty (server-side, /folders)
+
+    function populate_scene_list(done){           // done() is called once the list is rebuilt (cf. _keep_dropdown_open)
          refresh_scene_descriptions(function(){
-               $.ajax({ url: '/scenes', dataType: 'json', cache: false }).done(function(list){
-                     list = (list || []).map(function(x){ return (typeof x === 'string') ? {name:x, folder:''} : x })  // tolerate old shape
-                     var menu = $('#scene_dropdown_menu').empty()
-                     if (_scene_view === 'recent'){ _render_scene_recent(list, menu) }
-                     else { _render_scene_node(_build_scene_tree(list), 0, menu) }
-                     _scene_view_sync()
-                     // scene descriptions can be long: use Bootstrap tooltips (capped at 600px via
-                     // .tooltip-inner CSS) instead of native title tooltips (which can't be width-limited)
-                     if ($.fn && $.fn.tooltip){ menu.find('.scene-link[title]').tooltip({ container:'body', placement:'right' }) }
+               $.ajax({ url: '/folders', dataType: 'json', cache: false }).always(function(folders){
+                     _extra_folders = $.isArray(folders) ? folders : []      // on failure: the jqXHR, ignored
+                     $.ajax({ url: '/scenes', dataType: 'json', cache: false }).done(function(list){
+                           list = (list || []).map(function(x){ return (typeof x === 'string') ? {name:x, folder:''} : x })  // tolerate old shape
+                           _scene_list_cache = list
+                           var menu = $('#scene_dropdown_menu').empty()
+                           if (_scene_view === 'recent'){ _render_scene_recent(list, menu) }
+                           else {
+                                 _render_scene_node(_build_scene_tree(list, _extra_folders), 0, menu)
+                                 menu.append($('<li class="scene-newfolder" title="Créer un dossier vide (chemin a/b = sous-dossier)">')
+                                       .text('＋ nouveau dossier…'))
+                           }
+                           _scene_view_sync()
+                           // scene descriptions can be long: use Bootstrap tooltips (capped at 600px via
+                           // .tooltip-inner CSS) instead of native title tooltips (which can't be width-limited)
+                           if ($.fn && $.fn.tooltip){ menu.find('.scene-link[title]').tooltip({ container:'body', placement:'right' }) }
+                     }).always(function(){ if (typeof done === 'function'){ done() } })
                })
          })
     }
+
+    // The scenes list is a Bootstrap dropdown: ANY click reaching the document (the OK button of
+    // the confirm dialog, typically) closes it — so deleting several experiments in a row meant
+    // re-opening the list every time. Snapshot the open state + scroll offset BEFORE the action,
+    // and give back a restore() to call once the list has been rebuilt.
+    function _keep_dropdown_open(){
+         var btn  = document.getElementById('scene_dropdown_btn')
+         var dd   = btn ? btn.parentNode : null                  // the .dropdown container carrying the .open class
+         var menu = document.getElementById('scene_dropdown_menu')
+         var wasOpen = !!dd && dd.className.indexOf('open') >= 0
+         var top = menu ? menu.scrollTop : 0
+         return function(){
+               if (!wasOpen || !dd){ return }
+               $(dd).addClass('open')
+               if (menu){ menu.scrollTop = top }                 // same rows under the cursor -> chain the deletions
+         }
+    }
+
+    function _create_folder(path){                // create an EMPTY folder (or sub-folder)
+         path = (path || '').replace(/^\/+|\/+$/g,'').trim(); if (!path){ return }
+         var reopen = _keep_dropdown_open()
+         $.ajax({ url:'/folder_add', method:'POST', data:{ folder: path } })
+          .done(function(){ path.split('/').reduce(function(acc,seg){ acc = acc?acc+'/'+seg:seg; _exp()[acc]=true; return acc }, '')   // reveal it and its parents
+                            _exp_save(); populate_scene_list(reopen) })
+          .fail(function(){ reopen(); if (typeof bs_alert === 'function'){ bs_alert('Dossier', 'La création a échoué.') } else { alert('La création du dossier a échoué.') } })
+    }
+
+    function _folder_has_scenes(path){            // does any scene live in this folder or below?
+         return _scene_list_cache.some(function(it){ var f = it.folder || ''; return f === path || f.indexOf(path+'/') === 0 })
+    }
+
+    function _delete_folder(path){                // only offered on EMPTY folders (cf. the context menu)
+         var reopen = _keep_dropdown_open()
+         $.ajax({ url:'/folder_delete', method:'POST', data:{ folder: path } })
+          .always(function(){ delete _exp()[path]; _exp_save(); populate_scene_list(reopen) })
+    }
+
+    // Click on the "＋ nouveau dossier…" row: stopPropagation so the list does not close.
+    $('#scene_dropdown_menu').on('click', '.scene-newfolder', function(e){
+         e.preventDefault(); e.stopPropagation()
+         var reopen = _keep_dropdown_open()
+         bs_prompt('Nouveau dossier', 'Chemin du dossier (ex: Thermo/atmo) :', '',
+                   function(p){ _create_folder(p) }, reopen)
+    })
     $(document).on('click', '#scene_view_toggle a', function(e){
          e.preventDefault(); e.stopPropagation()
          _scene_view = $(this).attr('data-view') === 'recent' ? 'recent' : 'tree'
@@ -340,19 +405,22 @@
     })
 
     function _move_scene(name, folder){           // file a scene into a virtual folder (''=root)
+         var reopen = _keep_dropdown_open()
          $.ajax({ url: '/scene_set_folder/' + encodeURIComponent(name), method: 'POST', data: { folder: folder } })
           .done(function(){ if (folder){ _exp()[folder] = true; _exp_save() }   // reveal the destination
-                            populate_scene_list() })
-          .fail(function(){ if (typeof bs_alert === 'function'){ bs_alert('Rangement', 'Le rangement a échoué.') } else { alert('Le rangement a échoué.') } })
+                            populate_scene_list(reopen) })
+          .fail(function(){ reopen(); if (typeof bs_alert === 'function'){ bs_alert('Rangement', 'Le rangement a échoué.') } else { alert('Le rangement a échoué.') } })
     }
 
     function _rename_folder(path){                 // rename a folder = re-prefix every scene under it
+         var wasOpen = _keep_dropdown_open()
          bs_prompt('Renommer le dossier', 'Nouveau nom :', path.split('/').pop(), function(nn){
                nn = (nn || '').trim().replace(/\//g,''); if (!nn){ return }
+               var reopen = _keep_dropdown_open()
                var parent = path.indexOf('/') >= 0 ? path.slice(0, path.lastIndexOf('/')) : ''
                var newPath = parent ? parent+'/'+nn : nn
                $.ajax({ url:'/scenes', dataType:'json', cache:false }).done(function(list){
-                     var jobs = []
+                     var jobs = [$.ajax({ url:'/folder_rename', method:'POST', data:{ old:path, 'new':newPath } })]   // the empty folders follow too
                      list.forEach(function(it){
                            var f = it.folder || ''
                            if (f === path || f.indexOf(path+'/') === 0){
@@ -360,9 +428,9 @@
                                  jobs.push($.ajax({ url:'/scene_set_folder/'+encodeURIComponent(it.name), method:'POST', data:{folder:nf} }))
                            }
                      })
-                     $.when.apply($, jobs).always(function(){ _exp()[newPath]=true; _exp_save(); populate_scene_list() })
+                     $.when.apply($, jobs).always(function(){ _exp()[newPath]=true; _exp_save(); populate_scene_list(reopen) })
                })
-         })
+         }, wasOpen)
     }
 
     function scene_toast(text){                  // brief confirmation banner on a light-green background
@@ -477,8 +545,10 @@
                head(name, function(){ _delete_scene(name) })     // black × across from the name
                _all_folders.forEach(function(fp){ if (fp !== cur){ item('→ ' + fp, function(){ _move_scene(name, fp) }) } })
                if (_all_folders.length){ sep() }
-               item('Nouveau dossier / sous-dossier…', function(){
-                     bs_prompt('Ranger', 'Chemin du dossier (ex: Thermo/atmo) :', cur, function(p){ _move_scene(name, (p||'').trim()) })
+               item('Ranger dans un nouveau dossier…', function(){
+                     var reopen = _keep_dropdown_open()
+                     bs_prompt('Ranger', 'Chemin du dossier (ex: Thermo/atmo) :', cur,
+                               function(p){ _move_scene(name, (p||'').trim()) }, reopen)
                })
                if (cur){ item('Sortir (racine)', function(){ _move_scene(name, '') }) }
          })
@@ -489,13 +559,22 @@
          var path = $(this).attr('data-path')
          _ctx_open(e.clientX, e.clientY, function(item, head, sep){
                head('📁 ' + path)
+               item('Nouveau sous-dossier…', function(){
+                     var reopen = _keep_dropdown_open()
+                     bs_prompt('Nouveau sous-dossier', 'Nom du sous-dossier de « ' + path + ' » :', '',
+                               function(nn){ nn = (nn||'').trim().replace(/^\/+|\/+$/g,''); if (nn){ _create_folder(path + '/' + nn) } }, reopen)
+               })
                item('Renommer le dossier…', function(){ _rename_folder(path) })
                sep()
+               if (!_folder_has_scenes(path)){            // an empty folder only exists in /folders: it can simply be forgotten
+                     item('Supprimer le dossier (vide)', function(){ _delete_folder(path) }, 'scene-ctx-danger')
+               }
                item('Vider vers la racine', function(){   // move every scene under this folder back to root
+                     var reopen = _keep_dropdown_open()
                      $.ajax({ url:'/scenes', dataType:'json', cache:false }).done(function(list){
                            var jobs = []
                            list.forEach(function(it){ var f=it.folder||''; if (f===path || f.indexOf(path+'/')===0){ jobs.push($.ajax({ url:'/scene_set_folder/'+encodeURIComponent(it.name), method:'POST', data:{folder:''} })) } })
-                           $.when.apply($, jobs).always(function(){ populate_scene_list() })
+                           $.when.apply($, jobs).always(function(){ populate_scene_list(reopen) })
                      })
                }, 'scene-ctx-danger')
          })
@@ -552,16 +631,17 @@
     })
 
     function _delete_scene(n){                     // delete a scene file (+ its report) then refresh
+         var reopen = _keep_dropdown_open()        // the dialog's click closes the list: re-open it once refreshed
          bs_confirm('Remove', 'Remove scene "' + n + '"?', function(){
                $.getJSON('/scene_delete/' + encodeURIComponent(n), function(){
                      $.get('/report_delete/' + encodeURIComponent(n))    // its report goes with it
                       .always(function(){
                             if (selected_scene === n){ selected_scene = null; $('#scene_dropdown_label').html('choose&hellip;') }
                             refresh_scene_descriptions()
-                            populate_scene_list()  // refresh the list
+                            populate_scene_list(reopen)  // refresh the list, still open at the same place
                       })
                })
-         }, 'btn-danger', 'remove')
+         }, 'btn-danger', 'remove', reopen)
     }
 
     $('#delete_scene').click(function(){          // deletes the selected scene (server file)

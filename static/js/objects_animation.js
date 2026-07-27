@@ -1484,6 +1484,9 @@ function setup_alt_hist_handles(){
 
 var TRAJ_MAX = 200000                                       // max samples per trajectory (memory bound, ~1h @60fps)
 var TRAJ_DRAW_MAX = 2000                                    // max points plotted per curve (decimation -> fast rendering)
+var traj_t = []                                             // sim_time (u.a.) of each recorded sample — ONE global array: every
+                                                            // curve is sampled on the same frames, and the plots already use the
+                                                            // sample index as their x coordinate. Lets index -> time (cf. traj_time_at)
 function traj_color(obj){ return obj_hex(obj) }             // ACTUAL color of the ball (currentHex = tint outside highlight)
 
 function tracked_objects(){                                 // objects whose trajectory is currently DISPLAYED (checked)
@@ -1542,16 +1545,35 @@ function set_track_by_color(hex, on){
 
 }
 
-function traj_mass_label(lo, hi){                           // "masse 1.0", or "masse 1.0…5.0" if the color mixes masses
-      if (lo === undefined){ return 'masse inconnue' }
+function traj_mass_label(lo, hi){                           // "mass 1.0", or "mass 1.0…5.0" if the color mixes masses
+      if (lo === undefined){ return 'unknown mass' }
       var a = fmt_energy(lo), b = fmt_energy(hi)
-      return 'masse ' + (a === b ? a : a + '…' + b)
+      return 'mass ' + (a === b ? a : a + '…' + b)
 }
 
-function traj_radius_label(lo, hi){                         // "rayon 40", or "rayon 20…40" if the color mixes radii ('' if unknown)
+function traj_radius_label(lo, hi){                         // "radius 40", or "radius 20…40" if the color mixes radii ('' if unknown)
       if (lo === undefined){ return '' }
       var a = fmt_energy(lo), b = fmt_energy(hi)
-      return 'rayon ' + (a === b ? a : a + '…' + b)
+      return 'radius ' + (a === b ? a : a + '…' + b)
+}
+
+function obj_v0(o){
+
+      /*
+      INITIAL speed magnitude of an object: recorded when its velocity is drawn (cf.
+      random_speed_chose_xyz) or when the scene is loaded (cf. load_speed). Falls back to the
+      current |v| for an object that predates the field — correct as long as it has not moved.
+      */
+
+      if (typeof o.v0 === 'number' && isFinite(o.v0)){ return o.v0 }
+      var s = o.speed; if (!s){ return undefined }
+      return Math.sqrt(s.x*s.x + s.y*s.y + s.z*s.z)
+}
+
+function traj_v0_label(lo, hi){                             // "v₀ 50", or "v₀ 20…80" if the color mixes initial speeds
+      if (lo === undefined){ return 'unknown v₀' }
+      var a = fmt_energy(lo), b = fmt_energy(hi)
+      return 'v₀ ' + (a === b ? a : a + '…' + b)
 }
 
 var _traj_colors_sig = null                                 // signature (colors + checked state + masses) -> only rebuilds the checkboxes if it changes
@@ -1564,13 +1586,19 @@ function refresh_traj_color_filters(){
       recreating the checkboxes continuously would make them impossible to click).
       The signature includes the checked state -> the checkbox stays in sync if tracking is changed elsewhere
       (the "trajectory" checkbox of the right-click menu).
+
+      traj_color_sort chooses the LISTING: 'color' = compact grid (just the count), 'mass' / 'v0'
+      = one color per line, sorted by that quantity, with its value across from the swatch. What
+      tells two populations apart is rarely their color — it's their mass or their initial speed.
       */
 
       var box = document.getElementById('traj_color_filters')
       if (!box){ return }
+      var sortBy = (typeof traj_color_sort !== 'undefined') ? traj_color_sort : 'color'
+      var byValue = (sortBy === 'mass' || sortBy === 'v0')
       var a = traj_candidate_objects()
       var cols = distinct_colors(a)
-      var counts = {}, tracked = {}, mmin = {}, mmax = {}, rmin = {}, rmax = {}
+      var counts = {}, tracked = {}, mmin = {}, mmax = {}, rmin = {}, rmax = {}, vmin = {}, vmax = {}, vsum = {}, vcnt = {}
       for (var i=0;i<a.length;i++){
             var h = obj_hex(a[i])
             counts[h] = (counts[h] || 0) + 1
@@ -1584,17 +1612,37 @@ function refresh_traj_color_filters(){
                   if (rmin[h] === undefined || rad < rmin[h]){ rmin[h] = rad }
                   if (rmax[h] === undefined || rad > rmax[h]){ rmax[h] = rad }
             }
+            var v0 = obj_v0(a[i])                         // initial speeds of the color: MEAN (displayed) + range (tooltip).
+            if (typeof v0 === 'number' && isFinite(v0)){  // v0 is drawn at random per ball, so min…max is mostly noise:
+                  if (vmin[h] === undefined || v0 < vmin[h]){ vmin[h] = v0 }        // what tells two populations apart
+                  if (vmax[h] === undefined || v0 > vmax[h]){ vmax[h] = v0 }        // is the mean of their distribution
+                  vsum[h] = (vsum[h] || 0) + v0; vcnt[h] = (vcnt[h] || 0) + 1
+            }
             if (a[i].track_trajectory){ tracked[h] = true }
       }
       var nsel = 0
       for (var i=0;i<cols.length;i++){ if (tracked[cols[i]]){ nsel++ } }
-      var sig = cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] + '/' + mmin[h] + '-' + mmax[h] + '/' + rmin[h] + '-' + rmax[h] }).join(',')
+      var sig = sortBy + '|' + cols.map(function(h){ return h + (tracked[h] ? '1' : '0') + counts[h] + '/' + mmin[h] + '-' + mmax[h]
+                                                           + '/' + rmin[h] + '-' + rmax[h] + '/' + vmin[h] + '-' + vmax[h] }).join(',')
       if (sig === _traj_colors_sig){ return }
       _traj_colors_sig = sig
+      var vmean = {}                                      // ⟨v₀⟩ of each color (what gets displayed / sorted on)
+      for (var h in vsum){ vmean[h] = vsum[h] / vcnt[h] }
+      if (byValue){                                       // one color per line: the values must line up
+            var key = (sortBy === 'mass') ? mmin : vmean
+            cols = cols.slice().sort(function(h1,h2){
+                  var a1 = key[h1], a2 = key[h2]
+                  if (a1 === undefined && a2 === undefined){ return h1 < h2 ? -1 : 1 }
+                  if (a1 === undefined){ return 1 }       // unknown values at the end
+                  if (a2 === undefined){ return -1 }
+                  return (a1 - a2) || (h1 < h2 ? -1 : 1)  // ascending, color as tie-breaker (stable listing)
+            })
+      }
+      $(box).css('grid-template-columns', byValue ? '1fr' : 'repeat(auto-fill, minmax(56px, 1fr))')
       $(box).empty()
-      $('#traj_colors_count').text('(' + cols.length + ' couleur(s)' + (nsel ? ', ' + nsel + ' suivie(s)' : '') + ')')
+      $('#traj_colors_count').text('(' + cols.length + ' color(s)' + (nsel ? ', ' + nsel + ' tracked' : '') + ')')
       if (!cols.length){
-            $(box).append($('<span style="color:#999; grid-column:1/-1">').text('aucun objet dans la scène'))
+            $(box).append($('<span style="color:#999; grid-column:1/-1">').text('no object in the scene'))
             return
       }
       for (var i=0;i<cols.length;i++){
@@ -1609,13 +1657,26 @@ function refresh_traj_color_filters(){
                   })
                   // (the isolation from TrackballControls is set once and for all
                   //  on #traj_colors_wrap, cf. panel_interaction.html — no need to repeat it here)
-                  var $sw = $('<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; vertical-align:middle; margin:0 2px">')
+                  var $sw = $('<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; vertical-align:middle; margin:0 2px; flex:none">')
                               .css('background', hex)
-                  $(box).append($('<label style="cursor:pointer; white-space:nowrap; display:flex; align-items:center">')
+                  var $row = $('<label style="cursor:pointer; white-space:nowrap; display:flex; align-items:center">')
                         .append($cb).append($sw)
                         .append($('<span style="color:#888">').text(counts[hex]))
-                        .attr('title', hex + ' — ' + counts[hex] + ' objet(s) — ' + traj_mass_label(mmin[hex], mmax[hex])
-                                       + (traj_radius_label(rmin[hex], rmax[hex]) ? ' — ' + traj_radius_label(rmin[hex], rmax[hex]) : '')))
+                        .attr('title', hex + ' — ' + counts[hex] + ' object(s) — ' + traj_mass_label(mmin[hex], mmax[hex])
+                                       + (traj_radius_label(rmin[hex], rmax[hex]) ? ' — ' + traj_radius_label(rmin[hex], rmax[hex]) : '')
+                                       + ' — ' + traj_v0_label(vmin[hex], vmax[hex]))
+                  if (byValue){                                          // the value, right-aligned across from the color
+                        var txt
+                        if (sortBy === 'mass'){                          // mass: the exact range (a color rarely mixes masses)
+                              var lo = mmin[hex], hi = mmax[hex]
+                              txt = (lo === undefined) ? '?'
+                                  : (fmt_energy(lo) === fmt_energy(hi) ? fmt_energy(lo) : fmt_energy(lo) + '…' + fmt_energy(hi))
+                        } else {                                         // v₀: the mean of the distribution (the range is in the tooltip)
+                              txt = (vmean[hex] === undefined) ? '?' : '⟨' + fmt_energy(vmean[hex]) + '⟩'
+                        }
+                        $row.append($('<span style="margin-left:auto; padding-left:6px; color:#333; font-variant-numeric:tabular-nums">').text(txt))
+                  }
+                  $(box).append($row)
             })(cols[i])
       }
 
@@ -1649,7 +1710,7 @@ function mon_fmt_hms(ua){                                   // u.a. -> "h:m:s" f
 
 function update_traj_time(){                                // simulation time elapsed since the last reset / start of tracking
       var el = document.getElementById('traj_time')
-      if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' u.a. (' + fmt_hms(sim_time / 10) + ')' }
+      if (el){ el.textContent = 't = ' + sim_time.toFixed(1) + ' a.u. (' + fmt_hms(sim_time / 10) + ')' }
 }                                                          // 1 u.a. = 100 ms of real time (cf. animate_physics)
 
 // traj_show = { xy, z, msd, v } (independent toggles) is declared in scene_params.js (Monitoring settings)
@@ -1671,6 +1732,7 @@ function reset_all_trajectories(){
       if (typeof mon_update_chrono_display === 'function'){ setTimeout(mon_update_chrono_display, 0) }   // countdown back to the full target (sim_time just zeroed)
       if (typeof clear_traj_zoom === 'function'){ clear_traj_zoom() }   // restart with an auto-fit view
       sim_time = 0                                                      // the timer restarts with the plots ("since the last Reset")
+      traj_t = []                                                       // ... and so does the sample -> time table
       var t = acquired_objects(); for (var i=0;i<t.length;i++){ reset_trajectory(t[i]) }  // Reset zeroes ALL curves (visible AND hidden)
 }
 
@@ -1678,6 +1740,10 @@ function record_trajectories(){                             // called each anima
 
       if (!show_trajectories){ return }
       var t = acquired_objects()                            // record every acquired curve, even un-checked (hidden) ones -> no gap on re-check
+      if (t.length){                                        // one timestamp per recorded frame (shared by all the curves)
+            traj_t.push(sim_time)
+            if (traj_t.length > TRAJ_MAX){ traj_t.shift() }
+      }
       for (var i=0;i<t.length;i++){
             var o = t[i]; if (!o.traj){ reset_trajectory(o) }
             var tr = o.traj
@@ -1697,6 +1763,51 @@ function record_trajectories(){                             // called each anima
 }
 
 function traj_stride(n){ return Math.max(1, Math.ceil(n / TRAJ_DRAW_MAX)) }  // decimation: at most TRAJ_DRAW_MAX points
+
+function traj_time_at(k, n){
+
+      /*
+      Simulation time (u.a.) of sample k of a curve holding n samples. traj_t is aligned on
+      the LAST sample (both are fed on the same frames, but a curve acquired later — or one
+      trimmed by TRAJ_MAX — is shorter), so index k of the curve is index k+(len-n) of traj_t.
+      */
+
+      var len = traj_t.length; if (!len){ return 0 }
+      var i = Math.round(k) + (len - n)
+      if (i < 0){ i = 0 } if (i > len-1){ i = len-1 }
+      return traj_t[i]
+}
+
+function traj_sec(ua){ return ua / UA_PER_SEC }             // u.a. -> seconds (1 u.a. = 100 ms)
+function fmt_traj_sec(ua){                                  // seconds, short: 3 significant-ish digits
+      var s = traj_sec(ua)
+      return (s >= 100) ? s.toFixed(0) : (s >= 10 ? s.toFixed(1) : s.toFixed(2))
+}
+
+function draw_traj_time_axis(ctx, L, T, PW, PH, a0, a1, n){
+
+      /*
+      Graduations of the TIME axis (z(t), MSD, |v|(t)). The plots' x data coordinate is the
+      sample index: each tick is converted to seconds through traj_t. The unit « t (s) » is
+      written under the LAST graduation — the total elapsed time stays in the window header.
+      */
+
+      var y = T + PH
+      var span = traj_sec(traj_time_at(a1,n) - traj_time_at(a0,n))
+      var dec = (span >= 100) ? 0 : (span >= 10 ? 1 : 2)    // same number of decimals on every graduation
+      ctx.save()
+      ctx.font = '9px sans-serif'; ctx.fillStyle = '#666'; ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1
+      ctx.textBaseline = 'top'
+      for (var g = 0; g <= 4; g++){
+            var x = L + PW*g/4
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y+3); ctx.stroke()   // tick mark
+            ctx.textAlign = (g === 0) ? 'left' : (g === 4 ? 'right' : 'center')
+            ctx.fillText(traj_sec(traj_time_at(a0 + (a1-a0)*g/4, n)).toFixed(dec), x, y+4)
+      }
+      ctx.textAlign = 'right'; ctx.fillStyle = '#888'
+      ctx.fillText('t (s)', L+PW, y+13)                     // unit under the last graduation
+      ctx.restore()
+}
 
 function stroke_traj_curve(ctx, XY, HD, color){
       // Draw a polyline (pixel points XY) splitting it into runs: SOLID where the sample was
@@ -1852,24 +1963,29 @@ function clear_traj_zoom(){ traj_zoom = { xy:null, z:null, msd:null, v:null }; t
 
 function hide_traj_tooltip(){ var el=document.getElementById('traj_tooltip'); if(el){ el.style.display='none' } }
 
-function show_traj_tooltip(clientX, clientY, groups, label){
+function show_traj_tooltip(clientX, clientY, groups, label, timeUA){
 
       /*
-      Tooltip when hovering a mean line (⟨z⟩ on z(t), ⟨|v|⟩ on v(t)): one entry per hovered
-      (color, mass, radius) — several particles of the same color/mass/radius then share a
-      single summary line (mean of the means, with ×N), otherwise 2000 balls of one color
-      would give 2000 lines. `label` = what the mean is (e.g. '⟨z⟩', '⟨|v|⟩').
+      Tooltip when hovering a curve or a mean line: one entry per hovered (color, mass, radius)
+      — several particles of the same color/mass/radius then share a single summary line (mean
+      of their values, with ×N), otherwise 2000 balls of one color would give 2000 lines.
+      `label` = what the value is (e.g. '⟨z⟩', '|v|'). `timeUA` (optional) = simulation time of
+      the hovered point, shown as a header line.
       */
 
       var el = document.getElementById('traj_tooltip'); if (!el){ return }
       label = label || '⟨z⟩'
       var html = ''
+      if (timeUA != null){
+            html += '<div style="white-space:nowrap; color:#bbb; margin-bottom:2px">'
+                  + 't = ' + timeUA.toFixed(1) + ' a.u. (' + fmt_traj_sec(timeUA) + ' s)</div>'
+      }
       for (var i=0;i<groups.length;i++){
             var g = groups[i], mean = g.sum/g.count
             html += '<div style="display:flex; align-items:center; gap:4px; white-space:nowrap">'
                   + '<span style="display:inline-block; width:9px; height:9px; border:1px solid #999; background:' + g.color + '"></span>'
-                  + 'masse ' + fmt_energy(g.mass)
-                  + (g.radius !== undefined && g.radius !== null ? ' — rayon ' + fmt_energy(g.radius) : '')
+                  + 'mass ' + fmt_energy(g.mass)
+                  + (g.radius !== undefined && g.radius !== null ? ' — radius ' + fmt_energy(g.radius) : '')
                   + ' — ' + label + ' = ' + fmt_energy(mean)
                   + (g.count > 1 ? ' <span style="color:#bbb">(×' + g.count + ')</span>' : '')
                   + '</div>'
@@ -1921,7 +2037,7 @@ function draw_traj_pending_sel(){
             ctx.fillStyle='rgba(0,119,255,0.10)'; ctx.strokeStyle='#0077ff'; ctx.lineWidth=1; ctx.setLineDash([5,3])
             ctx.fillRect(x0,y0,x1-x0,y1-y0); ctx.strokeRect(x0,y0,x1-x0,y1-y0); ctx.setLineDash([])
             ctx.fillStyle='#0077ff'; ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='top'
-            if ((x1-x0)>44 && (y1-y0)>14){ ctx.fillText('clic = zoom', (x0+x1)/2, y0+2) }
+            if ((x1-x0)>44 && (y1-y0)>14){ ctx.fillText('click = zoom', (x0+x1)/2, y0+2) }
             ctx.restore()
       }
 
@@ -1933,7 +2049,9 @@ function _bind_traj_zoom(canvasId, key){
       Interaction model (chosen with the user):
         AUTO view (no zoom): drag draws a selection window (persistent). A click INSIDE it
               zooms to it; a click OUTSIDE removes it. A new drag replaces the window.
+              RIGHT-CLICK freezes the current window and switches to drag (pan) — no zoom needed.
         ZOOMED view: drag = PAN (see contiguous zones). Double-click = back to auto.
+              RIGHT-CLICK toggles the tool pan <-> select (zoom inside the zoom).
         BOTH: dragging a border handle (near an edge) sets that bound precisely (live).
       */
 
@@ -2039,7 +2157,10 @@ function _bind_traj_zoom(canvasId, key){
 
       // Right-click: on the LEFT time handle (a0) -> toggle the real-time window between GROWING
       // (a0 fixed, a1 follows -> the window widens, the default) and FIXED-WIDTH (slides, keeps its
-      // width). Anywhere else while zoomed -> switch tool pan <-> select (zoom inside the zoom).
+      // width). Anywhere else -> switch to the drag (pan) tool: while zoomed it toggles pan <-> select,
+      // and in the AUTO view it freezes the current window so that it can be dragged straight away
+      // (the auto domain is recomputed from the data on every frame: there is nothing to pan until
+      // it is frozen). Double-click still gives the full auto view back.
       cv.addEventListener('contextmenu', function(e){
             e.preventDefault(); e.stopPropagation()
             var v = traj_view[key]; if (!v){ return }
@@ -2052,6 +2173,12 @@ function _bind_traj_zoom(canvasId, key){
                   draw_trajectories()
             } else if (traj_zoom[key]){                        // toggle pan <-> select while zoomed
                   traj_tool[key] = (traj_tool[key] === 'select' ? 'pan' : 'select')
+                  traj_sel[key] = null
+                  draw_trajectories()
+            } else {                                           // AUTO view -> freeze the current window and drag it
+                  traj_zoom[key] = curDomain(v)
+                  traj_zoom[key].followX = false                // a window being dragged must not keep sliding on its own
+                  traj_tool[key] = 'pan'
                   traj_sel[key] = null
                   draw_trajectories()
             }
@@ -2091,7 +2218,8 @@ function _bind_traj_means_hover(canvasId, viewKey, getMeans, label){
 
 // Hover over the CURVES themselves (not a mean line): at the cursor's x = sample index, take each
 // tracked curve's value and, if its pixel y is close to the cursor, show the tooltip. Used for v(t),
-// which has no visible mean line — hovering a curve then identifies it (color/mass/radius + ⟨value⟩).
+// which has no visible mean line — hovering a curve then identifies it (color/mass/radius) and gives
+// the INSTANTANEOUS value at that point plus the simulation time of the sample (not a mean).
 function _bind_traj_curve_hover(canvasId, viewKey, field, label){
       var cv = document.getElementById(canvasId); if (!cv){ return }
       var THRESH = 6                                          // vertical capture distance (canvas px)
@@ -2102,20 +2230,21 @@ function _bind_traj_curve_hover(canvasId, viewKey, field, label){
             var p = pos(e)
             if (p.x < v.L || p.x > v.L+v.W || p.y < v.T || p.y > v.T+v.H){ hide_traj_tooltip(); return }
             var idxF = traj_data_x(v, p.x)                     // data x = sample index (float)
-            var t = tracked_objects(), groups = {}, order = []
+            var t = tracked_objects(), groups = {}, order = [], hoveredT = null
             for (var i=0;i<t.length;i++){
                   var tr = t[i].traj; if (!tr || !tr[field] || tr[field].length < 2){ continue }
                   var n = tr[field].length, k = Math.round(idxF); if (k < 0){ k = 0 } if (k > n-1){ k = n-1 }
                   if (Math.abs(traj_px_y(v, tr[field][k]) - p.y) > THRESH){ continue }   // cursor near this curve?
                   var col = traj_color(t[i])
-                  var mval = (field === 'v' && tr.vcount > 0) ? tr.vsum/tr.vcount : tr[field][k]   // ⟨|v|⟩ for v, else the local value
+                  var mval = tr[field][k]                      // INSTANTANEOUS value at the hovered sample
+                  if (hoveredT === null){ hoveredT = traj_time_at(k, n) }                // time of that sample (u.a.)
                   var key = col + '|' + t[i].mass + '|' + t[i].radius
                   if (!groups[key]){ groups[key] = { color:col, mass:t[i].mass, radius:t[i].radius, sum:0, count:0 }; order.push(key) }
                   groups[key].sum += mval; groups[key].count++
             }
             if (!order.length){ hide_traj_tooltip(); return }
             order.sort()
-            show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }), label)
+            show_traj_tooltip(e.clientX, e.clientY, order.slice(0,6).map(function(k){ return groups[k] }), label, hoveredT)
       })
       cv.addEventListener('mouseleave', hide_traj_tooltip)
 }
@@ -2125,7 +2254,7 @@ function setup_traj_zoom(){                                 // idempotent: attac
       _traj_zoom_setup = true
       _bind_traj_zoom('traj_canvas','xy'); _bind_traj_zoom('z_canvas','z'); _bind_traj_zoom('msd_canvas','msd'); _bind_traj_zoom('v_canvas','v')
       _bind_traj_means_hover('z_canvas', 'z', function(){ return traj_z_means }, '⟨z⟩')   // z(t) has a visible ⟨z⟩ line
-      _bind_traj_curve_hover('v_canvas', 'v', 'v', '⟨|v|⟩')                                // v(t): hover the curves directly
+      _bind_traj_curve_hover('v_canvas', 'v', 'v', '|v|')                                  // v(t): hover the curves directly (instantaneous |v| + time)
 }
 
 function draw_trajectories(){
@@ -2187,7 +2316,7 @@ function draw_trajectories(){
             if (nz>1 && zmax>0){
                   traj_follow_slide('z', nz)                  // real-time sliding window if the right handle is stuck to now
                   var dz = traj_zoom.z || { a0:0, a1:nz-1, b0:0, b1:zmax }
-                  var zL=46, zT=6, zB=6, zR=4, L=zL, T=zT, PW=Wz-zL-zR, PH=Hz-zT-zB
+                  var zL=46, zT=6, zB=24, zR=4, L=zL, T=zT, PW=Wz-zL-zR, PH=Hz-zT-zB   // zB: room for the time graduations + « t (s) »
                   traj_view.z = { L:L, T:T, W:PW, H:PH, a0:dz.a0, a1:dz.a1, b0:dz.b0, b1:dz.b1 }
                   var ZX=function(k){ return L + (k-dz.a0)/((dz.a1-dz.a0)||1)*PW }
                   var ZY=function(v){ return T + (1-(v-dz.b0)/((dz.b1-dz.b0)||1))*PH }
@@ -2216,6 +2345,7 @@ function draw_trajectories(){
                         }
                   }
                   cz.restore()
+                  draw_traj_time_axis(cz, L, T, PW, PH, dz.a0, dz.a1, nz)   // time graduations + « t (s) »
             } else { traj_view.z = null }
       }
 
@@ -2233,7 +2363,7 @@ function draw_trajectories(){
             if (nmax>1 && vmaxm>0){
                   traj_follow_slide('msd', nmax)
                   var dm = traj_zoom.msd || { a0:0, a1:nmax-1, b0:0, b1:vmaxm }
-                  var ML=46, MT=6, MB=6, MR=4, L=ML, T=MT, PW=W2-ML-MR, PH=H2-MT-MB
+                  var ML=46, MT=6, MB=24, MR=4, L=ML, T=MT, PW=W2-ML-MR, PH=H2-MT-MB   // MB: room for the time graduations + « t (s) »
                   traj_view.msd = { L:L, T:T, W:PW, H:PH, a0:dm.a0, a1:dm.a1, b0:dm.b0, b1:dm.b1 }
                   var MX=function(k){ return L + (k-dm.a0)/((dm.a1-dm.a0)||1)*PW }
                   var MY=function(v){ return T + (1-(v-dm.b0)/((dm.b1-dm.b0)||1))*PH }
@@ -2249,6 +2379,7 @@ function draw_trajectories(){
                         stroke_traj_curve(c2, XY, HD, traj_color(t[i]))
                   }
                   c2.restore()
+                  draw_traj_time_axis(c2, L, T, PW, PH, dm.a0, dm.a1, nmax)   // time graduations + « t (s) »
             } else { traj_view.msd = null }
       }
 
@@ -2266,7 +2397,7 @@ function draw_trajectories(){
             if (nmaxv>1 && vmaxv>0){
                   traj_follow_slide('v', nmaxv)
                   var dvv = traj_zoom.v || { a0:0, a1:nmaxv-1, b0:0, b1:vmaxv }
-                  var VL=46, VT=6, VB=6, VR=4, L=VL, T=VT, PW=W3-VL-VR, PH=H3-VT-VB
+                  var VL=46, VT=6, VB=24, VR=4, L=VL, T=VT, PW=W3-VL-VR, PH=H3-VT-VB   // VB: room for the time graduations + « t (s) »
                   traj_view.v = { L:L, T:T, W:PW, H:PH, a0:dvv.a0, a1:dvv.a1, b0:dvv.b0, b1:dvv.b1 }
                   var VX=function(k){ return L + (k-dvv.a0)/((dvv.a1-dvv.a0)||1)*PW }
                   var VY=function(v){ return T + (1-(v-dvv.b0)/((dvv.b1-dvv.b0)||1))*PH }
@@ -2289,6 +2420,7 @@ function draw_trajectories(){
                         }
                   }
                   c3.restore()
+                  draw_traj_time_axis(c3, L, T, PW, PH, dvv.a0, dvv.a1, nmaxv)   // time graduations + « t (s) »
             } else { traj_view.v = null }
       }
 

@@ -78,6 +78,12 @@ function load_speed(msg,name){
     listorig[name]['speed']['x'] = speed.x
     listorig[name]['speed']['y'] = speed.y
     listorig[name]['speed']['z'] = speed.z
+    // Initial speed of the object (listing by v0 in the Trajectories window). 'v0' comes from the
+    // file when it has one (loaded just above, with the other attributes); a scene saved before v0
+    // existed has none -> the loaded speed IS the initial state of that scene.
+    if (listorig[name]['v0'] === undefined){
+          listorig[name]['v0'] = Math.sqrt(speed.x*speed.x + speed.y*speed.y + speed.z*speed.z)
+    }
 
 }
 
@@ -91,7 +97,7 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
     listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
-                          'mass', 'radius_interact',
+                          'mass', 'radius_interact', 'v0',
                           'magnet', 'friction', 'group_id', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
@@ -276,6 +282,7 @@ function restore_dynamics(d){
             for (var ti in tkeys){ if (d.traj_show[tkeys[ti]] !== undefined){ traj_show[tkeys[ti]] = d.traj_show[tkeys[ti]] } }
       }
       if (d.z_means_only !== undefined){ z_means_only = d.z_means_only }
+      if (d.traj_color_sort !== undefined){ traj_color_sort = d.traj_color_sort }
       if (d.traj_colors_open !== undefined){ traj_colors_open = d.traj_colors_open }
       if (d.traj_modes_open !== undefined){ traj_modes_open = d.traj_modes_open }
       if (d.alt_color_filter !== undefined){ alt_color_filter = d.alt_color_filter }
@@ -355,7 +362,7 @@ function make_infos_obj_of(obj){
       */
 
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
-                          'mass', 'speed', 'radius', 'radius_interact', 'magnet', 'friction',
+                          'mass', 'speed', 'v0', 'radius', 'radius_interact', 'magnet', 'friction',
                           'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
                           'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
@@ -421,6 +428,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           // selections INSIDE the monitoring windows (which plots, which display)
           traj_show: { xy:!!traj_show.xy, z:!!traj_show.z, msd:!!traj_show.msd, v:!!traj_show.v },   // x-y / z(t) / MSD / |v|(t)
           z_means_only: z_means_only,                  // z(t): means ⟨z⟩ only
+          traj_color_sort: traj_color_sort,            // « suivre par couleur »: listing by color / mass / v0
           traj_colors_open: traj_colors_open,          // "suivre par couleur" list expanded or not
           traj_modes_open: traj_modes_open,            // "tracés" list expanded or not
           alt_color_filter: alt_color_filter,          // altitude histogram: color counted

@@ -28,8 +28,9 @@ function bs_dialog(opts){
           close_dialog()
           if (opts.onOk){ opts.onOk(val) }
      }
+     function cancel(){ close_dialog(); if (opts.onCancel){ opts.onCancel() } }   // onCancel: lets the caller restore its UI (e.g. re-open the scenes list)
      $ok.off('click').on('click', validate)
-     $('#app_dialog_cancel').off('click').on('click', close_dialog)
+     $('#app_dialog_cancel').off('click').on('click', cancel)
      // isolate the field from global handlers (keyboard AND mouse) to allow typing + mouse selection
      $input.off('keydown keypress keyup mousedown mousemove mouseup dblclick')
            .on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){
@@ -40,11 +41,11 @@ function bs_dialog(opts){
      $('#app_dialog').show()
      if (opts.input){ setTimeout(function(){ $input.focus(); try { $input[0].select() } catch(e){} }, 50) }
 }
-function bs_confirm(title, message, onOk, okClass, okLabel){
-     bs_dialog({ title:title, message:message, input:false, okClass:okClass, okLabel:okLabel, onOk:function(){ onOk() } })
+function bs_confirm(title, message, onOk, okClass, okLabel, onCancel){
+     bs_dialog({ title:title, message:message, input:false, okClass:okClass, okLabel:okLabel, onOk:function(){ onOk() }, onCancel:onCancel })
 }
-function bs_prompt(title, message, defaultValue, onOk){
-     bs_dialog({ title:title, message:message, input:true, defaultValue:defaultValue, onOk:function(v){ onOk(v) } })
+function bs_prompt(title, message, defaultValue, onOk, onCancel){
+     bs_dialog({ title:title, message:message, input:true, defaultValue:defaultValue, onOk:function(v){ onOk(v) }, onCancel:onCancel })
 }
 </script>
 
@@ -126,26 +127,26 @@ function bs_prompt(title, message, defaultValue, onOk){
 
 <!-- Trajectories + MSD (toggle "trajectories" in Monitoring; per-object tracking via right-click) -->
 <div id="trajectories_box" style="display:none; position:fixed; top:70px; left:10px; z-index:9998; background:rgba(255,255,255,0.95); border:1px solid #aaa; border-radius:4px; padding:6px; font-family:sans-serif; font-size:11px;">
-  <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_trajectories" title="fermer" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Trajectories</b>
-    <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="repart de la position courante">reset</button>
-    <span id="traj_time" style="margin-left:6px; font-weight:bold" title="temps de simulation écoulé depuis le dernier reset (se fige quand l'animation est en pause) — 1 u.a. = 100 ms de temps réel">t = 0.0 u.a. (0:00)</span>
+  <div style="margin-bottom:3px;"><span class="mon_close" data-chk="chk_trajectories" title="close" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>Trajectories</b>
+    <button type="button" id="btn_reset_traj" style="float:right; font-size:10px; cursor:pointer" title="restart from the current position">reset</button>
+    <span id="traj_time" style="margin-left:6px; font-weight:bold" title="simulation time elapsed since the last reset (freezes while the animation is paused) — 1 a.u. = 100 ms of real time">t = 0.0 a.u. (0:00)</span>
     <div class="mon-ctrls" data-win="traj" style="margin-top:2px">
-      <span title="observation time (u.a.): auto-save + pause when reached" style="cursor:default">⏱</span>
+      <span title="observation time (a.u.): auto-save + pause when reached" style="cursor:default">⏱</span>
       <input type="text" class="mon-chrono" data-win="traj" placeholder="h:m:s" title="observation time (h:m:s) — auto-save + pause when reached">
       <select class="mon-saved" data-win="traj" title="saved figures"><option value="">● live</option></select>
       <span class="mon-nav" data-win="traj" data-dir="-1" title="newer date">&#9650;</span><span class="mon-nav" data-win="traj" data-dir="1" title="older date">&#9660;</span>
       <span class="mon-saved-del" data-win="traj" title="delete the selected saved figure">&times;</span>
     </div>
-    <div style="color:#999; font-size:9px; margin-top:2px">glisser sur un graphe = zoom · double-clic = vue complète</div>
+    <div style="color:#999; font-size:9px; margin-top:2px">drag = zoom · right-click = pan · double-click = full view</div>
     <!-- Plots displayed: collapsible, stacked vertically (a row of buttons widened the
-         window for good). Same pattern as « suivre par couleur » just below. -->
+         window for good). Same pattern as « track by color » just below. -->
     <div id="traj_modes_wrap" style="margin-top:3px">
-      <div id="traj_modes_toggle" title="afficher / masquer le choix des tracés"
+      <div id="traj_modes_toggle" title="show / hide the choice of plots"
            style="cursor:pointer; user-select:none; -webkit-user-select:none; color:#555">
-        <span id="traj_modes_caret">▾</span> <b>tracés</b>
+        <span id="traj_modes_caret">▾</span> <b>plots</b>
         <span id="traj_modes_count" style="color:#888; font-weight:normal"></span>
       </div>
-      <div id="traj_modes_list" title="tracés affichés (combinaisons libres)"
+      <div id="traj_modes_list" title="displayed plots (any combination)"
            style="border:1px solid #ddd; border-radius:3px; padding:3px 4px; margin-top:2px;
                   display:flex; flex-direction:column; gap:1px">
         <label style="cursor:pointer; display:flex; align-items:center; white-space:nowrap"><input type="checkbox" class="traj_mode_chk" data-mode="xy"  style="margin:0 4px 0 0">x–y</label>
@@ -157,10 +158,21 @@ function bs_prompt(title, message, defaultValue, onOk){
     <!-- Colors to track: collapsible + scrollable panel (populated by refresh_traj_color_filters).
          In a grid rather than a row: a scene can have many distinct colors. -->
     <div id="traj_colors_wrap" style="margin-top:3px">
-      <div id="traj_colors_toggle" title="afficher / masquer la liste des couleurs"
+      <div id="traj_colors_toggle" title="show / hide the list of colors"
            style="cursor:pointer; user-select:none; -webkit-user-select:none; color:#555">
-        <span id="traj_colors_caret">▾</span> <b>suivre par couleur</b>
+        <span id="traj_colors_caret">▾</span> <b>track by color</b>
         <span id="traj_colors_count" style="color:#888; font-weight:normal"></span>
+      </div>
+      <!-- Listing of the colors: compact grid, or one per line sorted by mass / initial speed
+           with the value shown across from each swatch. -->
+      <div id="traj_color_sort_wrap" style="margin-top:2px; display:flex; align-items:center; gap:4px; color:#888">
+        <span>sort by&nbsp;:</span>
+        <select id="traj_color_sort_sel" style="flex:0 0 50%; min-width:0; max-width:50%; font-size:11px"
+                title="color = compact grid · mass / initial speed = one color per line, sorted, value shown">
+          <option value="color">color</option>
+          <option value="mass">mass</option>
+          <option value="v0">initial speed</option>
+        </select>
       </div>
       <div id="traj_color_filters"
            style="max-height:104px; overflow-y:auto; border:1px solid #ddd; border-radius:3px;
@@ -169,21 +181,21 @@ function bs_prompt(title, message, defaultValue, onOk){
     </div>
   </div>
   <div id="traj_xy_wrap">
-    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="xy" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>x–y</b> <span style="color:#888">trajectoires dans le plan</span></div>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="xy" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>x–y</b> <span style="color:#888">in-plane trajectories</span></div>
     <canvas id="traj_canvas" width="300" height="200" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_z_wrap">
-    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="z" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>z(t)</b> <span style="color:#888">altitude vs temps</span>
-      <button type="button" id="btn_z_means" style="float:right; font-size:10px; cursor:pointer" title="n'afficher que les moyennes ⟨z⟩ (masque les courbes)">moyennes seules</button>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="z" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>z(t)</b> <span style="color:#888">altitude vs time</span>
+      <button type="button" id="btn_z_means" style="float:right; font-size:10px; cursor:pointer" title="show only the ⟨z⟩ means (hides the curves)">means only</button>
     </div>
     <canvas id="z_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_msd_wrap">
-    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="msd" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>MSD</b> <span style="color:#888">|r−r₀|² vs temps</span></div>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="msd" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>MSD</b> <span style="color:#888">|r−r₀|² vs time</span></div>
     <canvas id="msd_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
   <div id="traj_v_wrap">
-    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="v" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>|v|(t)</b> <span style="color:#888">module de la vitesse vs temps</span></div>
+    <div style="margin:6px 0 3px;"><span class="traj-close" data-plot="v" title="close this graph (unchecks it)" style="float:right; cursor:pointer; color:#888; padding-left:8px">&times;</span><b>|v|(t)</b> <span style="color:#888">velocity magnitude vs time</span></div>
     <canvas id="v_canvas" width="300" height="150" style="display:block; background:#fafafa"></canvas>
   </div>
 </div>
