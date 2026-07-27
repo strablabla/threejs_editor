@@ -420,15 +420,26 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 		var delta = 0;
 
-		if ( event.wheelDelta ) { // WebKit / Opera / Explorer 9
+		if ( event.deltaY !== undefined ) { // standard 'wheel' event
+
+			var dy = event.deltaY;
+			if ( event.deltaMode === 1 ) dy *= 16;       // deltaMode 1 = lines -> px
+			else if ( event.deltaMode === 2 ) dy *= 100; // deltaMode 2 = pages -> px
+			delta = - dy / 40;                           // same scale as the legacy wheelDelta/40 below
+
+		} else if ( event.wheelDelta ) { // legacy WebKit / Opera / Explorer 9
 
 			delta = event.wheelDelta / 40;
 
-		} else if ( event.detail ) { // Firefox
+		} else if ( event.detail ) { // legacy Firefox
 
 			delta = - event.detail / 3;
 
 		}
+
+		if ( ! delta ) return;                           // no movement (and 1/delta would be Infinity)
+		if ( Math.abs( delta ) < 1 ) delta = delta < 0 ? -1 : 1;   // the step goes as 1/delta: the tiny
+		                                                 // deltas of a trackpad would jump the camera
 
 		_zoomStart.y += ( 1 / delta ) * 0.05;
 
@@ -522,8 +533,22 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 	this.domElement.addEventListener( 'mousedown', mousedown, false );
 
-	this.domElement.addEventListener( 'mousewheel', mousewheel, false );
-	this.domElement.addEventListener( 'DOMMouseScroll', mousewheel, false ); // firefox
+	// Wheel zoom. Modern browsers ONLY fire the standard 'wheel' event: Chrome has stopped
+	// dispatching the legacy 'mousewheel', which is why the wheel zoom had silently died (the
+	// handler was never called any more). The legacy pair is kept as a fallback for old browsers
+	// and is registered only when 'wheel' is missing -> a notch is never counted twice.
+	// { passive: false } is required: a wheel listener on the document is PASSIVE BY DEFAULT in
+	// Chrome, and preventDefault() would be ignored (the page would scroll while zooming).
+	if ( 'onwheel' in window || 'onwheel' in document ) {
+
+		this.domElement.addEventListener( 'wheel', mousewheel, { passive: false } );
+
+	} else {
+
+		this.domElement.addEventListener( 'mousewheel', mousewheel, false );
+		this.domElement.addEventListener( 'DOMMouseScroll', mousewheel, false ); // firefox
+
+	}
 
 	this.domElement.addEventListener( 'touchstart', touchstart, false );
 	this.domElement.addEventListener( 'touchend', touchend, false );
