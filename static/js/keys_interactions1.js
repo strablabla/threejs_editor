@@ -18,15 +18,19 @@ function toggle_cases_ending(){
 function ending_track(){
 
         /*
-        When ending the track retrieve the control of the mouse and the ground.
+        End of a track: give the mouse and the ground back. Called by toggle_cases_ending (so by
+        EVERY link_toggle key) and by reinit_params_ok (switching tool in the Object panel).
+
+        The two guards matter. It used to test « if (new_track_ok) » while link_toggle flips the
+        flag BEFORE calling us, so the cleanup ran when ENTERING track mode instead of leaving it
+        — and pressing any other toggle key (i, k, m, u, x…) mid-track wiped the segment in
+        progress. We now key off the actual state: still in track mode -> hands off; no mark
+        standing -> nothing to end.
         */
 
-        if (new_track_ok){
-            SELECTED = null;
-            controls.enabled = true;
-            scene.remove(last_mark_track)
-            limits_and_action_reinit_var() // select must be ok..
-        }
+        if (new_track_ok){ return }                  // track still being laid: do not interrupt it
+        if (!list_marks_track.length){ return }      // no track in progress
+        end_track()
 }
 
 function apply_movement(obj){

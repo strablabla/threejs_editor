@@ -29,6 +29,7 @@ function reinit_params_ok(){
       }
     } // end for
       if (typeof wall_preview_clear === 'function'){ wall_preview_clear() }   // no leftover dashed line
+      if (typeof ending_track === 'function'){ ending_track() }   // leaving the track tool via the panel ends the track too
 
 }
 
@@ -161,6 +162,8 @@ list_marks_track = []
 orientation_track = 'x'  // orientation by default
 last_mark_track = null
 var track_width = 40
+var track_height = 5                // height of the slabs; changed by the right-click menu of a segment,
+                                    // and used for the segments drawn afterwards
 coord_track_blocked = null
 dir_track_blocked = null
 perpendicular_track = true

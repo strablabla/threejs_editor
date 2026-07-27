@@ -97,7 +97,7 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
     listorig[name].material['opacity'] =  msg[name]['opacity']             		    // opacity
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
-                          'mass', 'radius_interact', 'v0',
+                          'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
                           'magnet', 'friction', 'group_id', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
@@ -189,6 +189,11 @@ function load_wall_box(name, msg){
       load_params(name, msg, curr_tex_addr)
       obj.blocked = true                         // static wall
       list_moving_objects.push(obj)              // in the interactions loop -> the balls bounce
+      // a track segment can be made non-solid from its context menu: honour that choice
+      // (absent from an older scene -> solid, the default)
+      if (typeof is_track_segment === 'function' && is_track_segment(obj) && typeof set_track_solid === 'function'){
+            set_track_solid(obj, obj.track_solid !== false)
+      }
 
 }
 
@@ -270,6 +275,7 @@ function restore_dynamics(d){
       if (d.random_initial_speed !== undefined){ random_initial_speed = d.random_initial_speed }
       if (d.random_speed_module !== undefined){ random_speed_module = d.random_speed_module }
       if (d.random_speed_z !== undefined){ random_speed_z = d.random_speed_z }
+      if (d.track_height !== undefined){ track_height = d.track_height }
       if (d.show_energy_graph !== undefined){ show_energy_graph = d.show_energy_graph }
       if (d.show_velocity_hist !== undefined){ show_velocity_hist = d.show_velocity_hist }
       if (d.show_altitude_hist !== undefined){ show_altitude_hist = d.show_altitude_hist }
@@ -364,6 +370,7 @@ function make_infos_obj_of(obj){
       var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
                           'mass', 'speed', 'v0', 'radius', 'radius_interact', 'magnet', 'friction',
                           'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
+                          'is_track', 'track_solid',   // a track segment, and whether the balls bounce off it
                           'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
       var y = obj.rotation.y
@@ -417,6 +424,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           random_initial_speed: random_initial_speed,
           random_speed_module: random_speed_module,
           random_speed_z: random_speed_z,
+          track_height: track_height,                  // height used for the next track segments
           // display toggles (Monitoring)
           show_energy_graph: show_energy_graph,
           show_velocity_hist: show_velocity_hist,

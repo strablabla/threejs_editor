@@ -560,6 +560,56 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         })
         $(document).on('mouseup', function(){ drag = null })
   })()
+  function track_height_row($f, seg, applyAll){                 // height slider of a track slab
+        var $row = $('<div style="margin:6px 0">')
+        var $top = $('<div style="display:flex; align-items:center; gap:6px">')
+        var $val = $('<span style="min-width:34px; text-align:right">').text(Math.round(seg.height))
+        $top.append($('<span style="flex:1">').text('height')).append($val)
+        var effMax = Math.max(400, Math.ceil(seg.height))        // never clip a slab already higher
+        var $rng = $('<input type="range" min="1" step="1" style="width:100%">').attr('max', effMax).val(seg.height)
+        $rng.on('input change', function(){
+              var h = parseFloat($rng.val()); if (!(h > 0)){ return }
+              $val.text(Math.round(h))
+              applyAll(function(t){ set_parallelepiped_dims(t, { height: h }) })   // rebuilds + lays it back on the ground
+              track_height = h                                   // the segments drawn afterwards follow
+        })
+        // persists (pos.json) on release, because the local mouseup is stopped just below
+        $rng.on('change', function(){ if (typeof emit_infos_scene === 'function'){ emit_infos_scene() } })
+        $rng.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+        $row.append($top).append($rng); $f.append($row)
+  }
+  window.show_track_context_menu = function(seg, x, y){         // right-click on a track segment
+        $('#ctx_obj_title').text('track segment — ' + (seg.name || ''))
+        var $f = $('#ctx_obj_fields').empty()
+        // Master "all" checkbox, same principle as the balls: the target list is FROZEN when the
+        // menu opens, so a change never shifts the criterion under our feet mid-drag.
+        var all_targets = (typeof track_objects === 'function') ? track_objects() : [seg]
+        var $all = null
+        if (all_targets.length > 1){                             // pointless for a single segment
+              var $arow = $('<div style="margin:2px 0 8px; padding-bottom:6px; border-bottom:1px solid #ddd">')
+              $all = $('<input type="checkbox">')
+              $arow.append($('<label style="cursor:pointer; font-weight:bold">').append($all)
+                    .append(' all (' + all_targets.length + ' segments de la piste)'))
+              $f.append($arow)
+        }
+        function applyAll(setter){                               // this segment, or the whole track if "all" is checked
+              if ($all && $all.is(':checked')){ all_targets.forEach(setter) } else { setter(seg) }
+        }
+        track_height_row($f, seg, applyAll)
+        num_row($f, 'width (route)', function(){ return Math.round(seg.thickness) }, function(v){
+              if (!(v > 0)){ return }
+              applyAll(function(t){ set_parallelepiped_dims(t, { thickness: v }) })
+              if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+        })
+        bool_row($f, 'solide (les billes rebondissent)',        // unchecked -> the balls go through
+              function(){ return seg.track_solid !== false },   // absent (older scene) = solid
+              function(v){
+                    applyAll(function(t){ set_track_solid(t, v) })
+                    if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+              })
+        opacity_row($f, seg)
+        position_ctx(x, y, 220, 230)
+  }
   window.show_wall_context_menu = function(wall, x, y){         // right-click on a box wall
         $('#ctx_obj_title').text('box wall — ' + (wall.name || ''))
         var $f = $('#ctx_obj_fields').empty()
@@ -612,6 +662,9 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
                                 return
                           }
                     }
+              }
+              if (typeof is_track_segment === 'function' && is_track_segment(obj)){   // track slab -> its own menu
+                    show_track_context_menu(obj, event.clientX, event.clientY); return   // (tested BEFORE wall_box: a slab is one)
               }
               if (obj.type === 'wall_box'){                      // right-click on a wall -> box menu
                     show_wall_context_menu(obj, event.clientX, event.clientY); return

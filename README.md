@@ -89,6 +89,25 @@ opens the Description panel** (the tooltip of the scene list).
 
 `TrackballControls`: rotate / zoom the view with the mouse.
 
+### The track tool (`t`)
+
+A **track** is laid **segment by segment**: the 1st click drops the starting point, then the
+mouse is moved **freely (no button held)** and each new click **validates a segment** and
+starts the next. Each segment becomes a **blue slab** resting on the ground, of length =
+the distance between the two points and of width `track_width` (40).
+
+- **Axis snapping** — with `perpendicular_track` (default), the segment is forced onto the
+  axis (x or y) along which you moved the most: successive segments are perpendicular,
+  giving a Manhattan-style path. Set the flag to `false` in `scene_params.js` for a free path.
+- **Guide marks** — only **two** exist at a time (the anchor of the segment being drawn and
+  the one following the mouse); each is removed as soon as its slab covers it, and the last
+  ones disappear when the track ends. *(They used to pile up in the scene forever — and stay
+  in the picking lists, invisible but still grabbable.)*
+- **Ending the track** — press `t` again, or pick another tool / *no tool* in the panel. Both
+  paths clean up. A **new track never chains onto the previous one**, and pressing another
+  toggle key (`x` animation, `i`, `k`, `m`, `u`) **in the middle of a track no longer wipes
+  the segment in progress**.
+
 ### Other keyboard shortcuts
 `x` animation (start / pause / resume) · `d` delete · `r` rotation ·
 `p` multi-selection · `h` horizontal plane · `i` object info · `k` camera position ·
@@ -164,6 +183,12 @@ dragging).
   box, N adjustable), **add lid / remove lid** (lid). If **movable** is checked, you
   **drag the box** (walls **+ lid**) as a block with the mouse; the option and the
   positions are **persisted**.
+- **Right-click on a track segment** → **“track segment”** menu: **`height`** (slider),
+  **`width (route)`**, **`solide`** (do the balls bounce off it — **checked by default**) and
+  `opacity`. Like the balls, an **“all (N segments de la piste)”** checkbox at the top applies
+  the change to the **whole track** at once; unchecked, only the clicked segment changes. The
+  target list is **frozen when the menu opens**, so a change never shifts the criterion
+  mid-drag. The chosen height also becomes the height of the segments drawn **afterwards**.
 - **Right-click on a lid** → **“lid”** menu: `opacity` of the lid.
 
 The menu closes via its **×** or by clicking elsewhere. Object colors are
@@ -293,6 +318,19 @@ The per-frame cost is dominated by the loops over **pairs** of objects, naturall
   affect them); a dedicated pass `bounce_balls_on_cubes()` handles the bounce, in O(beads ×
   cubes). A fast bead could theoretically pass through a very thin cube (discrete
   detection, no continuous detection like box walls).
+  A cheap **bounding-sphere reject** runs before the local-frame transform of each pair, so
+  the vast majority of (bead, box) pairs cost nothing — the pass otherwise did one matrix
+  inversion per pair, and a track adds one box per segment.
+- **Track segments** → **solid by default** (`solide` checkbox of their context menu), and
+  handled as **real boxes**, through the same sphere-box pass as the cubes. So **their height
+  counts**: a bead **flies over a low track** and **rolls on top of a high one**. This is
+  deliberately *not* the mechanism of box walls: those are in `list_moving_objects` and act as
+  **infinite vertical planes** — a ceiling on them would let beads escape over every
+  enclosure — whereas a track needs a top. The choice is saved per segment (`track_solid`).
+
+  > Before this, the two paths disagreed: a freshly drawn track was **crossed by everything**
+  > (never registered), while the **same track reloaded from disk** was an infinite wall
+  > (`load_wall_box` registers every `wall_box`), blocking beads at any altitude.
 - A **blocked** object (`blocked`) becomes a **static anchor** (wall, or fixed point
   of a spring chain), and acts as an immobile obstacle in collisions.
 
@@ -332,6 +370,13 @@ with **four graphs toggled independently** (all combinations are possible):
   (∝ t²) at short times then **diffusive** (∝ t) at long times (Brownian motion);
 - **|v|(t)** — the **velocity magnitude** vs time.
 
+The whole window is **in English**. The three time graphs — z(t), MSD, |v|(t) — carry a
+**graduated time axis in seconds**, with the unit **`t (s)`** written under the **last
+graduation**; the total elapsed time stays in the header (`t = … a.u. (h:m:s)`, 1 a.u. =
+100 ms). The index → time conversion uses a **timestamp recorded per sample** (`traj_t`),
+aligned on the latest sample, so it stays exact for a curve acquired later or trimmed by the
+history cap.
+
 ### Choosing the tracked balls
 
 Two equivalent entry points: the **per-color checkboxes** in the Monitoring window (one box =
@@ -345,17 +390,38 @@ resuming **at the same time point** as the others. Only **reset** (in the window
 the traces to zero and re-fixes the origin `r₀`. History is capped (~200,000 pts/trajectory,
 memory bound) and the trace is **decimated** to stay smooth.
 
-### Tooltips (means)
+**Listing the colors** — the `sort by` selector above the list chooses how the colors are
+presented:
+- **color** — the compact grid (just the count per color), the default;
+- **mass** / **initial speed** — **one color per line**, sorted by that quantity ascending,
+  with its **value shown across from the swatch**. What tells two populations apart is
+  rarely their color but their mass or their temperature (a hot red gas inside a cold blue
+  one), so this is the listing that lets you pick the right one.
 
-Hovering the **⟨z⟩** line of z(t) — or the **mean-velocity level** on |v|(t) (invisible
-hover target, no line drawn) — shows a bubble **color — mass — radius —
-⟨value⟩**. Balls of the same color/mass/radius are **grouped** into a single line
-(mean of the means, with **×N**).
+The mass is shown as a **range** (`1.0`, or `1.0…5.0` if the color mixes masses); the initial
+speed as the **mean** `⟨371⟩` of the population — `v₀` is drawn at random per ball, so a
+min…max would be pure noise (the full range stays in the row's tooltip). `v₀` is recorded when
+a ball's velocity is drawn (creation, *reinitialize speeds*) or when a scene is loaded, and is
+**persisted** per object. The choice of listing travels with the scene.
+
+### Tooltips
+
+- **z(t)** — hovering the **⟨z⟩** line shows a bubble **color — mass — radius — ⟨z⟩**.
+  Balls of the same color/mass/radius are **grouped** into a single line (mean of the
+  means, with **×N**).
+- **|v|(t)** — hovering a **curve** gives the **instantaneous** velocity at that point plus
+  the **time** of the sample, as a header line `t = … a.u. (… s)`, then **color — mass —
+  radius — |v|**. *(It used to show the mean ⟨|v|⟩ since the reset, which said nothing about
+  the point under the cursor.)*
 
 ### Zoom, pan and intervals (independent per graph)
 
 - **Auto view**: **drag** draws a **selection window** (dashed, labeled
   *“click = zoom”*); **click inside** → zooms onto it, **click outside** → removes it.
+  **Right-click** switches straight to **pan**: the current window is **frozen** as it is
+  and can be dragged right away — no need to zoom first. (The auto domain is recomputed
+  from the data on every frame, so there is nothing to pan until it is frozen; the
+  real-time follow is released at the same time.)
 - **Zoomed view**: **pan** mode by default (**hand** cursor) — **drag** moves the view
   toward the contiguous zones; **double-click** → back to auto view.
   **Right-click** in the graph toggles the **pan ↔ zoom** tool: in zoom mode, you redraw
@@ -453,11 +519,23 @@ spirit as `_dynamics`). Server-side, `/scenes` returns `[{name, folder, mtime}]`
 **mtime cache**, no re-parsing of the scenes on each opening) and `POST
 /scene_set_folder/<name>` writes the `_folder`; re-saving a scene **preserves** its folder.
 
-- **Right-click on a scene**: file it into an **existing folder**, create a **new
-  (sub-)folder** (path `A/B/C` → nesting), move it **to the root**, or
+- **Right-click on a scene**: file it into an **existing folder**, **file it into a new
+  folder** (path `A/B/C` → nesting), move it **to the root**, or
   **delete** it via the **black cross ✕** of the header (also deletes its report).
-- **Right-click on a folder**: **rename** it (re-prefixes all scenes below) or
-  **empty it to the root**.
+- **Right-click on a folder**: create a **new sub-folder**, **rename** it (re-prefixes all
+  scenes below), **delete** it when it is **empty**, or **empty it to the root**.
+- **Creating an empty folder** — a folder normally exists only because a scene claims it.
+  To prepare an organization before filing anything, the **`＋ nouveau dossier…`** row at
+  the bottom of the list (tree view) creates one from a path (`A/B` → sub-folder), and the
+  right-click menu of a folder creates a **sub-folder** of it. These still-empty paths are
+  kept server-side in **`static/scene_folders.json`** (not versioned) and merged with the
+  folders deduced from the scenes; renaming a parent re-prefixes them too. Deleting one only
+  forgets the path — **no scene is touched**.
+- **The list stays open** while you work in it. The dropdown is a Bootstrap menu, so any
+  click reaching the document — the **OK button of the confirm dialog**, typically — used to
+  close it, and deleting several experiments in a row meant re-opening the list every time.
+  The open state **and the scroll position** are now restored once the list has been rebuilt,
+  after a deletion, a filing, a rename or a folder creation (and on *Cancel* too).
 - Each folder **folds/unfolds** (▸/▾, state remembered); the **⊞/⊟** button to the right of the name
   opens/closes **all its sub-folders** at once.
 - **Two views**, via the icons next to “Scenes: ”: **🗂️ tree** (folders, default)
@@ -480,14 +558,21 @@ box) are persisted. **Persistent groups** (`group_id`) and the altitude **Python
 fit** (in `_dynamics`) are too. A timestamped copy of the old `pos.json` is
 kept in `static/old/`.
 
+Also carried by each object: **`v0`** (its initial speed, for the *initial speed* listing of
+the tracked colors) and, for a **track segment**, **`is_track`** + **`track_solid`** — so a
+reloaded track is still recognized as one and keeps its solidity. A segment drawn before
+`is_track` existed is recognized by shape (a `wall_box` belonging to no box).
+
 **Parameters settings saved with the scene** (key `_dynamics`): each scene
 carries its **physics configuration** — `Gravity`, `Springs`, `Object interaction (1/r²)`
 with its **Strength** (sign included), its **softening ε**, the **Fast collisions**
 (cell lists) option and the **Fast attraction** (Barnes-Hut + its **θ**) option, plus the
-**Initial speeds** parameters (`Random`, `Strength`, `z component`) — **and** the
+**Initial speeds** parameters (`Random`, `Strength`, `z component`), the **height of the next
+track segments** (`track_height`) — **and** the
 display toggles of **Monitoring** (`energy graph`, `velocity histogram`, `altitude histogram`,
-`trajectories`). On load, these values are **restored** and the panel + the
-monitoring windows **update** automatically. Reloading a scene
+`trajectories`), plus the selections *inside* those windows (which plots, ⟨z⟩ only, the
+`sort by` listing of the tracked colors). On load, these values are **restored** and the
+panel + the monitoring windows **update** automatically. Reloading a scene
 thus restores exactly the experiment as it had been set up.
 
 ### Undo / redo (Ctrl+Z / Ctrl+Y)
@@ -567,6 +652,10 @@ The **3D direction arrows** (there's no more *Views* panel):
 | `/scene_delete/<name>` | deletes a scene |
 | `/scene_rename/<name>?new=<new>` | renames a scene (refused if `<new>` already exists) |
 | `/scene_set_folder/<name>` *(POST `folder=…`)* | files the scene into a virtual folder (writes `_folder`) |
+| `/folders` | list of **empty** virtual folders (created ahead of any scene, stored in `static/scene_folders.json`) |
+| `/folder_add` *(POST `folder=…`)* | creates an empty folder **and its ancestors** |
+| `/folder_delete` *(POST `folder=…`)* | forgets an empty folder **and its sub-folders** (scenes untouched) |
+| `/folder_rename` *(POST `old=…&new=…`)* | re-prefixes the empty folders when their parent is renamed |
 | `/report/<name>` *(GET / POST)* | a scene's report: `{md, figs, seq, descr, library}` (text + figures + **dated curve library**) |
 | `/reports` | `{ name : description }` to fill the tooltips of the scene list |
 | `/report_delete/<name>`, `/report_rename`, `/report_copy` | delete / rename / copy a report (follow the scene) |
@@ -607,6 +696,7 @@ threejs_editor/
 │   │   ├── *_interact.js           mouse/keyboard: selection, magnetism, tracks, groups, views, copy/paste
 │   │   ├── keys.js / keys_interactions1.js   keyboard shortcuts
 │   ├── pos.json                    working state (auto-save on every mouse release)
+│   ├── scene_folders.json          virtual folders created still EMPTY (not versioned)
 │   ├── scenes/*.json               named scenes (frozen on “Save as”)
 │   └── old/*.json                  timestamped copies of pos.json
 │
@@ -651,6 +741,8 @@ animate()                              render loop (requestAnimationFrame)
 | `static/js/basic_objects.js`, `objects_from_basic.js`, `make_objects.js` | 3D object factories |
 | `static/js/*_interact.js` | Mouse/keyboard interactions (selection, magnetism, tracks, groups, views…) |
 | `static/js/box_interact.js` | Boxes: wall grouping (`box_id`), adding balls, lid, height |
+| `static/js/track_interact.js` | Tracks: laying marks, axis snapping, segment slabs, solidity (`set_track_solid`) |
+| `static/js/simple_flat/TrackballControls.js` | Camera controls actually loaded (vendored copy, patched for the standard `wheel` event) |
 | `static/js/copy_paste_interact.js` | Object copy/paste (Ctrl+C / Ctrl+V): hovered object, group, or selection |
 | `static/js/keys.js`, `keys_interactions1.js` | Keyboard shortcuts |
 | `static/css/create_3d.css` | Styles (panels, icons, graph…) |
@@ -664,7 +756,23 @@ animate()                              render loop (requestAnimationFrame)
 - **Browser cache disabled**: `run.py` sends `no-store, no-cache` headers on
   all responses (+ `SEND_FILE_MAX_AGE_DEFAULT = 0`), so every reload
   **always** serves the latest modified JS/CSS (no more `Ctrl+Shift+R`).
-- `library/game.js` and `templates/tests/` are **legacy, unused** modules/assets.
+- `library/game.js` and `templates/tests/` are **legacy, unused** modules/assets. The same
+  goes for `static/js/TrackballControls.js`: the copy actually loaded is
+  **`static/js/simple_flat/TrackballControls.js`** (only `<script>` referencing it:
+  `templates/three.html`).
+- **Wheel zoom** — it had silently died. The vendored `TrackballControls` only listened to
+  `mousewheel` (legacy WebKit) and `DOMMouseScroll` (legacy Firefox), two non-standard names
+  predating the standardization of `wheel` (2013); today's browsers only fire `wheel`, so the
+  handler was never called. The breakage dates from the commit that switched the app to that
+  local copy, after the remote one (`rawgit.com`, shut down in 2019 — the URL now returns a
+  404) stopped defining `THREE.TrackballControls` at all. Rotation and panning kept working
+  because they use `mousedown`/`mousemove`/`mouseup`, names that never changed — hence the
+  “everything works except the zoom” symptom. The handler now reads `deltaY` (normalizing
+  `deltaMode` lines/pages → px, same scale as the old `wheelDelta/40`, so the zoom *feel* is
+  unchanged), and the listener is registered by **feature detection** — `wheel` when
+  available, the legacy pair otherwise, never both — with **`{ passive: false }`**, without
+  which `preventDefault()` is ignored on a document-level wheel listener in Chrome and the
+  page scrolls while zooming.
 - Main physics settings in `static/js/scene_params.js`:
   `gravity_ok`, `springs_ok`, `one_over_r2`, `attract_strength_one_over_r2` (G),
   `harmonic_const`, `lenght_spring`, `random_initial_speed`, `random_speed_module`,

@@ -261,6 +261,24 @@ function conditions_interaction_obj_plane(i,j){
 var SOLID_BOX_TYPES = ['simple_cube', 'pavement', 'cube_mult_tex', 'wall', 'square_pillar']
 function is_solid_box(o){ return o && SOLID_BOX_TYPES.indexOf(o.type) >= 0 }
 
+function is_solid_track(o){
+
+      /*
+      A track segment that the balls must bounce off. Same criterion as is_track_segment
+      (a 'wall_box' belonging to no box), inlined so the physics stays independent of
+      track_interact.js. Unchecking « solide » in its context menu sets track_solid = false.
+
+      A track goes through the sphere-BOX path and NOT through the wall path of a box: the
+      latter is an infinite vertical plane (deliberately — nothing must escape an enclosure),
+      which would make the height meaningless. As a real box, a low track is flown over and a
+      high one is rolled on.
+      */
+
+      return !!o && o.type === 'wall_box' && o.box_id === undefined
+             && o.track_solid !== false && o.height > 0 && !o.del
+
+}
+
 function interaction_obj_cube(ball, cube){
 
       /*
@@ -274,6 +292,12 @@ function interaction_obj_cube(ball, cube){
       if (!ball || ball.type !== 'sphere' || ball.blocked){ return }
       var R = (ball.radius !== undefined) ? ball.radius : collision_radius(ball)
       var hx = cube.thickness/2, hy = cube.width/2, hz = cube.height/2   // CubeGeometry(thickness, width, height)
+
+      // Cheap conservative reject BEFORE the matrix inverse below: outside the bounding sphere of
+      // the box (+R) there can be no contact. This loop is O(balls × boxes) and a track adds one
+      // box per segment, so most pairs must cost nothing.
+      var br = Math.sqrt(hx*hx + hy*hy + hz*hz) + R
+      if (ball.position.distanceToSquared(cube.position) > br*br){ return }
 
       cube.updateMatrixWorld()                                    // matrix up to date (the cube is draggable with the mouse)
       var local = cube.worldToLocal(ball.position.clone())        // ball center in the cube frame
@@ -319,7 +343,7 @@ function bounce_balls_on_cubes(){
       */
 
       var cubes = []
-      for (var k in objects){ if (is_solid_box(objects[k]) && !objects[k].del){ cubes.push(objects[k]) } }
+      for (var k in objects){ if ((is_solid_box(objects[k]) && !objects[k].del) || is_solid_track(objects[k])){ cubes.push(objects[k]) } }
       if (!cubes.length){ return }
       for (var i in list_moving_objects){
             var ball = list_moving_objects[i]
