@@ -442,7 +442,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring] })
     }
     if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
-          listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity } })
+          listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity, locked: !!l.mesh.locked } })
     }
     listpos['_dynamics'] = {                           // Dynamics panel settings (saved with the scene)
           gravity_ok: gravity_ok,

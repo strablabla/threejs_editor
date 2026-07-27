@@ -650,7 +650,13 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         $('#ctx_obj_title').text('lid (couvercle)')
         var $f = $('#ctx_obj_fields').empty()
         opacity_row($f, lid)
-        position_ctx(x, y, 220, 90)
+        bool_row($f, 'lock (empêche de le déplacer)',           // checked by default, cf. add_lid
+              function(){ return !!lid.locked },
+              function(v){
+                    lid.locked = v
+                    if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // travels with the scene (_lids)
+              })
+        position_ctx(x, y, 220, 120)
   }
   function hide_ctx(){ $('#obj_context_menu').hide() }
   $('#ctx_obj_close').on('click', hide_ctx)

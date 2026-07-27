@@ -69,6 +69,7 @@ its icon** (with an arrow and a shadow), **one at a time**, and closes via its
 | 🔧 | **Tools** | distance, group properties, area stats |
 | ⚙️ | **Parameters** | live physics control — tabs **Interactions / Initial speeds / Monitoring** |
 | ↻ | **Reload** | reloads the current scene (without going through the Scene panel) |
+| 💾 | **Save** | saves the current scene **under its own name**, without opening any panel and without asking — the counterpart of the reload arrow. A scene with **no name yet** falls back to *Save as* (asks for one). Green **“saved”** confirmation |
 | 📝 | **Report** | opens the scene's report |
 | ? | **Help** | help / shortcuts (tabs **Keys** / **Documentation**) |
 | ⏻ | **Quit** | stops the server (route `/shutdown`), far right of the bar |
@@ -189,7 +190,11 @@ dragging).
   the change to the **whole track** at once; unchecked, only the clicked segment changes. The
   target list is **frozen when the menu opens**, so a change never shifts the criterion
   mid-drag. The chosen height also becomes the height of the segments drawn **afterwards**.
-- **Right-click on a lid** → **“lid”** menu: `opacity` of the lid.
+- **Right-click on a lid** → **“lid”** menu: `opacity` of the lid, and **`lock`** — **checked
+  by default** — which forbids **dragging the lid on its own**. A lid covers its box from
+  above, so it is the first thing the mouse grabs, and sliding it off its box was easy to do
+  by accident. The lock changes nothing else: moving a **movable box**, or changing its
+  **height**, still carries the lid along. Saved with the scene (key `_lids`).
 
 The menu closes via its **×** or by clicking elsewhere. Object colors are
 **preserved during animation** (no automatic recoloring).
@@ -308,7 +313,9 @@ The per-frame cost is dominated by the loops over **pairs** of objects, naturall
   panel at the **top of the box** that **keeps balls from going past** (elastic
   bounce, symmetric of the floor). The box thus becomes an **enclosure closed at the top**. The
   4 walls of a box share a `box_id`; the wall menu also lets you set the
-  **height** of the box and **add balls** to it. Persisted with the scene (key `_lids`).
+  **height** of the box and **add balls** to it. It is **locked** by default (see its
+  right-click menu) so it can't be dragged off its box by accident. Persisted with the scene
+  (key `_lids`: opacity + lock).
 - **wall** (“wall”) alone → decorative panel (does not reflect).
 - **solid cubes & pavements** (`simple_cube`, `cube_mult_tex`, `pavement`) → **solid
   obstacles**: beads **bounce off their 6 faces** (sphere-box collision in the
@@ -502,6 +509,10 @@ vice versa. Runs are **decimated** and bounded (~15 most recent per scene).
   dropdown** (frozen state); **✏️ Rename** renames it; **❌ remove** deletes it —
   buttons with **icons + tooltips**. When the panel opens, the list **positions on
   the current scene**.
+- The **💾 icon of the navbar** (between ↻ and 📝) re-saves the **current** scene under
+  **its own name**, without going through this panel: same effect as *Save as* with the
+  existing name, so the **report stays bound** to it (no copy). If the scene has no name yet,
+  it asks for one.
 - **✏️ Rename** asks for a **new name** for the selected scene and renames the file
   server-side (refused if the name **already exists**, so as not to overwrite another scene).
   The **undo/redo history** (indexed by name) is **migrated** to the new name, and if it's

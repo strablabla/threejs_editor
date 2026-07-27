@@ -19,6 +19,7 @@ function action_on_selected_when_moving(raycaster){
       var interptsub = intersects[ 0 ].point.sub( offset )
       interptsub.z = SELECTED.position.z
       var group_drag = (select_move_group && list_obj_inside.indexOf(SELECTED) >= 0)  // group move: we drag even a blocked wall
+      if ( SELECTED.locked ){ return }                                                // locked object (lid): never moved by hand
       if ( !SELECTED.blocked || group_drag ){
               SELECTED.position.copy( interptsub )  // move SELECTED at mouse position..
               if (new_track_ok & perpendicular_track){

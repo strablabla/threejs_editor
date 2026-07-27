@@ -111,6 +111,10 @@ function add_lid(wall){
       mesh.position.set((b.xmin+b.xmax)/2, (b.ymin+b.ymax)/2, b.height)
       mesh.type = 'lid'
       mesh.box_id = wall.box_id
+      mesh.locked = true          // a lid covers its box from above and is easy to grab by mistake:
+                                  // locked by default, unlocked from its right-click menu. Moving the
+                                  // BOX (or changing its height) still carries it along — the lock only
+                                  // blocks dragging the lid on its own, which slid it off its box.
       scene.add(mesh)
       objects.push(mesh)
       list_lids.push({ box_id: wall.box_id, mesh: mesh, bounds: b, z: b.height })
@@ -240,6 +244,9 @@ function restore_lids(msg){
                   list_lids[idx].mesh.material.opacity = info.opacity
                   list_lids[idx].mesh.material.transparent = true
                   list_lids[idx].mesh.material.needsUpdate = true
+            }
+            if (idx >= 0 && info.locked !== undefined){       // lock (absent from an older scene -> locked, the default)
+                  list_lids[idx].mesh.locked = !!info.locked
             }
       }
 }

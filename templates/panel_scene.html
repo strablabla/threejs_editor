@@ -596,6 +596,23 @@
          }
     })
 
+    // Navbar save icon (💾), between the reload arrow and the report: saves the CURRENT scene
+    // under its own name, without opening the Scene panel and without asking anything — the
+    // counterpart of the reload arrow. A scene with no name yet falls back to "Save as".
+    function save_current_scene(){
+         if (typeof scene !== 'undefined' && scene && scene.name){
+               archive_scene(scene.name)            // same name -> the report stays bound, no copy
+               scene_toast('saved')
+         } else {
+               bs_prompt('Save as', 'Scene name:', '', function(name){
+                     name = (name || '').trim(); if (!name){ return }
+                     archive_scene(name)
+                     scene_toast('saved')
+               })
+         }
+    }
+    $('#save_scene_nav').click(save_current_scene)
+
     $('#rename_scene').click(function(){          // renames the selected scene (server file)
          if (!selected_scene){ return }
          var old = selected_scene
