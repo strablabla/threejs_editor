@@ -599,8 +599,12 @@ kept in `static/old/`.
 
 Also carried by each object: **`v0`** (its initial speed, for the *initial speed* listing of
 the tracked colors) and, for a **track segment**, **`is_track`** + **`track_solid`** — so a
-reloaded track is still recognized as one and keeps its solidity. A segment drawn before
-`is_track` existed is recognized by shape (a `wall_box` belonging to no box).
+reloaded track is still recognized as one and keeps its solidity. That flag is the **only**
+criterion. A shape-based fallback (“a `wall_box` belonging to no box is a track slab”) was
+tried and is **wrong**: `box_id` came later, so the boxes of the **older scenes have walls
+without one**, and those walls were then taken for track slabs — the height slider of a track
+resized them, their right-click opened the track menu, and on load they were pulled out of
+`list_moving_objects`, losing their infinite-plane bounce (balls could fly over the box).
 
 **Opacity** is restored too. In three.js a material's `opacity` is **ignored as long as
 `transparent` is false**, and the loaders build most materials opaque (`basic_sphere`,

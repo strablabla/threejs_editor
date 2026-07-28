@@ -135,12 +135,19 @@ function set_track_solid(seg, on){
 function is_track_segment(o){
 
       /*
-      A track slab. 'is_track' is written at creation; a scene drawn before that flag existed is
-      recognised by shape instead: a 'wall_box' belonging to no box is necessarily a track segment
-      (the walls of a box always carry a box_id, cf. wall_for_box).
+      A track slab — and ONLY one that says so. The flag is written at creation
+      (make_oriented_track) and travels with the scene.
+
+      There used to be a fallback "a 'wall_box' belonging to no box is a track segment", on the
+      assumption that the walls of a box always carry a box_id. That assumption is false for the
+      OLD scenes: box_id was introduced later, so the boxes of the scenes predating it have
+      walls without one. Those walls were then taken for track slabs — the height slider of a
+      track resized them, their right-click opened the track menu, and on load they were pulled
+      out of list_moving_objects (they stopped being infinite planes, so balls could fly over
+      the box). No guessing by shape any more: a track is what has been marked as such.
       */
 
-      return !!o && (o.is_track === true || (o.type === 'wall_box' && o.box_id === undefined))
+      return !!o && o.is_track === true
 
 }
 

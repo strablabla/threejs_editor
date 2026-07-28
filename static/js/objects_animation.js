@@ -264,17 +264,21 @@ function is_solid_box(o){ return o && SOLID_BOX_TYPES.indexOf(o.type) >= 0 }
 function is_solid_track(o){
 
       /*
-      A track segment that the balls must bounce off. Same criterion as is_track_segment
-      (a 'wall_box' belonging to no box), inlined so the physics stays independent of
-      track_interact.js. Unchecking « solide » in its context menu sets track_solid = false.
+      A track segment that the balls must bounce off. Same criterion as is_track_segment (the
+      explicit 'is_track' flag), inlined so the physics stays independent of track_interact.js.
+      Unchecking « solide » in its context menu sets track_solid = false.
 
       A track goes through the sphere-BOX path and NOT through the wall path of a box: the
       latter is an infinite vertical plane (deliberately — nothing must escape an enclosure),
       which would make the height meaningless. As a real box, a low track is flown over and a
       high one is rolled on.
+
+      The criterion must NOT be guessed from the shape: the boxes of the old scenes have walls
+      without a box_id, and taking them for track slabs turned them into finite boxes the balls
+      could fly over.
       */
 
-      return !!o && o.type === 'wall_box' && o.box_id === undefined
+      return !!o && o.is_track === true
              && o.track_solid !== false && o.height > 0 && !o.del
 
 }
