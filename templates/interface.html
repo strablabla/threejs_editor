@@ -711,6 +711,9 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
               }
         }
         hide_ctx()
+        // right-click on the GROUND (i.e. on no object): closes the menu AND switches back to
+        // « no tool », so nothing more gets created on the next click
+        if (typeof set_no_tool === 'function'){ set_no_tool() }
   })
   // Close the menu by clicking elsewhere
   $(document).on('mousedown', function(e){

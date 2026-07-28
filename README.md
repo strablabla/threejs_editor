@@ -215,6 +215,15 @@ dragging).
   by accident. The lock changes nothing else: moving a **movable box**, or changing its
   **height**, still carries the lid along. Saved with the scene (key `_lids`).
 
+- **Right-click on the ground** — i.e. on **nothing**: closes the menu and switches back to
+  **no tool**, exactly like the *no tool* icon or clicking the tool name in the navbar. The
+  quickest way to stop creating objects without going back to the Object panel (and it ends a
+  track being laid). It does **not** touch the selection.
+  A right-click **never creates anything**: creation is bound to `mousedown`, which fires for
+  *every* button, and `contextmenu` only comes afterwards — so a right-click used to drop one
+  last unwanted object (ball, cube, chain link, track mark) before the menu could even open.
+  It is now restricted to the **left button**.
+
 The menu closes via its **×** or by clicking elsewhere. Object colors are
 **preserved during animation** (no automatic recoloring).
 

@@ -345,11 +345,23 @@ function init_interf_actions(){
 
       //---------------------- Click on the tool name (navbar) -> no tool
 
-      $('#active_obj_navbar').click(function(){
-            reinit_params_ok()                              // disables all tools
-            $('#active_obj_navbar').text('')
-            $('#curr_tool').text('')
-            $('#obj_icon_grid .obj-icon').removeClass('active')   // clear the Object panel icon highlight
-      })
+      $('#active_obj_navbar').click(set_no_tool)
 
  }
+
+function set_no_tool(){
+
+      /*
+      Back to « no tool »: no more object is created on click. Entry points: clicking the tool
+      name in the navbar, the « no tool » icon of the Object panel, and a RIGHT-CLICK ON THE
+      GROUND (i.e. on no object — the ground is drawn but is not in `objects`), which is the
+      quickest way to put the mouse down without going back to the panel.
+      reinit_params_ok also ends a track being laid.
+      */
+
+      reinit_params_ok()                              // disables all tools
+      $('#active_obj_navbar').text('')
+      $('#curr_tool').text('')
+      $('#obj_icon_grid .obj-icon').removeClass('active')   // clear the Object panel icon highlight
+
+}

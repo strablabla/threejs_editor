@@ -231,12 +231,20 @@ function link(condition, action, arg){
       }
 }
 
-function mouse_create_object_or_action(){
+function mouse_create_object_or_action(event){
 
       /*
       Create an object (new_wall_ok) or an action
        where the mouse is located in the plane.
+
+      LEFT BUTTON ONLY. This runs on 'mousedown', which fires for EVERY button — and the
+      'contextmenu' event only comes afterwards. A right-click therefore created one last
+      unwanted object (a ball, a cube, a chain link, a track mark…) before the menu had any
+      chance to open or to switch back to « no tool ». onDocumentMouseDown already guards
+      itself the same way.
       */
+
+      if (event && event.button !== undefined && event.button !== 0){ return }
 
       link(new_wall_ok, limits_and_action, make_new_wall)   // wall drawn between 2 clicks (like the box)
       link(new_cube_ok, dictp.make_simple_cube, null)
