@@ -435,18 +435,36 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
 
         /*
         Objects of the SAME TYPE and SAME COLOR as o (o included) — target of the « all » checkbox.
-        The color read is currentHex (via obj_hex): material.color is overwritten by the highlights.
+
+        Restricted to the CURRENT SELECTION when o belongs to one: selecting a handful of balls
+        (Ctrl+S, then Ctrl+G to move them) and then changing « all » of them used to repaint
+        EVERY ball of that color in the scene, which defeats the point of having selected them.
+        Order of priority: the selection area (Ctrl+S / Ctrl+G, list_obj_inside), then the
+        persistent group (Ctrl+Shift+G, group_id), then the whole scene.
+
+        The color read is currentHex (via obj_hex) and not material.color: the latter is
+        overwritten by the highlights — precisely the pink/blue/purple of a selection, so
+        « of this color » keeps meaning the real color even inside a selection.
+
+        Returns { list, scope } — scope is the wording announcing the reach in the checkbox
+        label, so that what is about to be modified is never ambiguous.
         */
 
-        var hex = obj_hex(o), a = []
-        for (var k in objects){
-              var t = objects[k]
+        var hex = obj_hex(o), pool = objects, scope = ''
+        if (typeof list_obj_inside !== 'undefined' && list_obj_inside.length && list_obj_inside.indexOf(o) >= 0){
+              pool = list_obj_inside; scope = ' dans la sélection'
+        } else if (o.group_id !== undefined && typeof group_members === 'function'){
+              pool = group_members(o.group_id); scope = ' du groupe'
+        }
+        var a = []
+        for (var k in pool){
+              var t = pool[k]
               if (!t || t.type !== o.type){ continue }
               if (!t.material || !t.material.color){ continue }
               if (obj_hex(t) !== hex){ continue }
               a.push(t)
         }
-        return a
+        return { list: a, scope: scope }
 
   }
   window.show_object_context_menu = function(obj, x, y){
@@ -456,13 +474,15 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         // The list is FROZEN when the menu opens, and this is essential: changing the color with « all » checked
         // repaints the targets, so a criterion recomputed on each event would no longer find anyone
         // (the reference color would have changed) and the 2nd slider notch would no longer do anything.
-        var all_targets = (obj.material && obj.material.color) ? same_type_and_color(obj) : [obj]
+        var scoped = (obj.material && obj.material.color) ? same_type_and_color(obj) : { list:[obj], scope:'' }
+        var all_targets = scoped.list
         var $all = null
         if (all_targets.length > 1){                           // no point offering « all » for a single object
               var $arow = $('<div style="margin:2px 0 8px; padding-bottom:6px; border-bottom:1px solid #ddd">')
               $all = $('<input type="checkbox">')
               $arow.append($('<label style="cursor:pointer; font-weight:bold">').append($all)
-                    .append(' all (' + all_targets.length + ' ' + (obj.type || 'objet') + 's de cette couleur)'))
+                    .append(' all (' + all_targets.length + ' ' + (obj.type || 'objet') + 's de cette couleur'
+                            + scoped.scope + ')'))     // « … dans la sélection » / « … du groupe » when restricted
               $f.append($arow)
         }
         function applyAll(setter){                             // setter(target): this object, or all of the same type+color if "all" is checked

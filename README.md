@@ -168,8 +168,20 @@ dragging).
 
   Immediate effect on the engine and **saved** with the scene.
 - **“all” checkbox** (spheres): when checked, **every** attribute change
-  (mass, velocity, color, radius…) applies to **all** balls at once; otherwise only to
-  the clicked ball.
+  (mass, velocity, color, radius…) applies at once to all objects of the **same type and same
+  color**; otherwise only to the clicked ball. Its **reach follows the current selection**:
+  - inside a **selection area** (Ctrl+S, moved or not with Ctrl+G) → only the objects of that
+    color **within the selection** — label *“all (5 spheres de cette couleur **dans la
+    sélection**)”*;
+  - otherwise, a member of a **persistent group** (Ctrl+Shift+G) → only that color **within
+    the group** — *“… **du groupe**”*;
+  - otherwise → the whole scene, as before.
+
+  The label therefore always announces what is about to change. The color is read from
+  `currentHex`, so it stays the **real** color even while the selection paints everything
+  pink/blue/purple — a bicolor selection still splits correctly. *(The **population** row
+  stays scene-wide, as its own label says: it adds/removes balls in the volume occupied by
+  that color.)*
 - **Color**: color picker; the tint is specific to the object (the material is
   duplicated when needed, so the others don't change) and **persisted**.
 - **Ball radius** (`radius`, spheres): a slider that updates the **visual**, the
