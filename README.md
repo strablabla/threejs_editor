@@ -116,6 +116,13 @@ the distance between the two points and of width `track_width` (40).
 **Ctrl+Z** undo · **Ctrl+Y** (or **Ctrl+Shift+Z**) redo.
 **Ctrl+C** copy · **Ctrl+V** paste (see *Copy / paste* below).
 
+`d` **really removes** what it deletes — the hovered object, or the whole selection area —
+from the scene, from `objects`, from the physics lists, from the springs that referenced it,
+and from GPU memory. It used to only flag them `del` and hide them: they stayed in `objects`,
+so **the raycasts kept hitting them where they used to be** (a right-click on the emptied area
+re-opened the context menu of a deleted object) and they **kept colliding invisibly**, still
+being in `list_moving_objects`.
+
 ### Copy / paste (Ctrl+C / Ctrl+V)
 **Ctrl+C** copies, **Ctrl+V** pastes **under the mouse** (the barycenter of the copied set is
 re-anchored at the cursor position, relative layout preserved; the altitude `z` is preserved).

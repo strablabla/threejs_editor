@@ -161,17 +161,18 @@ function apply_to_all(func_all, oneshot){
 function delete_objects_inside(){
 
       /*
-      Delete the objects inside the area
+      Delete the objects inside the area.
+
+      remove_single_object does the CLEAN removal: scene, objects, list_moving_objects,
+      listorig, the springs that reference them, the selection, and the GPU memory. Merely
+      flagging `del = true` + scene.remove() only made them INVISIBLE — they stayed in
+      `objects`, and a raycast does not need a mesh to be in the scene graph (their matrixWorld
+      is still valid). Every pick therefore kept hitting them where they used to be: a
+      right-click on the emptied area re-opened the context menu of a deleted object.
       */
 
-      for (i in list_obj_inside){
-            for (j in objects){
-                  if (objects[j].name == list_obj_inside[i].name){
-                      objects[j].del = true
-                      scene.remove(objects[j])
-                  } //end if
-              } // end for j
-          } // end for i
+      var victims = list_obj_inside.slice()      // snapshot: remove_single_object empties the list as it goes
+      for (var i = 0; i < victims.length; i++){ remove_single_object(victims[i]) }
       list_obj_inside = []
 
   } // end delete_objects_inside
@@ -183,16 +184,12 @@ function delete_object(){
       */
 
       if(list_obj_inside.length > 0){ delete_objects_inside() } // end else if
-      else if ( INTERSECTED ){
-          for (i in objects){
-                if (objects[i].name == INTERSECTED.name){
-                    INTERSECTED.del = true
-                } // end if
-            } // end for
-      } // end else if
-      objects.forEach(function(elem){
-          if (elem.del){ scene.remove(elem) } // remove all the element with the del attribute at true..
-      })
+      else if ( INTERSECTED ){ remove_single_object(INTERSECTED) }   // same clean removal (it resets INTERSECTED)
+      // safety net: an object still flagged `del` (a scene saved back when deletion left
+      // tombstones behind) is removed for good, so it stops being picked by the raycasts.
+      for (var i = objects.length - 1; i >= 0; i--){
+            if (objects[i] && objects[i].del){ remove_single_object(objects[i]) }
+      }
       emit_infos_scene() // send infos to the server..
 
 } // end delete_object
