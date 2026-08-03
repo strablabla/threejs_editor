@@ -10,6 +10,9 @@ env/
 .venv/
 .env
 
+# Régénéré par install.sh avec les chemins absolus de la machine locale
+/launch.sh
+
 # État de travail courant (auto-sauvegardé au runtime, non versionné)
 /static/pos.json
 
