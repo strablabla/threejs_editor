@@ -2,14 +2,16 @@
 
 <!-- Three dependencies_interact -->
 
-<script src="/static/js/simple_flat/three.js"></script>
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.js"></script> -->
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/102/three.js"></script> -->
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/90/three.js"></script> -->
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/80/three.js"></script> -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r75/three.js"></script>
+<!-- Single Three.js version, served locally: the app works with no internet.
+     r75 is the version the rest of the code targets (see the compatibility
+     note in simple_flat/TrackballControls.js). See static/vendor/VENDOR.md. -->
+<script src="/static/vendor/three-r75.min.js"></script>
 
 <script src="/static/js/simple_flat/TrackballControls.js"></script>
 <!-- rawgit.com closed since 2019: we use the local file above
 <script src='https://rawgit.com/YaleDHLab/pix-plot/master/assets/js/trackball-controls.js'></script> -->
-<script type="/static/js/point_locker.js"></script>
+
+<!-- point_locker.js is NOT loaded here on purpose: it is only used by road.html,
+     which loads it itself. The editor never uses THREE.PointerLockControls, and
+     the file declares page-level globals (velocity, controlsEnabled, moveForward…)
+     that would clash with the shared globals of the editor. -->
