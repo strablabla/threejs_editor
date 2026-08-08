@@ -1,21 +1,4 @@
 # Third-party code: excluded from GitHub's language stats and collapsed in diffs,
 # so the repository shows the code actually written here. See static/vendor/VENDOR.md.
-static/vendor/**              linguist-vendored
-example/**                    linguist-vendored
-
-# Libraries still living in static/js/ (to be moved to static/vendor/).
-static/js/jquery*.js          linguist-vendored
-static/js/jquery-ui.js        linguist-vendored
-static/js/bootstrap*.js       linguist-vendored
-static/js/d3.min.js           linguist-vendored
-static/js/dat.js              linguist-vendored
-static/js/dropzone.js         linguist-vendored
-static/js/moment.min.js       linguist-vendored
-static/js/gamepad.js          linguist-vendored
-static/js/modernizr-custom.js linguist-vendored
-static/js/EventSource.js      linguist-vendored
-static/js/Detector.js         linguist-vendored
-static/js/strapdown.js        linguist-vendored
-static/js/queue.v1.min.js     linguist-vendored
-static/js/perfect-scrollbar.min.js linguist-vendored
-static/js/**/TrackballControls.js  linguist-vendored
+static/vendor/** linguist-vendored
+example/**       linguist-vendored
