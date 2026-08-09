@@ -113,6 +113,35 @@ traj_colors_open = true     // trajectories: expandable list of colors to track 
 traj_modes_open = true      // trajectories: expandable list of plots (x-y / z(t) / MSD / |v|(t)) — idem
 sim_time = 0                // elapsed simulation time (a.u.) since the last trajectories reset; freezes on pause
 
+//---------------------- Settings that travel with the scene
+
+/*
+Names saved into the scene JSON (_dynamics) and restored from it, by
+get_scene_data() and restore_dynamics() in init_scene.js. Both directions read
+THIS list, so a parameter can no longer be saved without being restored (or the
+reverse): that desync was silent, since neither side raises anything.
+Adding a persisted parameter = declaring it above, and one line here.
+
+Only for parameters whose JSON key is their own name and whose value is stored
+as-is. The four needing a conversion (attract_strength, altitude_fit_expr,
+traj_show, mon_chrono) stay explicit in init_scene.js.
+*/
+
+PERSISTED_DYNAMICS = [
+      'gravity_ok', 'springs_ok', 'one_over_r2', 'attract_softening',
+      'use_cell_lists', 'use_barnes_hut', 'barnes_hut_theta',
+      'random_initial_speed', 'random_speed_module', 'random_speed_z',
+      'track_height',
+      // display toggles (Monitoring)
+      'show_energy_graph', 'show_velocity_hist', 'show_altitude_hist',
+      'show_trajectories', 'show_report', 'show_speeds',
+      // selections INSIDE the monitoring windows
+      'z_means_only', 'traj_color_sort', 'traj_colors_open', 'traj_modes_open',
+      'alt_color_filter', 'velo_color_filter',
+      // Initial speeds tab
+      'speed_color_filter', 'flatten_z_level'
+]
+
 //---------------------- Movement in a vertical plane (double-click on an object)
 
 vdrag_obj = null            // object in vertical plane mode (null = inactive mode)

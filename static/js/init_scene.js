@@ -292,43 +292,23 @@ function restore_dynamics(d){
       then refreshes the panel controls (if present).
       */
 
-      if (d.gravity_ok !== undefined){ gravity_ok = d.gravity_ok }
-      if (d.springs_ok !== undefined){ springs_ok = d.springs_ok }
-      if (d.one_over_r2 !== undefined){ one_over_r2 = d.one_over_r2 }
-      if (d.attract_strength !== undefined){ attract_strength_one_over_r2 = d.attract_strength }
-      if (d.attract_softening !== undefined){ attract_softening = d.attract_softening }
-      if (d.use_cell_lists !== undefined){ use_cell_lists = d.use_cell_lists }
-      if (d.use_barnes_hut !== undefined){ use_barnes_hut = d.use_barnes_hut }
-      if (d.barnes_hut_theta !== undefined){ barnes_hut_theta = d.barnes_hut_theta }
-      if (d.random_initial_speed !== undefined){ random_initial_speed = d.random_initial_speed }
-      if (d.random_speed_module !== undefined){ random_speed_module = d.random_speed_module }
-      if (d.random_speed_z !== undefined){ random_speed_z = d.random_speed_z }
-      if (d.track_height !== undefined){ track_height = d.track_height }
-      if (d.show_energy_graph !== undefined){ show_energy_graph = d.show_energy_graph }
-      if (d.show_velocity_hist !== undefined){ show_velocity_hist = d.show_velocity_hist }
-      if (d.show_altitude_hist !== undefined){ show_altitude_hist = d.show_altitude_hist }
-      if (d.show_trajectories !== undefined){ show_trajectories = d.show_trajectories }
-      if (d.show_report !== undefined){ show_report = d.show_report }
-      if (d.show_speeds !== undefined){ show_speeds = d.show_speeds }
+      for (var pi=0; pi<PERSISTED_DYNAMICS.length; pi++){    // same list as get_scene_data(): no second one to keep in step
+            var pk = PERSISTED_DYNAMICS[pi]
+            if (d[pk] !== undefined){ window[pk] = d[pk] }   // absent from an older scene -> the default stays
+      }
+      // The four needing a conversion on the way in -- mirror of get_scene_data().
+      if (d.attract_strength !== undefined){ attract_strength_one_over_r2 = d.attract_strength }   // JSON key differs
       if (d.altitude_fit_expr !== undefined){ altitude_fit_expr = d.altitude_fit_expr }
       if (d.traj_show){                                 // key by key: an older scene may not have them all
             var tkeys = ['xy', 'z', 'msd', 'v']
             for (var ti in tkeys){ if (d.traj_show[tkeys[ti]] !== undefined){ traj_show[tkeys[ti]] = d.traj_show[tkeys[ti]] } }
       }
-      if (d.z_means_only !== undefined){ z_means_only = d.z_means_only }
-      if (d.traj_color_sort !== undefined){ traj_color_sort = d.traj_color_sort }
-      if (d.traj_colors_open !== undefined){ traj_colors_open = d.traj_colors_open }
-      if (d.traj_modes_open !== undefined){ traj_modes_open = d.traj_modes_open }
-      if (d.alt_color_filter !== undefined){ alt_color_filter = d.alt_color_filter }
-      if (d.velo_color_filter !== undefined){ velo_color_filter = d.velo_color_filter }
       if (d.mon_chrono && typeof mon_chrono !== 'undefined'){         // per-window observation time (u.a.), re-armed on load
             for (var _mw in mon_chrono){ if (d.mon_chrono[_mw] !== undefined){ mon_chrono[_mw] = d.mon_chrono[_mw]
                   if (typeof mon_fired !== 'undefined'){ mon_fired[_mw] = false }
                   var $mi = $('.mon-chrono[data-win="' + _mw + '"]')
                   if ($mi.length){ $mi.val((d.mon_chrono[_mw] == null) ? '' : ((typeof mon_fmt_hms === 'function') ? mon_fmt_hms(d.mon_chrono[_mw]) : d.mon_chrono[_mw])) } } }
       }
-      if (d.speed_color_filter !== undefined){ speed_color_filter = d.speed_color_filter }
-      if (d.flatten_z_level !== undefined){ flatten_z_level = d.flatten_z_level }
       if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // updates the checkboxes/sliders
 
 }
@@ -445,39 +425,21 @@ function get_scene_data(){              // builds the scene JSON (without sendin
     if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
           listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity, locked: !!l.mesh.locked } })
     }
-    listpos['_dynamics'] = {                           // Dynamics panel settings (saved with the scene)
-          gravity_ok: gravity_ok,
-          springs_ok: springs_ok,
-          one_over_r2: one_over_r2,
-          attract_strength: attract_strength_one_over_r2,
-          attract_softening: attract_softening,
-          use_cell_lists: use_cell_lists,
-          use_barnes_hut: use_barnes_hut,
-          barnes_hut_theta: barnes_hut_theta,
-          random_initial_speed: random_initial_speed,
-          random_speed_module: random_speed_module,
-          random_speed_z: random_speed_z,
-          track_height: track_height,                  // height used for the next track segments
-          // display toggles (Monitoring)
-          show_energy_graph: show_energy_graph,
-          show_velocity_hist: show_velocity_hist,
-          show_altitude_hist: show_altitude_hist,
-          show_trajectories: show_trajectories,
-          show_report: show_report,
-          show_speeds: show_speeds,
-          altitude_fit_expr: (typeof altitude_fit_expr !== 'undefined') ? altitude_fit_expr : '',
-          // selections INSIDE the monitoring windows (which plots, which display)
-          traj_show: { xy:!!traj_show.xy, z:!!traj_show.z, msd:!!traj_show.msd, v:!!traj_show.v },   // x-y / z(t) / MSD / |v|(t)
-          z_means_only: z_means_only,                  // z(t): means ⟨z⟩ only
-          traj_color_sort: traj_color_sort,            // « suivre par couleur »: listing by color / mass / v0
-          traj_colors_open: traj_colors_open,          // "suivre par couleur" list expanded or not
-          traj_modes_open: traj_modes_open,            // "tracés" list expanded or not
-          alt_color_filter: alt_color_filter,          // altitude histogram: color counted
-          velo_color_filter: velo_color_filter,        // velocity histogram: color counted
-          speed_color_filter: speed_color_filter,      // Initial speeds: color acted upon
-          flatten_z_level: flatten_z_level,            // Initial speeds: altitude of the « flatten z » plane
-          mon_chrono: (typeof mon_chrono !== 'undefined') ? mon_chrono : undefined   // per-window observation time (u.a.)
+    var dyn = {}                                       // Dynamics panel settings (saved with the scene)
+    for (var pi=0; pi<PERSISTED_DYNAMICS.length; pi++){         // the plain ones: JSON key = global name, value as-is
+          var pk = PERSISTED_DYNAMICS[pi]
+          if (window[pk] === undefined){                        // name misspelled in the list, or global never declared:
+                console.warn('get_scene_data: ' + pk + ' is undefined, not saved')   // say it instead of dropping it silently
+                continue
+          }
+          dyn[pk] = window[pk]
     }
+    // The four needing a conversion on the way out -- restore_dynamics() mirrors them explicitly too.
+    dyn.attract_strength  = attract_strength_one_over_r2        // JSON key differs from the global name
+    dyn.altitude_fit_expr = (typeof altitude_fit_expr !== 'undefined') ? altitude_fit_expr : ''
+    dyn.traj_show  = { xy:!!traj_show.xy, z:!!traj_show.z, msd:!!traj_show.msd, v:!!traj_show.v }   // x-y / z(t) / MSD / |v|(t)
+    dyn.mon_chrono = (typeof mon_chrono !== 'undefined') ? mon_chrono : undefined                   // per-window observation time (u.a.)
+    listpos['_dynamics'] = dyn
     return listpos
 }
 
