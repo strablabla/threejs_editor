@@ -328,6 +328,7 @@ function restore_dynamics(d){
                   if ($mi.length){ $mi.val((d.mon_chrono[_mw] == null) ? '' : ((typeof mon_fmt_hms === 'function') ? mon_fmt_hms(d.mon_chrono[_mw]) : d.mon_chrono[_mw])) } } }
       }
       if (d.speed_color_filter !== undefined){ speed_color_filter = d.speed_color_filter }
+      if (d.flatten_z_level !== undefined){ flatten_z_level = d.flatten_z_level }
       if (typeof refresh_dynamics_panel === 'function'){ refresh_dynamics_panel() }  // updates the checkboxes/sliders
 
 }
@@ -474,6 +475,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
           alt_color_filter: alt_color_filter,          // altitude histogram: color counted
           velo_color_filter: velo_color_filter,        // velocity histogram: color counted
           speed_color_filter: speed_color_filter,      // Initial speeds: color acted upon
+          flatten_z_level: flatten_z_level,            // Initial speeds: altitude of the « flatten z » plane
           mon_chrono: (typeof mon_chrono !== 'undefined') ? mon_chrono : undefined   // per-window observation time (u.a.)
     }
     return listpos

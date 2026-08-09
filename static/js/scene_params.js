@@ -106,6 +106,7 @@ show_speeds = false         // 3D velocity arrows on each moving object (Initial
 alt_color_filter = 'all'    // altitude histogram: 'all' or '#rrggbb' — only counts objects of this color
 velo_color_filter = 'all'   // velocity histogram: 'all' or '#rrggbb' — only counts objects of this color
 speed_color_filter = 'all'  // Initial speeds: 'all' or '#rrggbb' — balls the tab acts on (reinit, flatten z, previews)
+flatten_z_level = 0         // Initial speeds: altitude of the plane « flatten z » projects onto (0 = ground plane)
                             // (the trajectory color checkboxes have no own state: they reflect
                             //  directly obj.track_trajectory, cf. refresh_traj_color_filters)
 traj_colors_open = true     // trajectories: expandable list of colors to track — expanded or collapsed

@@ -110,7 +110,9 @@
             <div class="help">
               <button type="button" id="btn_reinit_speeds" style="font-family:inherit; cursor:pointer; padding:3px 10px">reinitialize all</button>
               &nbsp;
-              <button type="button" id="btn_flatten_z" style="font-family:inherit; cursor:pointer; padding:3px 10px" title="projette les boules sur z=0 (gaz plan)">flatten z=0</button>
+              <button type="button" id="btn_flatten_z" style="font-family:inherit; cursor:pointer; padding:3px 10px" title="projette les boules sur le plan z choisi (gaz plan)">flatten z =</button>
+              <input type="number" id="flatten_z_input" step="1" style="width:60px; font-family:inherit; vertical-align:middle"
+                     title="altitude du plan d'alignement (0 = sol) ; Entrée pour rendre le clavier à la scène">
             </div>
 
             <hr style="margin:8px 0">
@@ -280,6 +282,7 @@
         $('#chk_random_speed_z').prop('checked', random_speed_z)
         $('#rng_speed_intensity').val(random_speed_module)
         $('#speed_intensity_val').text(random_speed_module)
+        $('#flatten_z_input').val(flatten_z_level)
         $('#chk_show_speeds').prop('checked', show_speeds).trigger('change')
         refresh_speed_panels()                         // « Apply to » list + previews for THIS scene
         sync_deactivate_all()
@@ -320,7 +323,27 @@
         if (typeof draw_velocity_hist === 'function'){ draw_velocity_hist() }   // refresh the histogram if shown
         refresh_speed_panels()
     })
-    $('#btn_flatten_z').on('click', function(){                 // flatten the balls onto z=0 (cleans up the z drift)
+    // Altitude of the plane « flatten z » projects onto. Kept in a global so that the
+    // button, a scene reload and the auto-save all see the same value.
+    $('#flatten_z_input').val(flatten_z_level)
+    $('#flatten_z_input').on('input change', function(){
+        var v = parseFloat(this.value)
+        flatten_z_level = isFinite(v) ? v : 0                   // empty/invalid field -> ground plane
+        save_monitoring_prefs()
+    })
+    // Enter/Escape validate and hand the keyboard back to the scene (same as the « fit » field).
+    $('#flatten_z_input').on('keydown', function(e){
+        if (e.which === 13 || e.which === 27){
+              this.blur()
+              if (renderer && renderer.domElement && renderer.domElement.focus){ renderer.domElement.focus() }
+        }
+    })
+    // ESSENTIAL: TrackballControls attaches to DOCUMENT and preventDefault()s every mousedown,
+    // and the scene shortcuts listen on the whole page -> without this, the field cannot be
+    // clicked into and typing digits would fire the scene commands. Same workaround as #alt_color_sel.
+    $('#flatten_z_input').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+
+    $('#btn_flatten_z').on('click', function(){                 // flatten the balls onto the chosen z plane (cleans up the z drift)
         flatten_z()
         if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }   // persist the flattened positions
         refresh_speed_panels()

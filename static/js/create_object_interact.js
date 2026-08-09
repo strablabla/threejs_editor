@@ -169,15 +169,19 @@ function reinitialize_speeds(){
 function flatten_z(){
 
       /*
-      Projects the TARGETED balls (see speed_target_objects) onto the z = 0 plane and
-      cancels their z velocity. Cleans up a scene whose z positions have drifted: in pure 3D,
+      Projects the TARGETED balls (see speed_target_objects) onto the horizontal plane
+      z = flatten_z_level (set in the Initial speeds tab, 0 by default) and cancels their
+      z velocity. Cleans up a scene whose z positions have drifted: in pure 3D,
       a coplanar cloud stays coplanar (collision normal with no z component), so the gas
       becomes perfectly planar again without any special « mode ».
+      Choosing the altitude lets several populations be stacked on distinct planes
+      (e.g. one flat gas per color) instead of collapsing them all onto the ground.
       */
 
+      var z = (typeof flatten_z_level === 'number' && isFinite(flatten_z_level)) ? flatten_z_level : 0
       var a = speed_target_objects()
       for (var i=0;i<a.length;i++){
-            a[i].position.z = 0
+            a[i].position.z = z
             a[i].speed.z = 0
       }
 
