@@ -6,7 +6,8 @@ with a physics engine (Newtonian gravity, elastic collisions, springs), and
 the state is saved as JSON on the server.
 
 - **Client**: [Three.js](https://threejs.org) (r75), jQuery, Bootstrap 3, Dropzone.
-  All the business logic lives in `static/js/` (≈20 files, **shared global variables**).
+  All the business logic lives in `static/js/` (36 files, **shared global variables**);
+  the libraries are pinned in `static/vendor/` (see `static/vendor/VENDOR.md`).
 - **Server**: Flask + Flask-SocketIO. Serves the page and persists scenes as JSON.
 - **English UI.**
 
@@ -14,9 +15,14 @@ the state is saved as JSON on the server.
 
 ## Requirements
 
-- **Python 3.8** (versions pinned in `requirements.txt`).
+- **Python 3.8** — and *only* 3.8 to 3.11: `eventlet 0.30.2` imports `imp`, which
+  Python 3.12 removed. The pins in `requirements.txt` target 3.8.
 - **Chrome** recommended.
-- **Internet connection**: Three.js, socket.io and the fonts come from CDNs.
+- **No internet needed to run.** Three.js and socket.io are served from
+  `static/vendor/`; only the Lato webfont is still fetched from Google Fonts, and
+  the editor falls back to a system font without it.
+- An internet connection *is* needed **once, at install time**, to download
+  Python 3.8 and the dependencies.
 
 ## Install & run
 
@@ -28,20 +34,36 @@ the state is saved as JSON on the server.
 
 The `install.sh` script:
 
-- **creates the venv** with `python3.8` **only if it doesn't exist** (safe to re-run: an existing venv is not reinstalled) and installs `requirements.txt`;
-- generates `launch.sh`, a launcher that activates the venv and starts `run.py`;
-- adds a **desktop shortcut** (`~/Bureau/threejs_editor.desktop`) with the app icon, ready to use (double-click).
+- **creates the venv** — preferably with [uv](https://astral.sh/uv), which downloads
+  Python 3.8 on its own, with no `sudo` and no `apt`. This is what makes the install
+  a single command on a distribution whose system Python is 3.12. Falls back to
+  `$PYTHON_BIN` (default `python3.8`) if uv is absent. Only runs if the venv is
+  missing or broken, so the script is safe to re-run;
+- generates `launch.sh`, a launcher that starts `run.py` from the venv;
+- adds a **desktop shortcut** with the app icon, ready to use (double-click), on the
+  desktop directory reported by `xdg-user-dir` (`~/Bureau`, `~/Desktop`, else `~`).
 
-On a machine where `python3.8` is not the default binary, force another version:
+If **neither** uv **nor** `$PYTHON_BIN` is found, the script says so and stops.
+Installing uv is the simplest way out — then re-run:
 
 ```bash
-PYTHON_BIN=python3 ./install.sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+./install.sh
 ```
+
+To force a specific interpreter instead — it must be **3.8 to 3.11**, `python3` will
+not do on a 3.12 system:
+
+```bash
+PYTHON_BIN=python3.11 ./install.sh
+```
+
+Only the venv and launcher steps are portable: the shortcut is Linux/XDG specific.
 
 ### Manual install
 
 ```bash
-python3 -m venv venv
+uv venv --python 3.8 venv                    # or: python3.8 -m venv venv
 ./venv/bin/pip install -r requirements.txt   # calling the venv directly avoids conda/python2 conflicts
 mkdir -p static/old static/scenes            # runtime state directories
 ./venv/bin/python run.py
@@ -51,8 +73,13 @@ On startup, **Chrome opens automatically** at **http://localhost:5000** (falls b
 to Chromium then the default browser if Chrome is absent). The message
 `no serial connection` is **normal** (optional serial accelerometer `/dev/ttyACM0`).
 
-> Pinned versions: the client bundles the old `socket.io 1.3.5`, so Flask-SocketIO 4.x
-> (and old Flask/Werkzeug) is the compatible, tested combo.
+> **Why these versions are locked together.** The client bundles the old
+> `socket.io 1.3.5`, which requires Flask-SocketIO 4.x, which requires
+> `eventlet 0.30.2`, which requires Python ≤ 3.11; and Flask 1.1.4 requires
+> Werkzeug 1.0.1 (`run_with_reloader` was dropped in Werkzeug ≥ 2.1). Moving any
+> one of them means moving the whole chain, client side included. Python 3.8 has
+> been end-of-life since October 2024: the install works because uv still ships
+> those binaries.
 
 ---
 
