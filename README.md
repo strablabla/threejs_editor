@@ -39,9 +39,16 @@ The `install.sh` script:
   a single command on a distribution whose system Python is 3.12. Falls back to
   `$PYTHON_BIN` (default `python3.8`) if uv is absent. Only runs if the venv is
   missing or broken, so the script is safe to re-run;
-- generates `launch.sh`, a launcher that starts `run.py` from the venv;
-- adds a **desktop shortcut** with the app icon, ready to use (double-click), on the
-  desktop directory reported by `xdg-user-dir` (`~/Bureau`, `~/Desktop`, else `~`).
+- generates `launch.sh`, a launcher that starts `run.py` from the venv (plus
+  `launch.bat` on Windows, which a shortcut can target without Git Bash);
+- adds a **clickable shortcut** on the desktop, with the app icon — the form
+  differs per OS, the icon is always `static/img/app_icon.png`:
+
+| OS | What is created | Icon conversion |
+|---|---|---|
+| Linux | `threejs_editor.desktop` in the directory reported by `xdg-user-dir` (`~/Bureau`, `~/Desktop`, else `~`), marked trusted for GNOME | none, PNG used directly |
+| macOS | a real `Three.js Editor.app` bundle on `~/Desktop` | PNG → `.icns` with the stock `sips` + `iconutil` |
+| Windows | `Three.js Editor.lnk` on the desktop, targeting `launch.bat`, created through PowerShell | PNG → `.ico`, by wrapping the same PNG in an ICO container |
 
 If **neither** uv **nor** `$PYTHON_BIN` is found, the script says so and stops.
 Installing uv is the simplest way out — then re-run:
@@ -58,7 +65,43 @@ not do on a 3.12 system:
 PYTHON_BIN=python3.11 ./install.sh
 ```
 
-Only the venv and launcher steps are portable: the shortcut is Linux/XDG specific.
+On **Windows** the script itself is bash: run it from **Git Bash** or WSL. Everything
+after that (the `.bat`, the shortcut) works from plain Explorer.
+
+If a shortcut cannot be created, the script says so and the launcher still works —
+nothing else depends on it.
+
+### Docker — run without installing anything
+
+An alternative to `install.sh`, not a replacement: it removes the Python version
+problem entirely, at the cost of the desktop integration.
+
+```bash
+docker compose up --build
+```
+
+then open **http://localhost:5000** yourself. The container has no browser, so it
+cannot open one for you.
+
+What you gain: no Python, no venv, no `uv`, the same pinned chain on every OS.
+What you lose:
+
+- **the serial accelerometer** — `--device=/dev/ttyACM0` works on Linux, but Docker
+  Desktop on macOS and Windows runs a Linux VM with no USB passthrough;
+- **the clickable shortcut and the automatic browser** — you are running a server,
+  not a desktop app;
+- `static/pos.json` (current working scene) and `static/scene_folders.json` (folder
+  organisation) are not persisted by default; see the comments in
+  `docker-compose.yml`. **Named scenes are safe** — `static/scenes/` is bind-mounted,
+  along with reports, uploads and backups.
+
+On Linux the container runs as root, so scenes it saves end up root-owned on the
+host — worth knowing if you alternate between Docker and the native install. The
+fix is in the comments of `docker-compose.yml`.
+
+Note the `python:3.8-slim` base image is itself end-of-life: this buys
+reproducibility, not security updates. Fine for something that only listens on
+localhost.
 
 ### Manual install
 

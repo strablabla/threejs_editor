@@ -1,0 +1,15 @@
+# Keep the build context small and the image reproducible.
+venv/
+.git/
+__pycache__/
+*.py[cod]
+launch.sh
+templates/tests/
+
+# Runtime state: bind-mounted by docker-compose, never baked into the image.
+static/pos.json
+static/scene_folders.json
+static/old/*
+static/scenes/*.json
+static/reports/*.json
+static/upload/*

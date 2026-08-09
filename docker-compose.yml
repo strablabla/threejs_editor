@@ -1,0 +1,35 @@
+# docker compose up --build   then open http://localhost:5000 yourself
+# (the container has no browser, so it cannot open one for you).
+
+services:
+  editor:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Everything the app writes and that must outlive the container.
+      # Directories only: Docker creates a missing one, whereas a missing FILE
+      # would be created as a directory and break the mount.
+      - ./static/scenes:/app/static/scenes
+      - ./static/reports:/app/static/reports
+      - ./static/upload:/app/static/upload
+      - ./static/old:/app/static/old
+
+      # Heads-up on Linux: the container runs as root, so scenes it writes are
+      # root-owned on the host. Harmless if you only ever use Docker; if you also
+      # run the native install, reclaim them with
+      #     sudo chown -R "$USER" static/scenes static/reports static/upload static/old
+      # Running the container as your own uid instead would need /app/static to be
+      # chowned in the image (pos.json is created there and is not bind-mounted).
+
+      # Two pieces of state are single files, so they stay inside the container
+      # and are lost when it is removed: static/pos.json (current working scene,
+      # auto-saved) and static/scene_folders.json (virtual folder organisation).
+      # Named scenes saved from the Scene panel are NOT affected -- they live in
+      # static/scenes/ above.
+      # To persist them too, seed valid JSON first (an EMPTY file would break
+      # json.load) then uncomment:
+      #     echo '{}' > static/pos.json
+      #     echo '{}' > static/scene_folders.json
+      # - ./static/pos.json:/app/static/pos.json
+      # - ./static/scene_folders.json:/app/static/scene_folders.json

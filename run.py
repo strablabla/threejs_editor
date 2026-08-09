@@ -543,6 +543,14 @@ def open_browser():
     webbrowser.open(url)                                  # repli : navigateur par défaut
 
 if __name__ == '__main__':
-    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':     # n'ouvrir qu'une fois (pas a chaque reload)
-        Thread(target=open_browser, daemon=True).start()
-    socketio.run(app, debug=True)
+    # Two settings driven by the environment, so that the same run.py serves both
+    # the local desktop use and the container. The defaults reproduce exactly the
+    # previous behaviour: nothing changes when launching ./launch.sh.
+    #   APP_HOST=0.0.0.0     in a container 127.0.0.1 is the loopback OF THE
+    #                        container -> unreachable from the host even with -p.
+    #   APP_OPEN_BROWSER=0   a container has neither a browser nor a display.
+    host = os.environ.get('APP_HOST', '127.0.0.1')        # socketio.run() default
+    if os.environ.get('APP_OPEN_BROWSER', '1') != '0':
+        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':  # open once only (not on each reload)
+            Thread(target=open_browser, daemon=True).start()
+    socketio.run(app, host=host, debug=True)

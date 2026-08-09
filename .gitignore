@@ -12,6 +12,9 @@ env/
 
 # Régénéré par install.sh avec les chemins absolus de la machine locale
 /launch.sh
+/launch.bat
+# Généré par install.sh sous Windows à partir de static/img/app_icon.png
+/static/img/app_icon.ico
 
 # État de travail courant (auto-sauvegardé au runtime, non versionné)
 /static/pos.json
