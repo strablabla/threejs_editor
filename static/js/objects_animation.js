@@ -1620,8 +1620,8 @@ function draw_alt_hist_handles(ctx){
       for (var i=0;i<pts.length;i++){ if (pts[i].edge===active){ hp=pts[i] } }
       if (!hp){ return }
       var y = alt_drag ? alt_drag.previewY : hp.cy
-      if (alt_drag){ ctx.save(); ctx.strokeStyle='rgba(236,106,160,0.7)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.restore() }
-      ctx.save(); ctx.fillStyle = alt_drag ? '#ec6aa0' : '#f4a9c7'; ctx.beginPath()   // pale pink (deeper while dragging)
+      if (alt_drag){ ctx.save(); ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.restore() }
+      ctx.save(); ctx.fillStyle = alt_drag ? '#000000' : '#444444'; ctx.beginPath()   // black (slightly lighter on simple hover), same as the velocity handles
       ctx.moveTo(v.L+7, y); ctx.lineTo(v.L, y-4); ctx.lineTo(v.L, y+4); ctx.closePath(); ctx.fill(); ctx.restore()
 }
 function reset_altitude_hist(){                             // double-click: restore the INITIAL params (auto z-window + default bins)
