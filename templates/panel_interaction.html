@@ -481,6 +481,8 @@
     $('#trajectories_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
     // Same isolation for the altitude histogram: its canvas now has draggable z-window handles.
     $('#altitude_hist_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
+    // Idem for the velocity histogram, which now has draggable |v|-window handles too.
+    $('#velocity_hist_box').on('mousedown mousemove mouseup dblclick wheel mousewheel DOMMouseScroll', function(e){ e.stopPropagation() })
 
     // --- Monitoring: altitude histogram (N vs z) ---
     $('#chk_altitude_hist').prop('checked', show_altitude_hist)

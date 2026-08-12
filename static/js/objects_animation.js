@@ -929,6 +929,11 @@ function draw_energy_graph(){
 //===================================================================== Velocity histogram
 
 var VELO_HIST_BINS = 20                                       // number of |v| bins
+var velo_win = null                                          // observation window {vlo,vhi} in |v| (set by the triangles), or null = auto 0 -> vmax
+var velo_view = null                                         // last histogram geometry {L,T,W,H,vlo,vhi} (pixel <-> |v|)
+var velo_hover = null                                        // hovered |v|-axis handle: 'left' | 'right' | null (triangle shows only on hover)
+var velo_drag = null                                         // active handle drag (deferred: axis changes only on release)
+var _velo_hist_setup = false
 
 function velocity_objects(){                                  // moving massive objects (same exclusions as the kinetic energy)
       var a = []
@@ -1038,34 +1043,45 @@ function draw_velocity_hist(){
 
       /*
       (Instantaneous) histogram of the distribution of speed magnitudes.
-      X axis = |v| (0 -> current max), Y axis = number of objects per bin.
+      X axis = |v|, Y axis = number of objects per bin.
+      The |v| range shown is the OBSERVATION WINDOW (velo_win, set by the triangle handles) or,
+      by default, 0 -> current max. Binning is done over that window with a FIXED number of bins
+      (VELO_HIST_BINS) -> a smaller window keeps the same bin count = finer resolution.
+      Same mechanism as the altitude histogram, turned by 90 degrees: here the adjusted axis is
+      the horizontal one, so the two triangles sit on the |v| axis instead of the z axis.
       */
 
       if (!show_velocity_hist){ return }
       if (mon_view.vel){ mon_draw_frozen('vel'); return }         // a saved figure is displayed -> skip the live histogram
       var cv = document.getElementById('velocity_hist')
       if (!cv){ return }
+      setup_velo_hist_handles()                               // |v|-axis window handles (idempotent)
       refresh_velo_color_options()                            // updates the color select if the scene's colors have changed
       var ctx = cv.getContext('2d')
       var W = cv.width, H = cv.height
       ctx.clearRect(0, 0, W, H)
       var speeds = collect_speeds()
       var n = speeds.length
-      //--- total number of counted objects (always displayed, top-right corner)
       ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#333'
       ctx.textAlign = 'right'; ctx.textBaseline = 'top'
-      ctx.fillText('N = ' + n, W - 4, 2)
-      if (n === 0){ return }
-      //--- max speed -> horizontal scale
+      if (n === 0){
+            velo_view = null
+            ctx.fillText('N = 0', W - 4, 2); return
+      }
+      //--- max speed -> default upper bound
       var vmax = 0
       for (var k=0;k<n;k++){ if (speeds[k] > vmax) vmax = speeds[k] }
       if (vmax <= 0){ vmax = 1 }
-      //--- filling the bins
-      var bins = new Array(VELO_HIST_BINS).fill(0)
+      //--- displayed observation window (triangles) or auto range
+      var vlo = velo_win ? velo_win.vlo : 0, vhi = velo_win ? velo_win.vhi : vmax
+      if (vhi <= vlo){ vhi = vlo + 1 }
+      //--- bins over the WINDOW, fixed count -> smaller window = finer resolution
+      var bins = new Array(VELO_HIST_BINS).fill(0), nwin = 0
       for (var k=0;k<n;k++){
-            var b = Math.floor(speeds[k] / vmax * VELO_HIST_BINS)
-            if (b >= VELO_HIST_BINS){ b = VELO_HIST_BINS - 1 }
-            bins[b]++
+            var s = speeds[k]; if (s < vlo || s > vhi){ continue }   // outside the observation window -> not counted
+            var b = Math.floor((s - vlo) / (vhi - vlo) * VELO_HIST_BINS)
+            if (b >= VELO_HIST_BINS){ b = VELO_HIST_BINS - 1 } if (b < 0){ b = 0 }
+            bins[b]++; nwin++
       }
       var cmax = 0
       for (var b=0;b<VELO_HIST_BINS;b++){ if (bins[b] > cmax) cmax = bins[b] }
@@ -1073,6 +1089,9 @@ function draw_velocity_hist(){
       //--- geometry
       var ML = 26, MT = 6, MB = 16                             // margins (left = counts, bottom = |v|)
       var plotW = W - ML - 6, plotH = H - MT - MB
+      velo_view = { L:ML, T:MT, W:plotW, H:plotH, vlo:vlo, vhi:vhi }
+      //--- N = objects within the window
+      ctx.fillText('N = ' + nwin, W - 4, 2)
       //--- Y axis: integer ticks (counts)
       ctx.font = '10px sans-serif'; ctx.fillStyle = '#666'
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
@@ -1091,11 +1110,80 @@ function draw_velocity_hist(){
             var h = bins[b] / cmax * plotH
             ctx.fillRect(ML + b * bw + 1, MT + plotH - h, bw - 2, h)
       }
-      //--- X axis: bounds 0 and vmax
+      //--- X axis: bounds of the shown window
       ctx.fillStyle = '#666'; ctx.textBaseline = 'top'
-      ctx.textAlign = 'left';  ctx.fillText('0', ML, MT + plotH + 3)
-      ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vmax), W - 6, MT + plotH + 3)
+      ctx.textAlign = 'left';  ctx.fillText(fmt_energy(vlo), ML, MT + plotH + 3)
+      ctx.textAlign = 'right'; ctx.fillText(fmt_energy(vhi), W - 6, MT + plotH + 3)
+      //--- observation-window handles (triangles on the |v| axis, on hover / while dragging)
+      draw_velo_hist_handles(ctx)
 
+}
+
+// ---- Velocity histogram: horizontal observation-window handles (two triangles on the |v| axis) ----
+function velo_v_at_x(x){ var v=velo_view; return v.vlo + (x-v.L)/(v.W||1)*(v.vhi-v.vlo) }
+function velo_handle_points(){
+      var v=velo_view; if (!v){ return [] }
+      return [ { edge:'left',  cx:v.L,       cy:v.T+v.H },     // vlo (min speed) — sits on the ordinate (count) axis
+               { edge:'right', cx:v.L+v.W,   cy:v.T+v.H } ]    // vhi (max speed)
+}
+function velo_handle_at(p){
+      var pts=velo_handle_points(), best=null, bd=1e9
+      for (var i=0;i<pts.length;i++){ var h=pts[i], d=Math.max(Math.abs(p.x-h.cx), Math.abs(p.y-h.cy)); if (d<=10 && d<bd){ bd=d; best=h.edge } }
+      return best
+}
+function draw_velo_hist_handles(ctx){
+      var v=velo_view; if (!v){ return }
+      var active = velo_drag ? velo_drag.edge : velo_hover; if (!active){ return }
+      var pts=velo_handle_points(), hp=null
+      for (var i=0;i<pts.length;i++){ if (pts[i].edge===active){ hp=pts[i] } }
+      if (!hp){ return }
+      var x = velo_drag ? velo_drag.previewX : hp.cx
+      if (velo_drag){ ctx.save(); ctx.strokeStyle='rgba(236,106,160,0.7)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(x, v.T); ctx.lineTo(x, v.T+v.H); ctx.stroke(); ctx.restore() }
+      ctx.save(); ctx.fillStyle = velo_drag ? '#ec6aa0' : '#f4a9c7'; ctx.beginPath()   // pale pink (deeper while dragging), same as the altitude ones
+      ctx.moveTo(x, v.T+v.H-7); ctx.lineTo(x-4, v.T+v.H); ctx.lineTo(x+4, v.T+v.H); ctx.closePath(); ctx.fill(); ctx.restore()
+}
+function reset_velocity_hist(){                             // double-click: limits back to the automatic range
+      velo_win = null; velo_drag = null
+      draw_velocity_hist()
+}
+
+function setup_velo_hist_handles(){
+      if (_velo_hist_setup){ return }
+      var cv = document.getElementById('velocity_hist'); if (!cv){ return }
+      _velo_hist_setup = true
+      function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+      cv.addEventListener('mousedown', function(e){
+            if (!velo_view){ return }
+            var p=pos(e), edge=velo_handle_at(p); if (!edge){ return }
+            e.stopPropagation(); e.preventDefault()
+            var base = velo_win ? { vlo:velo_win.vlo, vhi:velo_win.vhi } : { vlo:velo_view.vlo, vhi:velo_view.vhi }
+            velo_drag = { edge:edge, previewX:Math.max(velo_view.L, Math.min(velo_view.L+velo_view.W, p.x)), base:base }
+      })
+      cv.addEventListener('mousemove', function(e){
+            if (!velo_view){ return }
+            if (!velo_drag){                                  // idle: reveal the handle on hover
+                  var p=pos(e), ed=velo_handle_at(p)
+                  cv.style.cursor = ed ? 'pointer' : 'default'
+                  if (velo_hover !== ed){ velo_hover = ed; draw_velocity_hist() }
+                  return
+            }
+            e.stopPropagation()
+            velo_drag.previewX = Math.max(velo_view.L, Math.min(velo_view.L+velo_view.W, pos(e).x))
+            draw_velocity_hist()                              // moves the triangle preview only; the axis changes on release
+      })
+      function finish(isUp){
+            if (!velo_drag){ return }
+            if (isUp && velo_view){                           // APPLY the new bound (deferred from the drag)
+                  var s = velo_v_at_x(velo_drag.previewX), base = velo_drag.base
+                  if (velo_drag.edge==='right'){ if (s > base.vlo){ base.vhi = s } }
+                  else { if (s < base.vhi){ base.vlo = Math.max(0, s) } }   // a speed magnitude is never negative
+                  velo_win = { vlo:base.vlo, vhi:base.vhi }
+            }
+            velo_drag = null; draw_velocity_hist()
+      }
+      cv.addEventListener('mouseup',    function(e){ e.stopPropagation(); finish(true) })
+      cv.addEventListener('mouseleave', function(){ var had=velo_hover!=null; velo_hover=null; if (velo_drag){ finish(false) } else if (had){ draw_velocity_hist() } })
+      cv.addEventListener('dblclick',   function(e){ e.stopPropagation(); reset_velocity_hist() })   // back to auto limits
 }
 
 //===================================================================== Previews (Initial speeds tab)
