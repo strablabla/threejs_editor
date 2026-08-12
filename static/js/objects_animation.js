@@ -1158,16 +1158,33 @@ function draw_velo_hist_handles(ctx){
       ctx.save()
       ctx.fillStyle = velo_drag ? '#000000' : '#444444'       // black (slightly lighter on simple hover)
       if (horiz){
-            var x = velo_drag ? velo_drag.previewX : hp.cx
-            if (velo_drag){ ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(x, v.T); ctx.lineTo(x, v.T+v.H); ctx.stroke(); ctx.setLineDash([]) }
+            // The pointer may be dragged OUTSIDE the plot to widen the axis: the value keeps
+            // following it, while the triangle stays pinned on the edge so it remains visible.
+            var x = velo_drag ? Math.max(v.L, Math.min(v.L+v.W, velo_drag.previewX)) : hp.cx
+            if (velo_drag){
+                  ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(x, v.T); ctx.lineTo(x, v.T+v.H); ctx.stroke(); ctx.setLineDash([])
+                  velo_draw_drag_value(ctx, fmt_energy(velo_v_at_x(velo_drag.previewX)), x, v.T+v.H-12, 'center')
+            }
             ctx.beginPath()                                   // triangle pointing up, from the |v| axis
             ctx.moveTo(x, v.T+v.H-7); ctx.lineTo(x-4, v.T+v.H); ctx.lineTo(x+4, v.T+v.H); ctx.closePath(); ctx.fill()
       } else {
-            var y = velo_drag ? velo_drag.previewY : hp.cy
-            if (velo_drag){ ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.setLineDash([]) }
+            var y = velo_drag ? Math.max(v.T, Math.min(v.T+v.H, velo_drag.previewY)) : hp.cy
+            if (velo_drag){
+                  ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.setLineDash([])
+                  velo_draw_drag_value(ctx, String(Math.round(velo_c_at_y(velo_drag.previewY))), v.L+12, y, 'left')
+            }
             ctx.beginPath()                                   // triangle pointing right, from the count axis
             ctx.moveTo(v.L+7, y); ctx.lineTo(v.L, y-4); ctx.lineTo(v.L, y+4); ctx.closePath(); ctx.fill()
       }
+      ctx.restore()
+}
+function velo_draw_drag_value(ctx, txt, x, y, align){       // running value, so dragging past the edge is readable
+      ctx.save()
+      ctx.font = 'bold 10px sans-serif'; ctx.textAlign = align; ctx.textBaseline = 'middle'
+      var w = ctx.measureText(txt).width + 6
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'
+      ctx.fillRect((align==='center') ? x-w/2 : x-3, y-7, w, 14)   // white pad: the value stays readable over the bars
+      ctx.fillStyle = '#000000'; ctx.fillText(txt, x, y)
       ctx.restore()
 }
 function reset_velocity_hist(){                             // double-click: BOTH axes back to their automatic range
@@ -1179,9 +1196,29 @@ function setup_velo_hist_handles(){
       if (_velo_hist_setup){ return }
       var cv = document.getElementById('velocity_hist'); if (!cv){ return }
       _velo_hist_setup = true
+      // Raw canvas coordinates, deliberately NOT clamped: dragging a handle past the edge of
+      // the plot is how the axis gets WIDENED (the mapping extrapolates linearly beyond it).
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
-      function clampX(x){ return Math.max(velo_view.L, Math.min(velo_view.L+velo_view.W, x)) }
-      function clampY(y){ return Math.max(velo_view.T, Math.min(velo_view.T+velo_view.H, y)) }
+
+      // While dragging we listen on DOCUMENT, so the pointer can leave the canvas and keep
+      // stretching the axis. Capture phase + stopPropagation: TrackballControls listens on
+      // document too, in bubble phase, and would otherwise rotate the camera.
+      function onDocMove(e){
+            if (!velo_drag || !velo_view){ return }
+            e.stopPropagation()
+            var p = pos(e)
+            velo_drag.previewX = p.x; velo_drag.previewY = p.y
+            draw_velocity_hist()                              // moves the preview only; the axis changes on release
+      }
+      function onDocUp(e){
+            if (!velo_drag){ return }
+            e.stopPropagation()
+            finish(true)
+      }
+      function detach(){
+            document.removeEventListener('mousemove', onDocMove, true)
+            document.removeEventListener('mouseup',   onDocUp,   true)
+      }
       cv.addEventListener('mousedown', function(e){
             if (!velo_view){ return }
             var p=pos(e), edge=velo_handle_at(p); if (!edge){ return }
@@ -1189,41 +1226,38 @@ function setup_velo_hist_handles(){
             var base = velo_is_horiz(edge)
                   ? (velo_win  ? { lo:velo_win.vlo,  hi:velo_win.vhi  } : { lo:velo_view.vlo, hi:velo_view.vhi })
                   : (velo_cwin ? { lo:velo_cwin.clo, hi:velo_cwin.chi } : { lo:velo_view.clo, hi:velo_view.chi })
-            velo_drag = { edge:edge, previewX:clampX(p.x), previewY:clampY(p.y), base:base }
+            velo_drag = { edge:edge, previewX:p.x, previewY:p.y, base:base }
+            document.addEventListener('mousemove', onDocMove, true)
+            document.addEventListener('mouseup',   onDocUp,   true)
       })
       cv.addEventListener('mousemove', function(e){
-            if (!velo_view){ return }
-            if (!velo_drag){                                  // idle: reveal the handle on hover
-                  var p=pos(e), ed=velo_handle_at(p)
-                  cv.style.cursor = ed ? 'pointer' : 'default'
-                  if (velo_hover !== ed){ velo_hover = ed; draw_velocity_hist() }
-                  return
-            }
-            e.stopPropagation()
-            var p=pos(e)
-            velo_drag.previewX = clampX(p.x); velo_drag.previewY = clampY(p.y)
-            draw_velocity_hist()                              // moves the triangle preview only; the axis changes on release
+            if (velo_drag || !velo_view){ return }            // dragging is handled on document
+            var p=pos(e), ed=velo_handle_at(p)                // idle: reveal the handle on hover
+            cv.style.cursor = ed ? 'pointer' : 'default'
+            if (velo_hover !== ed){ velo_hover = ed; draw_velocity_hist() }
       })
       function finish(isUp){
             if (!velo_drag){ return }
+            detach()
             if (isUp && velo_view){                           // APPLY the new bound (deferred from the drag)
                   var e = velo_drag.edge, base = velo_drag.base
                   if (velo_is_horiz(e)){
                         var s = velo_v_at_x(velo_drag.previewX)
                         if (e==='right'){ if (s > base.lo){ base.hi = s } }
-                        else            { if (s < base.hi){ base.lo = Math.max(0, s) } }   // a speed magnitude is never negative
+                        else            { if (s < base.hi){ base.lo = s } }
                         velo_win = { vlo:base.lo, vhi:base.hi }
                   } else {
                         var c = velo_c_at_y(velo_drag.previewY)
                         if (e==='top'){ if (c > base.lo){ base.hi = c } }
-                        else          { if (c < base.hi){ base.lo = Math.max(0, c) } }     // a count is never negative
+                        else          { if (c < base.hi){ base.lo = c } }
                         velo_cwin = { clo:base.lo, chi:base.hi }
                   }
             }
             velo_drag = null; draw_velocity_hist()
       }
-      cv.addEventListener('mouseup',    function(e){ e.stopPropagation(); finish(true) })
-      cv.addEventListener('mouseleave', function(){ var had=velo_hover!=null; velo_hover=null; if (velo_drag){ finish(false) } else if (had){ draw_velocity_hist() } })
+      // Leaving the canvas must NOT end a drag any more (that is precisely how one widens the
+      // axis); it only clears the hover highlight.
+      cv.addEventListener('mouseleave', function(){ if (velo_drag){ return } if (velo_hover!=null){ velo_hover=null; draw_velocity_hist() } })
       cv.addEventListener('dblclick',   function(e){ e.stopPropagation(); reset_velocity_hist() })   // back to auto limits
 }
 
