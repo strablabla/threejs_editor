@@ -1163,7 +1163,7 @@ function draw_velo_hist_handles(ctx){
             var x = velo_drag ? Math.max(v.L, Math.min(v.L+v.W, velo_drag.previewX)) : hp.cx
             if (velo_drag){
                   ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(x, v.T); ctx.lineTo(x, v.T+v.H); ctx.stroke(); ctx.setLineDash([])
-                  velo_draw_drag_value(ctx, fmt_energy(velo_v_at_x(velo_drag.previewX)), x, v.T+v.H-12, 'center')
+                  hist_draw_drag_value(ctx, fmt_energy(velo_v_at_x(velo_drag.previewX)), x, v.T+v.H-12, 'center')
             }
             ctx.beginPath()                                   // triangle pointing up, from the |v| axis
             ctx.moveTo(x, v.T+v.H-7); ctx.lineTo(x-4, v.T+v.H); ctx.lineTo(x+4, v.T+v.H); ctx.closePath(); ctx.fill()
@@ -1171,14 +1171,14 @@ function draw_velo_hist_handles(ctx){
             var y = velo_drag ? Math.max(v.T, Math.min(v.T+v.H, velo_drag.previewY)) : hp.cy
             if (velo_drag){
                   ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.setLineDash([])
-                  velo_draw_drag_value(ctx, String(Math.round(velo_c_at_y(velo_drag.previewY))), v.L+12, y, 'left')
+                  hist_draw_drag_value(ctx, String(Math.round(velo_c_at_y(velo_drag.previewY))), v.L+12, y, 'left')
             }
             ctx.beginPath()                                   // triangle pointing right, from the count axis
             ctx.moveTo(v.L+7, y); ctx.lineTo(v.L, y-4); ctx.lineTo(v.L, y+4); ctx.closePath(); ctx.fill()
       }
       ctx.restore()
 }
-function velo_draw_drag_value(ctx, txt, x, y, align){       // running value, so dragging past the edge is readable
+function hist_draw_drag_value(ctx, txt, x, y, align){       // running value, so dragging past the edge is readable
       ctx.save()
       ctx.font = 'bold 10px sans-serif'; ctx.textAlign = align; ctx.textBaseline = 'middle'
       var w = ctx.measureText(txt).width + 6
@@ -1619,8 +1619,13 @@ function draw_alt_hist_handles(ctx){
       var pts=alt_handle_points(), hp=null
       for (var i=0;i<pts.length;i++){ if (pts[i].edge===active){ hp=pts[i] } }
       if (!hp){ return }
-      var y = alt_drag ? alt_drag.previewY : hp.cy
-      if (alt_drag){ ctx.save(); ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.restore() }
+      // The pointer may be dragged OUTSIDE the plot to widen the axis: the value keeps
+      // following it, while the triangle stays pinned on the edge so it remains visible.
+      var y = alt_drag ? Math.max(v.T, Math.min(v.T+v.H, alt_drag.previewY)) : hp.cy
+      if (alt_drag){
+            ctx.save(); ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.setLineDash([4,3]); ctx.beginPath(); ctx.moveTo(v.L, y); ctx.lineTo(v.L+v.W, y); ctx.stroke(); ctx.restore()
+            hist_draw_drag_value(ctx, fmt_energy(alt_z_at_y(alt_drag.previewY)), v.L+12, y, 'left')
+      }
       ctx.save(); ctx.fillStyle = alt_drag ? '#000000' : '#444444'; ctx.beginPath()   // black (slightly lighter on simple hover), same as the velocity handles
       ctx.moveTo(v.L+7, y); ctx.lineTo(v.L, y-4); ctx.lineTo(v.L, y+4); ctx.closePath(); ctx.fill(); ctx.restore()
 }
@@ -1636,28 +1641,46 @@ function setup_alt_hist_handles(){
       if (_alt_hist_setup){ return }
       var cv = document.getElementById('altitude_hist'); if (!cv){ return }
       _alt_hist_setup = true
+      // Raw canvas coordinates, deliberately NOT clamped: dragging a handle past the edge of
+      // the plot is how the z axis gets WIDENED (the mapping extrapolates linearly beyond it).
       function pos(e){ var r=cv.getBoundingClientRect(); return { x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height } }
+
+      // While dragging we listen on DOCUMENT, so the pointer can leave the canvas and keep
+      // stretching. Capture phase + stopPropagation, because TrackballControls listens on
+      // document too, in bubble phase, and would otherwise rotate the camera behind the window.
+      function onDocMove(e){
+            if (!alt_drag || !alt_view){ return }
+            e.stopPropagation()
+            alt_drag.previewY = pos(e).y
+            draw_altitude_hist()                              // moves the preview only; the axis changes on release
+      }
+      function onDocUp(e){
+            if (!alt_drag){ return }
+            e.stopPropagation()
+            finish(true)
+      }
+      function detach(){
+            document.removeEventListener('mousemove', onDocMove, true)
+            document.removeEventListener('mouseup',   onDocUp,   true)
+      }
       cv.addEventListener('mousedown', function(e){
             if (!alt_view){ return }
             var p=pos(e), edge=alt_handle_at(p); if (!edge){ return }
             e.stopPropagation(); e.preventDefault()
             var base = alt_win ? { zlo:alt_win.zlo, zhi:alt_win.zhi } : { zlo:alt_view.zlo, zhi:alt_view.zhi }
-            alt_drag = { edge:edge, previewY:Math.max(alt_view.T, Math.min(alt_view.T+alt_view.H, p.y)), base:base }
+            alt_drag = { edge:edge, previewY:p.y, base:base }
+            document.addEventListener('mousemove', onDocMove, true)
+            document.addEventListener('mouseup',   onDocUp,   true)
       })
       cv.addEventListener('mousemove', function(e){
-            if (!alt_view){ return }
-            if (!alt_drag){                                   // idle: reveal the handle on hover
-                  var p=pos(e), ed=alt_handle_at(p)
-                  cv.style.cursor = ed ? 'pointer' : 'default'
-                  if (alt_hover !== ed){ alt_hover = ed; draw_altitude_hist() }
-                  return
-            }
-            e.stopPropagation()
-            alt_drag.previewY = Math.max(alt_view.T, Math.min(alt_view.T+alt_view.H, pos(e).y))
-            draw_altitude_hist()                              // moves the triangle preview only; the axis changes on release
+            if (alt_drag || !alt_view){ return }              // dragging is handled on document
+            var p=pos(e), ed=alt_handle_at(p)                 // idle: reveal the handle on hover
+            cv.style.cursor = ed ? 'pointer' : 'default'
+            if (alt_hover !== ed){ alt_hover = ed; draw_altitude_hist() }
       })
       function finish(isUp){
             if (!alt_drag){ return }
+            detach()
             if (isUp && alt_view){                            // APPLY the new bound (deferred from the drag)
                   var z = alt_z_at_y(alt_drag.previewY), base = alt_drag.base
                   if (alt_drag.edge==='top'){ if (z > base.zlo){ base.zhi = z } }
@@ -1666,8 +1689,9 @@ function setup_alt_hist_handles(){
             }
             alt_drag = null; draw_altitude_hist()
       }
-      cv.addEventListener('mouseup',    function(e){ e.stopPropagation(); finish(true) })
-      cv.addEventListener('mouseleave', function(){ var had=alt_hover!=null; alt_hover=null; if (alt_drag){ finish(false) } else if (had){ draw_altitude_hist() } })
+      // Leaving the canvas must NOT end a drag any more (that is precisely how one widens the
+      // axis); it only clears the hover highlight.
+      cv.addEventListener('mouseleave', function(){ if (alt_drag){ return } if (alt_hover!=null){ alt_hover=null; draw_altitude_hist() } })
       cv.addEventListener('dblclick',   function(e){ e.stopPropagation(); reset_altitude_hist() })   // back to auto limits + default bins
 }
 
