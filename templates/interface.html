@@ -278,6 +278,38 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         $inp.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
         $row.append($inp); $f.append($row)
   }
+  function tissue_ctx_rows($T, obj){
+        /*
+        Parameters of the whole mesh the clicked ball belongs to.
+        Stiffness and rest length are applied live on every spring of the tissue, so the
+        current shape and the velocities are kept. Dimensions cannot be: changing the number
+        of balls means rebuilding, hence the separate button rather than a live field.
+        */
+        var t = obj.tissue
+        num_row($T, 'stiffness',   function(){ return t.k },  function(v){ tissue_apply(t.id, v, t.l0) })
+        num_row($T, 'rest length', function(){ return t.l0 }, function(v){ if (v > 0){ tissue_apply(t.id, t.k, v) } })
+        var nw = t.nw, nl = t.nl                                  // staged: applied by « rebuild » only
+        num_row($T, 'balls width',  function(){ return nw }, function(v){ nw = Math.max(2, Math.round(v)) })
+        num_row($T, 'balls length', function(){ return nl }, function(v){ nl = Math.max(2, Math.round(v)) })
+        var $btn = $('<button type="button" style="width:100%; margin-top:6px; cursor:pointer; font-family:inherit; font-size:11px; padding:3px">')
+              .text('rebuild ' + '(' + (obj.tissue.id) + ')')
+        $btn.on('mousedown mouseup dblclick', function(e){ e.stopPropagation() })
+        $btn.on('click', function(e){
+              e.stopPropagation()
+              var id = t.id, k = t.k, l0 = t.l0
+              hide_ctx()                                          // the clicked ball is about to be removed
+              if (typeof INTERSECTED !== 'undefined'){ INTERSECTED = null }
+              tissue_rebuild(id, nw, nl, k, l0)
+              if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+        })
+        $T.append($btn)
+        $T.append($('<div style="color:#888; margin-top:5px; font-size:10px; text-align:center">')
+              .text('rebuilding lays the mesh flat again and clears the motion'))
+        if (typeof springs_ok !== 'undefined' && !springs_ok){    // a tissue without springs is just loose balls
+              $T.append($('<div style="color:#c62828; margin-top:6px; font-size:10px; text-align:center">')
+                    .text('springs are OFF — the mesh will not hold together'))
+        }
+  }
   function bool_row($f, label, get, set){
         var $row = $('<div style="margin:4px 0">')
         var $cb = $('<input type="checkbox">').prop('checked', !!get())
@@ -488,9 +520,12 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         function applyAll(setter){                             // setter(target): this object, or all of the same type+color if "all" is checked
               if ($all && $all.is(':checked')){ all_targets.forEach(setter) } else { setter(obj) }
         }
-        // Tabs: Attributes / Dynamics / Miscellaneous
-        var pane = ctx_tab_bar($f, [['attributes','Attributes'], ['dynamics','Dynamics'], ['misc','Miscellaneous']])
+        // Tabs: Attributes / Dynamics / Miscellaneous (+ Tissue for a ball belonging to a mesh)
+        var ctabs = [['attributes','Attributes'], ['dynamics','Dynamics'], ['misc','Miscellaneous']]
+        if (obj.tissue){ ctabs.push(['tissue','Tissue']) }
+        var pane = ctx_tab_bar($f, ctabs)
         var $A = pane['attributes'], $D = pane['dynamics'], $M = pane['misc']
+        if (pane['tissue']){ tissue_ctx_rows(pane['tissue'], obj) }
 
         // --- Attributes: mass, opacity, color, radius ---
         num_row($A, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })
