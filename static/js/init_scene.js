@@ -124,9 +124,14 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name]['tex_addr'] =  curr_tex_addr               									 // texture address
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
     restore_opacity(listorig[name], msg[name]['opacity'])                            // opacity
+    /* Generic attributes copied back as they were saved. This list is the MIRROR of
+       list_attr_emit in make_infos_obj_of: an attribute saved there and missing here is simply
+       lost on reload, with no error -- which is exactly how a tissue used to come back as a
+       heap of plain balls. The names present there and absent here (radius, orientation,
+       speed, dimensions...) are deliberate: the type-specific loaders restore those. */
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
-                          'magnet', 'friction', 'group_id', 'track_trajectory']
+                          'magnet', 'friction', 'group_id', 'tissue', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
