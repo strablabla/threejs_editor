@@ -255,10 +255,24 @@ function load_chains(msg){
                   var pair = [s0, s1, el]
                   var ksaved = msg['_chains'][k][2]               // saved own stiffness (if set)
                   if (ksaved !== undefined && ksaved !== null){ pair.k_spring = ksaved }
+                  var lsaved = msg['_chains'][k][3]               // saved own rest length (if set)
+                  if (lsaved !== undefined && lsaved !== null){ pair.rest_length = lsaved }
+                  var tid = msg['_chains'][k][4]                  // tissue this spring belongs to
+                  if (tid !== undefined && tid !== null){ pair.tissue_id = tid }
                   list_paired_harmonic.push(pair)
             }
       }
       if (list_paired_harmonic.length > 0){ color_pairs_in_blue() }
+      // Balls of one tissue must SHARE a single descriptor: each was serialized with its own
+      // copy, so re-point them all at the first one. Otherwise editing the mesh from one ball
+      // would leave the others with stale values.
+      var seen = {}
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]; if (!o || !o.tissue){ continue }
+            var id = o.tissue.id
+            if (seen[id]){ o.tissue = seen[id] } else { seen[id] = o.tissue }
+            if (typeof tissue_next_id !== 'undefined' && id >= tissue_next_id){ tissue_next_id = id + 1 }
+      }
 
 }
 
@@ -380,6 +394,7 @@ function make_infos_obj_of(obj){
                           'mass', 'speed', 'v0', 'radius', 'radius_interact', 'magnet', 'friction',
                           'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
                           'is_track', 'track_solid',   // a track segment, and whether the balls bounce off it
+                          'tissue',                    // descriptor of the mesh a ball belongs to (id, nw, nl, k, l0)
                           'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
       var y = obj.rotation.y
@@ -420,7 +435,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
             }    // end if
           }    // end for
     if (list_paired_harmonic.length > 0){              // saves the chain links (ball names + own stiffness)
-          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring] })
+          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring, p.rest_length, p.tissue_id] })
     }
     if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
           listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity, locked: !!l.mesh.locked } })

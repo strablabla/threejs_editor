@@ -46,11 +46,69 @@ function modify_values(INTERSECTED){
       link_panel3('speed', 'speed')
       $('.dz-message').css('top','2px')
       $('.dz-message').text(INTERSECTED.tex)            // text in Dropzone..
+      tissue_panel_refresh(INTERSECTED)  // « tissue » section: only for a ball belonging to a mesh
       show_block_unblock()              // show if the object position is blocked or not with the message on the button ..
       $("#dropz").children().hide();         // hide the message under the box
       $('#drop-message').one('click',function(){ $("#dropz").click() }) // execute one time dropz..
 
 }
+
+//----------------------------------- Tissue section of the object panel
+
+function tissue_panel_refresh(obj){
+
+      /*
+      Fills the « tissue » block, or hides it: it only makes sense for a ball that belongs
+      to a mesh (see make_tissue_at).
+      */
+
+      var t = obj && obj.tissue
+      if (!t){ $('#tissue_section').hide(); return }
+      $('#tissue_section').show()
+      $('#tissue_id_lbl').text('#' + t.id)
+      $('#tissue_k_panel').val(t.k)
+      $('#tissue_l0_panel').val(t.l0)
+      $('#tissue_nw_panel').val(t.nw)
+      $('#tissue_nl_panel').val(t.nl)
+
+}
+
+/* The handlers below are DELEGATED on document: panel_one_object.html is included after
+   these scripts are evaluated, so the fields do not exist yet at binding time. */
+
+// Stiffness / rest length: applied live on the existing springs, shape and motion preserved.
+$(document).on('input change', '#tissue_k_panel, #tissue_l0_panel', function(){
+      if (!INTERSECTED || !INTERSECTED.tissue){ return }
+      var k  = parseFloat($('#tissue_k_panel').val())
+      var l0 = parseFloat($('#tissue_l0_panel').val())
+      if (!isFinite(k) || !isFinite(l0) || l0 <= 0){ return }          // half-typed value -> ignore
+      tissue_apply(INTERSECTED.tissue.id, k, l0)
+      if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+})
+
+// Dimensions: the mesh has to be rebuilt, so it takes an explicit button.
+$(document).on('click', '#tissue_rebuild_btn', function(){
+      if (!INTERSECTED || !INTERSECTED.tissue){ return }
+      var t  = INTERSECTED.tissue, id = t.id
+      var nw = parseInt($('#tissue_nw_panel').val(), 10)
+      var nl = parseInt($('#tissue_nl_panel').val(), 10)
+      var k  = parseFloat($('#tissue_k_panel').val())
+      var l0 = parseFloat($('#tissue_l0_panel').val())
+      if (!isFinite(nw) || !isFinite(nl)){ return }
+      INTERSECTED = null                                               // its balls are about to go
+      tissue_rebuild(id, nw, nl, isFinite(k) ? k : t.k, isFinite(l0) ? l0 : t.l0)
+      $('#tissue_section').hide()                                      // nothing is selected any more
+      if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+})
+
+// TrackballControls is bound to document and preventDefault()s every mousedown, and the scene
+// shortcuts listen page-wide: without this the fields cannot be clicked into and typing digits
+// would fire the scene commands. Same workaround as the other panel inputs.
+$(document).on('keydown keypress keyup mousedown mousemove mouseup dblclick',
+               '#tissue_section input, #tissue_rebuild_btn', function(e){ e.stopPropagation() })
+$(document).on('keydown', '#tissue_section input', function(e){
+      if (e.which === 13 || e.which === 27){ this.blur() }             // hand the keyboard back to the scene
+})
 
 function show_infos_at_mouse_pos(x,i){
 

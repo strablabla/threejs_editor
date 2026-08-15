@@ -26,6 +26,16 @@
     .panel_objects .obj-icon.active svg { color:#1a56b0; }
   </style>
 
+  <!-- Tabs (handled by the generic .dyn_tab_btn switcher, scoped to .input_interface) -->
+  <div class="dyn_tabs">
+    <button type="button" class="dyn_tab_btn active" data-tab="tab_simple_objects">simple objects</button>
+    <button type="button" class="dyn_tab_btn" data-tab="tab_complex_objects">complex objects</button>
+    <button type="button" class="dyn_tab_btn" data-tab="tab_custom_objects">custom objects</button>
+  </div>
+
+  <!-- ===== Page: simple objects ===== -->
+  <div id="tab_simple_objects" class="dyn_tab">
+
   <div id="obj_icon_grid" class="obj-grid">
 
     <button type="button" class="obj-icon" data-obj="wall" title="Wall — vertical wall segment">
@@ -75,12 +85,69 @@
 
   </div>
 
+  </div><!-- /tab_simple_objects -->
+
+  <!-- ===== Page: complex objects ===== -->
+  <!-- Assemblies of simple objects, born already linked. Their parameters stay editable
+       afterwards: click one of their balls and the Parameters panel grows a tissue section. -->
+  <div id="tab_complex_objects" class="dyn_tab" style="display:none">
+
+    <div class="obj-grid" id="obj_icon_grid_complex">
+
+      <button type="button" class="obj-icon" data-obj="tissue" title="Tissue — grid of balls linked by springs">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M6 6 H26 M6 13 H26 M6 20 H26 M6 27 H26"/>
+          <path d="M6 6 V27 M13 6 V27 M20 6 V27 M26 6 V27"/>
+          <circle cx="6"  cy="6"  r="1.9" fill="currentColor" stroke="none"/><circle cx="13" cy="6"  r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="20" cy="6"  r="1.9" fill="currentColor" stroke="none"/><circle cx="26" cy="6"  r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="13" r="1.9" fill="currentColor" stroke="none"/><circle cx="13" cy="13" r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="20" cy="13" r="1.9" fill="currentColor" stroke="none"/><circle cx="26" cy="13" r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="20" r="1.9" fill="currentColor" stroke="none"/><circle cx="13" cy="20" r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="20" cy="20" r="1.9" fill="currentColor" stroke="none"/><circle cx="26" cy="20" r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="6"  cy="27" r="1.9" fill="currentColor" stroke="none"/><circle cx="13" cy="27" r="1.9" fill="currentColor" stroke="none"/>
+          <circle cx="20" cy="27" r="1.9" fill="currentColor" stroke="none"/><circle cx="26" cy="27" r="1.9" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>tissue</span>
+      </button>
+
+    </div>
+
+    <!-- Values used at CREATION. Afterwards each tissue carries its own, editable by
+         clicking one of its balls (see the tissue section of the Parameters panel). -->
+    <div style="padding:0 16px 14px; font-family:sans-serif; font-size:11px; color:#555">
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px">
+        <span style="flex:0 0 96px">balls (w &times; l)</span>
+        <input type="number" id="tissue_nw_new" min="2" max="30" step="1" value="6" style="width:48px" title="number of balls across the width">
+        <span>&times;</span>
+        <input type="number" id="tissue_nl_new" min="2" max="30" step="1" value="6" style="width:48px" title="number of balls along the length">
+      </div>
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px">
+        <span style="flex:0 0 96px">stiffness</span>
+        <input type="number" id="tissue_k_new" min="0" step="0.01" style="width:70px" title="spring stiffness of the mesh (same scale as the global harmonic_const)">
+      </div>
+      <div style="display:flex; gap:6px; align-items:center">
+        <span style="flex:0 0 96px">rest length</span>
+        <input type="number" id="tissue_l0_new" min="1" step="5" style="width:70px" title="equilibrium distance between two neighbouring balls">
+      </div>
+      <div style="margin-top:7px; color:#888">Pick the tool, then click in the scene to drop a tissue.</div>
+    </div>
+
+  </div><!-- /tab_complex_objects -->
+
+  <!-- ===== Page: custom objects ===== -->
+  <div id="tab_custom_objects" class="dyn_tab" style="display:none">
+    <div style="padding:18px 16px; font-family:sans-serif; font-size:12px; color:#888; text-align:center">
+      Nothing here yet.<br><br>
+      <span style="font-size:11px">This tab is meant for objects assembled and saved by hand,<br>to be reused as building blocks.</span>
+    </div>
+  </div><!-- /tab_custom_objects -->
+
 </div>
 
 <script>
 
 {% set objs = ['wall', 'cube', 'plane', 'pavement', 'track',
-                'box', 'sphere', 'string', 'no_tool'] %}
+                'box', 'sphere', 'string', 'tissue', 'no_tool'] %}
 dict_obj_param = {}
 {% for obj in objs %}
 dict_obj_param['{{obj}}'] = 'new_' + '{{obj}}' + '_ok'
@@ -89,14 +156,38 @@ dict_obj_param['{{obj}}'] = 'new_' + '{{obj}}' + '_ok'
 reinit_params_ok()
 
 // Pick the object to create by clicking its icon (replaces the old <select>).
-$('#obj_icon_grid').on('click', '.obj-icon', function(){
+// Delegated on the whole panel: the icons now live in several tabs, and only one tool
+// is active at a time across all of them.
+$('.panel_objects').on('click', '.obj-icon', function(){
       var obj = $(this).attr('data-obj')
       reinit_params_ok()                                   // turn every creation tool off first
       var param = dict_obj_param[obj]
       if (param){ window[param] = true }                   // activate the chosen tool (incl. new_no_tool_ok)
-      $('#obj_icon_grid .obj-icon').removeClass('active')
+      $('.panel_objects .obj-icon').removeClass('active')
       $(this).addClass('active')
       $('#active_obj_navbar').text(obj === 'no_tool' ? '' : $(this).find('span').text())  // active tool -> navbar
 })
+
+// --- Tissue: parameters used at creation ---
+// They feed the globals read by make_new_tissue(); each tissue then keeps its own copy,
+// editable afterwards from the Parameters panel.
+;(function(){
+      var fields = { tissue_nw_new:'tissue_nw', tissue_nl_new:'tissue_nl',
+                     tissue_k_new:'tissue_k',   tissue_l0_new:'tissue_l0' }
+      $.each(fields, function(id, globname){
+            var $inp = $('#' + id)
+            if (!$inp.length){ return }
+            $inp.val(window[globname])
+            $inp.on('input change', function(){
+                  var v = parseFloat(this.value)
+                  if (isFinite(v)){ window[globname] = v }
+            })
+            // TrackballControls is bound to document and preventDefault()s every mousedown,
+            // and the scene shortcuts listen page-wide: without this the field cannot be
+            // clicked into and typing digits would fire the scene commands.
+            $inp.on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+            $inp.on('keydown', function(e){ if (e.which === 13 || e.which === 27){ this.blur() } })
+      })
+})()
 
 </script>

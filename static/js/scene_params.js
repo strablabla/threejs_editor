@@ -79,7 +79,15 @@ wall_thickness_default = 5     // thickness of a new wall
 wall_length_default = 150      // length used when the 2 ends coincide (click without dragging)
 wall_min_length = 20           // below this, the 2 clicks are considered to be at the same place
 dist_min_center_center = 40;   // distance under which a shock is produced..
-lenght_spring = 150;   // rest length of the springs (> ball diameter): avoids the chain folding back
+lenght_spring = 150;   // DEFAULT rest length of the springs (> ball diameter): avoids the chain folding back
+                       // a pair may carry its own 'rest_length', which wins (see accel_spring)
+//-------------------- Tissue (complex object: grid of balls linked by springs)
+new_tissue_ok = false  // creation tool, like the other new_*_ok (reinit_params_ok sweeps them)
+tissue_nw = 6          // balls across the width, at creation
+tissue_nl = 6          // balls along the length, at creation
+tissue_k  = harmonic_const   // stiffness of a new tissue's springs (same scale as harmonic_const)
+tissue_l0 = lenght_spring    // equilibrium distance between two neighbouring balls
+tissue_next_id = 1     // identifies a tissue: every ball of the same mesh shares it
 one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (Newtonian gravity F = G·m_i·m_j/r²) — to adjust via the Interaction panel
 attract_softening = 40;                // ε: Plummer softening F = G·m·m/(r²+ε²) — removes the 1/r² singularity (energy conservation)

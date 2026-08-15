@@ -223,6 +223,118 @@ function make_new_string(){
 
 }
 
+//===================================================================== Tissue (complex object)
+
+function tissue_link(a, b, k, l0){
+
+      /*
+      One spring of the mesh. Stiffness AND rest length are stored on the pair: the globals
+      harmonic_const / lenght_spring stay the fallback for everything else (see accel_spring),
+      so a tissue can be soft or tight without touching the rest of the scene.
+      */
+
+      var pair = [a, b]
+      pair.push(create_elastic(pair))
+      pair.k_spring = k
+      pair.rest_length = l0
+      pair.tissue_id = a.tissue.id
+      list_paired_harmonic.push(pair)
+
+}
+
+function make_tissue_at(pos, id, nw, nl, k, l0){
+
+      /*
+      Rectangular grid of balls laid flat on the x-y plane, centred on pos, each linked to its
+      right and bottom neighbour -> every inner ball ends up held by four springs.
+      All the balls share the same descriptor object, so clicking any one of them gives access
+      to the whole mesh (tissue section of the Parameters panel).
+      */
+
+      nw = Math.max(2, Math.round(nw)); nl = Math.max(2, Math.round(nl))
+      var descr = { id:id, nw:nw, nl:nl, k:k, l0:l0 }
+      var grid = [], x0 = pos.x - (nw-1)*l0/2, y0 = pos.y - (nl-1)*l0/2
+      for (var j=0;j<nl;j++){
+            grid[j] = []
+            for (var i=0;i<nw;i++){
+                  var sph = basic_sphere(random_name(), { x:x0+i*l0, y:y0+j*l0, z:pos.z },
+                                         {"x":0,"y":0,"z":0}, color_sphere_default)
+                  sph.magnet = false
+                  sph.tissue = descr                     // same object on every ball of the mesh
+                  list_moving_objects.push(sph)          // dynamic: gravity, springs, collisions
+                  grid[j][i] = sph
+            }
+      }
+      for (var j=0;j<nl;j++){ for (var i=0;i<nw;i++){
+            if (i+1 < nw){ tissue_link(grid[j][i], grid[j][i+1], k, l0) }
+            if (j+1 < nl){ tissue_link(grid[j][i], grid[j+1][i], k, l0) }
+      } }
+      color_pairs_in_blue()
+      return descr
+
+}
+
+function make_new_tissue(){
+
+      /*
+      Drops a tissue where the mouse is, using the creation values of the Object panel.
+      */
+
+      make_tissue_at(mousepos(), tissue_next_id++, tissue_nw, tissue_nl, tissue_k, tissue_l0)
+
+}
+
+function tissue_balls(id){                                   // every ball belonging to one mesh
+      var a = []
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o && o.tissue && o.tissue.id === id){ a.push(o) }
+      }
+      return a
+}
+
+function tissue_center(balls){
+      var c = new THREE.Vector3()
+      for (var i=0;i<balls.length;i++){ c.add(balls[i].position) }
+      if (balls.length){ c.divideScalar(balls.length) }
+      return c
+}
+
+function tissue_apply(id, k, l0){
+
+      /*
+      Stiffness / rest length of an EXISTING tissue: applied to its springs in place, so the
+      current deformation and the velocities are preserved.
+      */
+
+      var balls = tissue_balls(id); if (!balls.length){ return null }
+      // Written on EVERY ball rather than relying on the shared reference: a reloaded scene
+      // re-shares them, but this stays correct even if that ever fails.
+      for (var b=0;b<balls.length;b++){ balls[b].tissue.k = k; balls[b].tissue.l0 = l0 }
+      var descr = balls[0].tissue
+      for (var i in list_paired_harmonic){
+            var p = list_paired_harmonic[i]
+            if (p.tissue_id === id){ p.k_spring = k; p.rest_length = l0 }
+      }
+      return descr
+
+}
+
+function tissue_rebuild(id, nw, nl, k, l0){
+
+      /*
+      New dimensions: the mesh is rebuilt from scratch, flat, centred where the old one was.
+      The current deformation and the velocities are lost -- that is the price of changing the
+      number of balls, and the reason dimensions are applied by an explicit button.
+      */
+
+      var balls = tissue_balls(id); if (!balls.length){ return null }
+      var center = tissue_center(balls)
+      for (var i=0;i<balls.length;i++){ remove_single_object(balls[i]) }   // also drops the springs attached
+      return make_tissue_at(center, id, nw, nl, k, l0)
+
+}
+
 function link(condition, action, arg){
 
       /*
@@ -254,6 +366,7 @@ function mouse_create_object_or_action(event){
       link(new_cube_ok, dictp.make_simple_cube, null)
       link(new_sphere_ok, make_new_sphere, null)
       link(new_string_ok, make_new_string, null)
+      link(new_tissue_ok, make_new_tissue, null)
       link(new_pavement_ok, dictp.make_pavement, null)
       link(new_cube_texture_ok, make_new_cube_texture, null)
       link(new_select_ok, limits_and_action, null)

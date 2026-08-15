@@ -508,7 +508,8 @@ function interact_harmonic_vectors(i){
       var lphi1 = list_paired_harmonic[i][1]
       vec_harm_interact.subVectors(lphi1.position, lphi0.position) // vector from O to 1 ..
       ///////change_spring(list_paired_harmonic[i])
-      var diff_length = vec_harm_interact.length() - lenght_spring // compare lengths
+      var l0 = (list_paired_harmonic[i].rest_length !== undefined) ? list_paired_harmonic[i].rest_length : lenght_spring
+      var diff_length = vec_harm_interact.length() - l0            // compare lengths
       vec_harm_interact = vec_harm_interact.normalize().multiplyScalar( diff_length )
       //alert("diff_length is " + diff_length)
       // alert('vec_harm_interact.x ' + vec_harm_interact.x)
@@ -726,7 +727,8 @@ function energy_calculation(){
             }
       }
       for (var k in list_paired_harmonic){                                 // spring elastic energy: ½·k·(L-L0)²
-            var dx = getDistance(list_paired_harmonic[k][0], list_paired_harmonic[k][1]) - lenght_spring
+            var l0k = (list_paired_harmonic[k].rest_length !== undefined) ? list_paired_harmonic[k].rest_length : lenght_spring
+            var dx = getDistance(list_paired_harmonic[k][0], list_paired_harmonic[k][1]) - l0k
             var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const
             elast_energy += 0.5 * kc * dx * dx
       }
@@ -2690,8 +2692,9 @@ function accel_spring(k){
       var p0 = list_paired_harmonic[k][0]
       var p1 = list_paired_harmonic[k][1]
       var kc = (list_paired_harmonic[k].k_spring !== undefined) ? list_paired_harmonic[k].k_spring : harmonic_const  // stiffness specific to the pair (global fallback)
+      var l0 = (list_paired_harmonic[k].rest_length !== undefined) ? list_paired_harmonic[k].rest_length : lenght_spring  // idem for the rest length
       var vec = new THREE.Vector3().subVectors(p1.position, p0.position)
-      var diff_length = vec.length() - lenght_spring
+      var diff_length = vec.length() - l0
       vec.normalize().multiplyScalar(diff_length)
       p0.acc.addScaledVector(vec,  kc/p0.mass)
       p1.acc.addScaledVector(vec, -kc/p1.mass)
