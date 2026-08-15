@@ -288,6 +288,11 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         var t = obj.tissue
         num_row($T, 'stiffness',   function(){ return t.k },  function(v){ tissue_apply(t.id, v, t.l0) })
         num_row($T, 'rest length', function(){ return t.l0 }, function(v){ if (v > 0){ tissue_apply(t.id, t.k, v) } })
+        // The two families that give the mesh its shape. Shear fights in-plane distortion
+        // (a cell turning into a lozenge), bending fights folding out of the plane. Keeping
+        // bending well under the structural stiffness is what makes a cloth and not a plate.
+        num_row($T, 'shear k',   function(){ return t.ks }, function(v){ tissue_apply(t.id, t.k, t.l0, v, t.kb) })
+        num_row($T, 'bending k', function(){ return t.kb }, function(v){ tissue_apply(t.id, t.k, t.l0, t.ks, v) })
         var nw = t.nw, nl = t.nl                                  // staged: applied by « rebuild » only
         num_row($T, 'balls width',  function(){ return nw }, function(v){ nw = Math.max(2, Math.round(v)) })
         num_row($T, 'balls length', function(){ return nl }, function(v){ nl = Math.max(2, Math.round(v)) })

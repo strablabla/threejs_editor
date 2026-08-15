@@ -251,8 +251,12 @@ function load_chains(msg){
             var s0 = listorig[ msg['_chains'][k][0] ]
             var s1 = listorig[ msg['_chains'][k][1] ]
             if (s0 && s1){
-                  var el = create_elastic([s0, s1])
+                  var kind = msg['_chains'][k][5]                 // 'struct' | 'shear' | 'bend' (absent on older scenes)
+                  // Shear and bending springs of a tissue carry no visible elastic: they are
+                  // internal, and drawing them would bury the mesh under a web of tubes.
+                  var el = (kind === 'shear' || kind === 'bend') ? null : create_elastic([s0, s1])
                   var pair = [s0, s1, el]
+                  if (kind !== undefined && kind !== null){ pair.tissue_kind = kind }
                   var ksaved = msg['_chains'][k][2]               // saved own stiffness (if set)
                   if (ksaved !== undefined && ksaved !== null){ pair.k_spring = ksaved }
                   var lsaved = msg['_chains'][k][3]               // saved own rest length (if set)
@@ -435,7 +439,7 @@ function get_scene_data(){              // builds the scene JSON (without sendin
             }    // end if
           }    // end for
     if (list_paired_harmonic.length > 0){              // saves the chain links (ball names + own stiffness)
-          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring, p.rest_length, p.tissue_id] })
+          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring, p.rest_length, p.tissue_id, p.tissue_kind] })
     }
     if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
           listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity, locked: !!l.mesh.locked } })

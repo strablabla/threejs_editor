@@ -10,9 +10,16 @@ function color_pairs_in_blue(){
       Color all the pairs in blue..
       */
 
+      /* Indices only, and guarded. A pair is an array [ball, ball, elastic] that ALSO carries
+         named properties (k_spring, rest_length, tissue_id, tissue_kind): a for..in would walk
+         those too and try to read .material on a number. And the shear/bending springs of a
+         tissue have no elastic at all, so slot 2 can be null. */
       for (var i in list_paired_harmonic){
-          for (var j in list_paired_harmonic[i]){
-              list_paired_harmonic[i][j].material.color.setHex(color_harmonic_pairs_pale_blue)
+          var p = list_paired_harmonic[i]
+          for (var j=0;j<p.length;j++){
+              if (p[j] && p[j].material && p[j].material.color){
+                    p[j].material.color.setHex(color_harmonic_pairs_pale_blue)
+              }
           }
       }
 

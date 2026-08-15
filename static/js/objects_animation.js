@@ -475,6 +475,9 @@ function change_elastic(obj){
       */
 
       var new_elastic = obj[2]
+      if (!new_elastic){ return }                 // spring with no visual: the shear and bending
+                                                  // springs of a tissue are internal, drawing them
+                                                  // would hide the mesh under a web of tubes
       new_elastic.position.copy(obj[0].position); // stick spring to object (local position = world, non-nested objects)
       var new_elastic_scale = getDistance(obj[0], obj[1])/420
       new_elastic.scale.set(1,1,new_elastic_scale)

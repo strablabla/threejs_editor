@@ -225,34 +225,51 @@ function make_new_string(){
 
 //===================================================================== Tissue (complex object)
 
-function tissue_link(a, b, k, l0){
+/*
+A cloth needs three families of springs (Provot). Structural ones alone leave every cell a
+free hinge: the mesh resists stretching but not shear, and not folding at all -- it collapses
+at the first contact.
+      structural  neighbour right / below            rest length l0
+      shear       both diagonals of a cell           rest length l0·√2   -> in-plane rigidity
+      bending     skip one ball, both directions     rest length 2·l0    -> out-of-plane rigidity
+Bending MUST be much softer than the rest: that ratio is what separates a cloth from a plate.
+*/
+var TISSUE_SHEAR_RATIO = 0.5        // shear stiffness, relative to the structural one
+var TISSUE_BEND_RATIO  = 1/6        // bending stiffness, idem -- deliberately soft
+
+function tissue_link(a, b, k, l0, kind){
 
       /*
       One spring of the mesh. Stiffness AND rest length are stored on the pair: the globals
       harmonic_const / lenght_spring stay the fallback for everything else (see accel_spring),
       so a tissue can be soft or tight without touching the rest of the scene.
+      Only the structural springs get a visible elastic: drawing the diagonals and the
+      skip-one springs would bury the mesh under a web of tubes, and triple the geometry.
       */
 
       var pair = [a, b]
-      pair.push(create_elastic(pair))
+      pair.push((kind === 'struct') ? create_elastic(pair) : null)
       pair.k_spring = k
       pair.rest_length = l0
       pair.tissue_id = a.tissue.id
+      pair.tissue_kind = kind
       list_paired_harmonic.push(pair)
 
 }
 
-function make_tissue_at(pos, id, nw, nl, k, l0){
+function make_tissue_at(pos, id, nw, nl, k, l0, ks, kb){
 
       /*
-      Rectangular grid of balls laid flat on the x-y plane, centred on pos, each linked to its
-      right and bottom neighbour -> every inner ball ends up held by four springs.
+      Rectangular grid of balls laid flat on the x-y plane, centred on pos, woven with the
+      three families of springs described above.
       All the balls share the same descriptor object, so clicking any one of them gives access
-      to the whole mesh (tissue section of the Parameters panel).
+      to the whole mesh (Tissue tab of the right-click menu).
       */
 
       nw = Math.max(2, Math.round(nw)); nl = Math.max(2, Math.round(nl))
-      var descr = { id:id, nw:nw, nl:nl, k:k, l0:l0 }
+      if (ks === undefined){ ks = k*TISSUE_SHEAR_RATIO }
+      if (kb === undefined){ kb = k*TISSUE_BEND_RATIO }
+      var descr = { id:id, nw:nw, nl:nl, k:k, l0:l0, ks:ks, kb:kb }
       var grid = [], x0 = pos.x - (nw-1)*l0/2, y0 = pos.y - (nl-1)*l0/2
       for (var j=0;j<nl;j++){
             grid[j] = []
@@ -265,9 +282,16 @@ function make_tissue_at(pos, id, nw, nl, k, l0){
                   grid[j][i] = sph
             }
       }
+      var ld = l0*Math.SQRT2                             // diagonal of a cell
       for (var j=0;j<nl;j++){ for (var i=0;i<nw;i++){
-            if (i+1 < nw){ tissue_link(grid[j][i], grid[j][i+1], k, l0) }
-            if (j+1 < nl){ tissue_link(grid[j][i], grid[j+1][i], k, l0) }
+            if (i+1 < nw){ tissue_link(grid[j][i], grid[j][i+1], k, l0, 'struct') }
+            if (j+1 < nl){ tissue_link(grid[j][i], grid[j+1][i], k, l0, 'struct') }
+            if (i+1 < nw && j+1 < nl){                   // shear: the two diagonals of the cell
+                  tissue_link(grid[j][i],   grid[j+1][i+1], ks, ld, 'shear')
+                  tissue_link(grid[j][i+1], grid[j+1][i],   ks, ld, 'shear')
+            }
+            if (i+2 < nw){ tissue_link(grid[j][i], grid[j][i+2], kb, 2*l0, 'bend') }   // bending
+            if (j+2 < nl){ tissue_link(grid[j][i], grid[j+2][i], kb, 2*l0, 'bend') }
       } }
       color_pairs_in_blue()
       return descr
@@ -300,27 +324,39 @@ function tissue_center(balls){
       return c
 }
 
-function tissue_apply(id, k, l0){
+function tissue_apply(id, k, l0, ks, kb){
 
       /*
       Stiffness / rest length of an EXISTING tissue: applied to its springs in place, so the
       current deformation and the velocities are preserved.
+      Each family keeps its own stiffness and its own rest length, derived from l0: a cell
+      diagonal is l0·√2 and a skip-one span is 2·l0, so changing l0 rescales the whole mesh
+      consistently. ks/kb may be omitted -- the current values are then kept.
       */
 
       var balls = tissue_balls(id); if (!balls.length){ return null }
+      var d0 = balls[0].tissue
+      if (ks === undefined){ ks = (d0.ks !== undefined) ? d0.ks : k*TISSUE_SHEAR_RATIO }
+      if (kb === undefined){ kb = (d0.kb !== undefined) ? d0.kb : k*TISSUE_BEND_RATIO }
       // Written on EVERY ball rather than relying on the shared reference: a reloaded scene
       // re-shares them, but this stays correct even if that ever fails.
-      for (var b=0;b<balls.length;b++){ balls[b].tissue.k = k; balls[b].tissue.l0 = l0 }
-      var descr = balls[0].tissue
+      for (var b=0;b<balls.length;b++){
+            var d = balls[b].tissue
+            d.k = k; d.l0 = l0; d.ks = ks; d.kb = kb
+      }
+      var ld = l0*Math.SQRT2
       for (var i in list_paired_harmonic){
             var p = list_paired_harmonic[i]
-            if (p.tissue_id === id){ p.k_spring = k; p.rest_length = l0 }
+            if (p.tissue_id !== id){ continue }
+            if (p.tissue_kind === 'shear'){ p.k_spring = ks; p.rest_length = ld }
+            else if (p.tissue_kind === 'bend'){ p.k_spring = kb; p.rest_length = 2*l0 }
+            else { p.k_spring = k; p.rest_length = l0 }      // structural (and scenes saved before the families)
       }
-      return descr
+      return d0
 
 }
 
-function tissue_rebuild(id, nw, nl, k, l0){
+function tissue_rebuild(id, nw, nl, k, l0, ks, kb){
 
       /*
       New dimensions: the mesh is rebuilt from scratch, flat, centred where the old one was.
@@ -329,9 +365,12 @@ function tissue_rebuild(id, nw, nl, k, l0){
       */
 
       var balls = tissue_balls(id); if (!balls.length){ return null }
+      var d0 = balls[0].tissue
+      if (ks === undefined){ ks = d0.ks }
+      if (kb === undefined){ kb = d0.kb }
       var center = tissue_center(balls)
       for (var i=0;i<balls.length;i++){ remove_single_object(balls[i]) }   // also drops the springs attached
-      return make_tissue_at(center, id, nw, nl, k, l0)
+      return make_tissue_at(center, id, nw, nl, k, l0, ks, kb)
 
 }
 
