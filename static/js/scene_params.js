@@ -106,6 +106,9 @@ color_gas_default = 0x66ccff   // gas balls: told apart from the shell at a glan
 one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (Newtonian gravity F = G·m_i·m_j/r²) — to adjust via the Interaction panel
 attract_softening = 40;                // ε: Plummer softening F = G·m·m/(r²+ε²) — removes the 1/r² singularity (energy conservation)
+phys_substeps = 1                      // Verlet steps per frame. The energy drift of a scene with many
+                                       // springs and contacts is FIRST ORDER in the step: 4 substeps
+                                       // cost 4x the computation and lose about 4x less. 1 = as before.
 use_cell_lists = false                 // short-range collisions in O(n) (spatial grid) instead of the O(n²) double loop — physically identical result
 use_barnes_hut = false                 // 1/r² attraction approximated by octree in O(n log n) instead of O(n²) — APPROXIMATION (see barnes_hut_theta)
 barnes_hut_theta = 0.5                  // Barnes-Hut opening threshold: 0 = exact (slow), larger = faster but more approximate (~0.5 usual)
@@ -152,7 +155,7 @@ traj_show, mon_chrono) stay explicit in init_scene.js.
 
 PERSISTED_DYNAMICS = [
       'gravity_ok', 'springs_ok', 'one_over_r2', 'attract_softening',
-      'use_cell_lists', 'use_barnes_hut', 'barnes_hut_theta',
+      'use_cell_lists', 'use_barnes_hut', 'barnes_hut_theta', 'phys_substeps',
       'random_initial_speed', 'random_speed_module', 'random_speed_z',
       'track_height',
       // display toggles (Monitoring)
