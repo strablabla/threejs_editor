@@ -61,6 +61,18 @@ function mouseleave_hide_panel(class_panel){
       $(class_panel).mouseleave(function(){ $(class_panel).hide() }) // Hide when leaving the panel
 }
 
+function is_anchor(o){
+
+      /*
+      A ball deliberately blocked by the user. Single source of truth for "should this look
+      black": walls, box walls, track slabs and pavements are blocked by construction and are
+      NOT anchors.
+      */
+
+      return !!(o && o.type === 'sphere' && o.blocked)
+
+}
+
 function blocked_display_hex(o){
 
       /*
@@ -70,7 +82,7 @@ function blocked_display_hex(o){
       walls, box walls, track slabs and pavements are blocked by construction.
       */
 
-      if (o && o.type === 'sphere' && o.blocked){ return color_blocked_black }
+      if (is_anchor(o)){ return color_blocked_black }
       if (o && o.currentHex !== undefined){ return o.currentHex }
       // Never return undefined: several callers feed this straight into setHex(), and
       // setHex(undefined) would paint the object black by accident -- the very colour

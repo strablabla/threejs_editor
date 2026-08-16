@@ -17,9 +17,14 @@ function color_pairs_in_blue(){
       for (var i in list_paired_harmonic){
           var p = list_paired_harmonic[i]
           for (var j=0;j<p.length;j++){
-              if (p[j] && p[j].material && p[j].material.color){
-                    p[j].material.color.setHex(color_harmonic_pairs_pale_blue)
-              }
+              var o = p[j]
+              if (!o || !o.material || !o.material.color){ continue }
+              // An anchored ball keeps its black: that is a STATE, not a highlight. This runs
+              // after the objects on every scene load (load_chains follows load_object), and
+              // without the guard the pale blue wiped every anchor -- they only turned black
+              // again once hovered, since the un-hover path knows about anchors.
+              if (is_anchor(o)){ o.material.color.setHex(color_blocked_black); continue }
+              o.material.color.setHex(color_harmonic_pairs_pale_blue)
           }
       }
 
