@@ -22,32 +22,6 @@
 
         </div>
 
-        <!-- ===== Tissue: shown only when the clicked ball belongs to a mesh =====
-             Stiffness and rest length are applied live on the existing springs. Dimensions
-             need the mesh to be rebuilt, so they sit behind their own button. -->
-        <div id="tissue_section" style="display:none; margin-top:10px; padding:8px 10px; border-top:1px solid #ddd; font-family:sans-serif; font-size:11px; color:#555">
-          <div style="font-weight:bold; margin-bottom:6px">tissue <span id="tissue_id_lbl" style="color:#888; font-weight:normal"></span></div>
-
-          <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px">
-            <span style="flex:0 0 92px">stiffness</span>
-            <input type="number" id="tissue_k_panel" min="0" step="0.01" style="width:70px" title="stiffness of every spring of this mesh">
-          </div>
-          <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px">
-            <span style="flex:0 0 92px">rest length</span>
-            <input type="number" id="tissue_l0_panel" min="1" step="5" style="width:70px" title="equilibrium distance between two neighbouring balls">
-          </div>
-          <div style="color:#888; margin-bottom:8px">applied as you type, the mesh keeps its shape</div>
-
-          <div style="display:flex; gap:6px; align-items:center; margin-bottom:5px">
-            <span style="flex:0 0 92px">balls (w &times; l)</span>
-            <input type="number" id="tissue_nw_panel" min="2" max="30" step="1" style="width:48px">
-            <span>&times;</span>
-            <input type="number" id="tissue_nl_panel" min="2" max="30" step="1" style="width:48px">
-          </div>
-          <center><button id="tissue_rebuild_btn" type="button" class="btn btn-alert" style="font-size:11px; padding:2px 10px">rebuild</button></center>
-          <div style="color:#888; margin-top:5px; text-align:center">rebuilding lays the mesh flat again<br>and clears the current motion</div>
-        </div>
-
         <br>
         <center> <button id="block_pos" type="button" class="btn btn-alert"> block </button> </center>
         <br>
