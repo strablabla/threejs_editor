@@ -151,6 +151,28 @@ CustomCylinder.prototype.getPoint = function ( t ) {
         return new THREE.Vector3( tx, ty, tz ).multiplyScalar( this.scale );
     };
 
+// Every elastic is the SAME straight tube: length comes from obj.scale.z and direction from
+// lookAt (see create_elastic / change_elastic), never from the geometry. So one geometry is
+// shared by all of them, exactly as shared_sphere_geometry does for the balls -- and for the
+// same reason: in r75 a THREE.Geometry keeps its vertices as Vector3 and its faces as Face3
+// JS objects, so 200x20 segments cost megabytes of HEAP per elastic. A 20x20 tissue creates
+// 760 springs and used to blow through V8's 4 GB limit before drawing a single frame.
+// 200 longitudinal segments were pointless anyway: CustomCylinder.getPoint is a straight
+// line, so any number above 1 gives the very same shape. Cutting it to 4 also divides the
+// triangles per spring by 50.
+var ELASTIC_TUBULAR_SEG = 4     // straight path: more segments change nothing visually
+var ELASTIC_RADIAL_SEG  = 20    // kept as it was: this one does shape the silhouette
+var _elastic_geo_cache = null
+
+function shared_elastic_geometry(){
+        if (!_elastic_geo_cache){
+              var path = new CustomCylinder( 7 );
+              _elastic_geo_cache = new THREE.TubeGeometry( path, ELASTIC_TUBULAR_SEG, 10, ELASTIC_RADIAL_SEG, false );
+              _elastic_geo_cache._shared = true   // dispose_object/free_gpu must NOT dispose it: the other springs still use it
+        }
+        return _elastic_geo_cache
+}
+
 function elastic(name,p,r,col){
 
         /*
@@ -161,9 +183,8 @@ function elastic(name,p,r,col){
         // var material = new THREE.MeshBasicMaterial( { color: 0x00ff00  } ); //
         // var object = new THREE.Mesh( geometry, material );
 
-        var path = new CustomCylinder( 7 );
-        var geometry = new THREE.TubeGeometry( path, 200, 10, 20, false );
-        var material = new THREE.MeshBasicMaterial( { color: 0x00ff00  } ); //
+        var geometry = shared_elastic_geometry();
+        var material = new THREE.MeshBasicMaterial( { color: 0x00ff00  } ); //   (per object: colours differ)
         var object = new THREE.Mesh( geometry, material );
 
         object = obj_basics(object,p,r,name)
