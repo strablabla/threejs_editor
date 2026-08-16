@@ -343,6 +343,10 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         // Dimensionless: the coefficient really used is P·k/R, so the same value gives the
         // same inflation whatever the radius. 0 empties the bubble.
         num_row($B, 'pressure',  function(){ return b.P },  function(v){ if (v >= 0){ bubble_apply(b.id, b.k, b.kb, v) } })
+        // Shell AND its elastics, so the gas inside becomes visible. The gas balls keep their
+        // own opacity: they are the thing one is trying to see.
+        num_row($B, 'opacity',   function(){ return (b.op !== undefined) ? b.op : 1 },
+                                 function(v){ bubble_set_opacity(b.id, v) })
         var lvl = b.level, R = b.R                            // staged: applied by « rebuild » only
         num_row($B, 'mesh level', function(){ return lvl }, function(v){ lvl = Math.max(0, Math.min(3, Math.round(v))) })
         num_row($B, 'radius',     function(){ return R },   function(v){ if (v > 0){ R = v } })

@@ -536,7 +536,7 @@ function make_bubble_at(pos, id, level, R, k, kb, P){
 
       level = Math.max(0, Math.min(3, Math.round(level)))
       var g = ico_geometry(level)
-      var descr = { id:id, level:level, R:R, k:k, kb:kb, P:P, V0:0 }
+      var descr = { id:id, level:level, R:R, k:k, kb:kb, P:P, V0:0, op:1 }
       // NOTE: the descriptor holds plain NUMBERS only -- no ball reference (the scene JSON
       // would become circular) and no face list (see ico_geometry: it is rebuilt from level).
       var balls = []
@@ -622,6 +622,37 @@ function bubble_apply(id, k, kb, P){
             p.k_spring = (p.tissue_kind === 'bend') ? kb : k     // rest lengths stay: they are the built shape
       }
       return balls[0].bubble
+
+}
+
+function bubble_set_opacity(id, op){
+
+      /*
+      Opacity of the WHOLE shell: its balls and the elastics between them, so the gas inside
+      can be seen. The gas balls are deliberately left alone -- they are what one wants to see.
+
+      Stored on the descriptor, and not only on the materials, because the elastics are NOT
+      saved as objects: load_chains rebuilds them from scratch, opaque. Without the value kept
+      here, a reloaded bubble came back with transparent balls inside a cage of solid tubes.
+      */
+
+      op = Math.max(0, Math.min(1, op))
+      var balls = bubble_balls(id); if (!balls.length){ return null }
+      for (var b=0;b<balls.length;b++){ balls[b].bubble.op = op }
+      function paint(o){
+            if (typeof each_object_material !== 'function'){ return }
+            each_object_material(o, function(mat){
+                  mat.opacity = op
+                  if (op < 1){ mat.transparent = true }   // no point paying for blending at 1
+                  mat.needsUpdate = true
+            })
+      }
+      for (var b=0;b<balls.length;b++){ paint(balls[b]) }
+      for (var i in list_paired_harmonic){
+            var p = list_paired_harmonic[i]
+            if (p.bubble_id === id && p[2]){ paint(p[2]) }   // shear/bending springs have no tube
+      }
+      return op
 
 }
 

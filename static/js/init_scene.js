@@ -295,6 +295,15 @@ function load_chains(msg){
             if (seenb[idb]){ o.bubble = seenb[idb] } else { seenb[idb] = o.bubble }
             if (typeof bubble_next_id !== 'undefined' && idb >= bubble_next_id){ bubble_next_id = idb + 1 }
       }
+      // The elastics were just rebuilt from scratch, hence opaque: a transparent shell would
+      // come back as see-through balls inside a cage of solid tubes. Repaint from the value
+      // kept on the descriptor.
+      for (var idb2 in seenb){
+            var op = seenb[idb2].op
+            if (op !== undefined && op < 1 && typeof bubble_set_opacity === 'function'){
+                  bubble_set_opacity(seenb[idb2].id, op)
+            }
+      }
 
 }
 
