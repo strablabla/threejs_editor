@@ -174,6 +174,10 @@ function delete_objects_inside(){
       var victims = list_obj_inside.slice()      // snapshot: remove_single_object empties the list as it goes
       for (var i = 0; i < victims.length; i++){ remove_single_object(victims[i]) }
       list_obj_inside = []
+      // The area outlived its contents: the dotted rectangle and the black corner marks were
+      // still floating over an empty zone. Same cleanup as Ctrl+S, which also drops the corner
+      // marks from `objects` (they are pickable) and leaves the selection tool off.
+      if (typeof clear_area_selection === 'function'){ clear_area_selection() }
 
   } // end delete_objects_inside
 
