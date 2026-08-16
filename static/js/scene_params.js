@@ -220,6 +220,9 @@ color_dotted_line_black = 0x000000;
 color_basic_default_pale_grey = 0xf2f2f2
 color_near_object_yellow = 0xffff66;
 color_intersected_green = 0x66ff33;
+color_blocked_black = 0x111111;     // a BALL that has been blocked (anchor): shown black.
+                                    // Walls, box walls, track slabs and pavements are blocked
+                                    // by construction, not by choice -- they keep their look.
 color_object_inside_pink = 0xffcccc;
 color_sphere_default = 0xffcccc;    // default color of the balls at creation (pink)
 color_clone_pale_blue = 0xcceeff;

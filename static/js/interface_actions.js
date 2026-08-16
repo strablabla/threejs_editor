@@ -61,6 +61,39 @@ function mouseleave_hide_panel(class_panel){
       $(class_panel).mouseleave(function(){ $(class_panel).hide() }) // Hide when leaving the panel
 }
 
+function blocked_display_hex(o){
+
+      /*
+      Colour an object must show when it carries NO highlight (selection, hover, group).
+      A blocked ball is an anchor: it is the one thing in the scene that looks movable but
+      never moves, so it is worth seeing at a glance. Restricted to spheres on purpose --
+      walls, box walls, track slabs and pavements are blocked by construction.
+      */
+
+      if (o && o.type === 'sphere' && o.blocked){ return color_blocked_black }
+      if (o && o.currentHex !== undefined){ return o.currentHex }
+      // Never return undefined: several callers feed this straight into setHex(), and
+      // setHex(undefined) would paint the object black by accident -- the very colour
+      // this function is supposed to reserve for anchors.
+      return (o && o.material && o.material.color) ? o.material.color.getHex() : 0xffffff
+
+}
+
+function refresh_blocked_color(o){
+
+      /*
+      Repaints one object according to its blocked state. Call it after every change of
+      obj.blocked; the un-highlight paths go through blocked_display_hex, so the black
+      survives a selection and its release.
+      */
+
+      if (!o || !o.material || !o.material.color){ return }
+      if (o.currentHex === undefined){ o.currentHex = o.material.color.getHex() }   // remember the real colour first
+      var hex = blocked_display_hex(o)
+      if (hex !== undefined){ o.material.color.setHex(hex) }
+
+}
+
 function block_obj(obj){
 
       /*
@@ -264,6 +297,8 @@ function block_pos_object(){
             for (i in objects){
                 if (objects[i].name == $('#name_panel').text()){
                    objects[i].blocked = ! objects[i].blocked;
+                   if (objects[i].blocked && objects[i].speed){ objects[i].speed.set(0,0,0) }
+                   refresh_blocked_color(objects[i])              // a blocked ball turns black
                    actions_with_block_unblock(objects[i])
                 } // end if
             } // end for

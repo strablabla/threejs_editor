@@ -42,7 +42,7 @@ function mouse_move_case_intersections(intersects){
       */
 
       if ( INTERSECTED != intersects[ 0 ].object ) {
-            if ( INTERSECTED && list_obj_inside.indexOf(INTERSECTED) < 0 ){ INTERSECTED.material.color.setHex( INTERSECTED.currentHex ); }  // not a selected object
+            if ( INTERSECTED && list_obj_inside.indexOf(INTERSECTED) < 0 ){ INTERSECTED.material.color.setHex( blocked_display_hex(INTERSECTED) ); }  // not a selected object
             INTERSECTED = intersects[ 0 ].object;
             if ( list_obj_inside.indexOf(INTERSECTED) < 0 ){ INTERSECTED.currentHex = INTERSECTED.material.color.getHex(); }  // do not overwrite currentHex of a selected object (keeps its true color)
       }
@@ -55,7 +55,7 @@ function mouse_move_case_no_intersection(){
       No intersection detected
       */
 
-      if ( INTERSECTED && list_obj_inside.indexOf(INTERSECTED) < 0 ){ INTERSECTED.material.color.setHex( INTERSECTED.currentHex ); }  // do not "restore" a selected object (handled by the selection)
+      if ( INTERSECTED && list_obj_inside.indexOf(INTERSECTED) < 0 ){ INTERSECTED.material.color.setHex( blocked_display_hex(INTERSECTED) ); }  // do not "restore" a selected object (handled by the selection)
       INTERSECTED = null;
       container.style.cursor = 'auto';
 

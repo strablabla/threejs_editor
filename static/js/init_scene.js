@@ -131,7 +131,7 @@ function load_params(name, msg, curr_tex_addr){
        speed, dimensions...) are deliberate: the type-specific loaders restore those. */
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
-                          'magnet', 'friction', 'group_id', 'tissue', 'track_trajectory']
+                          'magnet', 'friction', 'group_id', 'tissue', 'tissue_idx', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
@@ -147,6 +147,9 @@ function load_params(name, msg, curr_tex_addr){
           listorig[name].currentHex = msg[name]['color']             // + "real" color stored
     }
     load_speed(msg,name)
+    // A ball saved as an anchor must come back black: the colour above is the REAL one, the
+    // blocked state is only known once the attributes have been copied.
+    if (typeof refresh_blocked_color === 'function'){ refresh_blocked_color(listorig[name]) }
 
 }
 
@@ -403,7 +406,7 @@ function make_infos_obj_of(obj){
                           'mass', 'speed', 'v0', 'radius', 'radius_interact', 'magnet', 'friction',
                           'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
                           'is_track', 'track_solid',   // a track segment, and whether the balls bounce off it
-                          'tissue',                    // descriptor of the mesh a ball belongs to (id, nw, nl, k, l0)
+                          'tissue', 'tissue_idx',      // mesh a ball belongs to, and its rank in it
                           'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
       var y = obj.rotation.y

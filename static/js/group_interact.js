@@ -90,7 +90,7 @@ function clear_area_selection(){
           if (o.group_id !== undefined && group_highlighted[o.group_id]){
                 o.material.color.setHex(color_group_persistent_violet)   // highlighted group (context menu) -> stays violet
           } else if (o.currentHex !== undefined){
-                o.material.color.setHex(o.currentHex)                    // otherwise -> original color
+                o.material.color.setHex(blocked_display_hex(o))          // otherwise -> real colour (black if anchored)
           }
       }
       list_obj_inside = []
@@ -157,7 +157,7 @@ function toggle_persistent_group(){
             for (var i in sel){
                   var o = sel[i]
                   delete o.group_id
-                  if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(o.currentHex) }
+                  if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(blocked_display_hex(o)) }
             }
       } else {                                           // GROUP -> violet (visual feedback, not highlighted by default)
             var ng = ++group_id_counter
@@ -190,7 +190,7 @@ function highlight_group(gid, on){
                   if (o.currentHex === undefined){ o.currentHex = o.material.color.getHex() }  // stores the real color
                   o.material.color.setHex(color_group_persistent_violet)
             } else if (o.currentHex !== undefined){
-                  o.material.color.setHex(o.currentHex)                                        // original color
+                  o.material.color.setHex(blocked_display_hex(o))                              // real colour (black if anchored)
             }
       }
 }

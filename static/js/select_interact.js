@@ -291,7 +291,7 @@ function reshape_selection(){
       for (var i in list_obj_inside){                    // restore the color of objects that leave (except grouped ones)
             var o = list_obj_inside[i]
             if (o.group_id !== undefined){ continue }
-            if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(o.currentHex) }
+            if (o.material && o.material.color && o.currentHex !== undefined){ o.material.color.setHex(blocked_display_hex(o)) }
       }
       list_obj_inside = []
       find_objects_in_area()                             // repopulate according to the new area (pink)

@@ -278,6 +278,8 @@ function make_tissue_at(pos, id, nw, nl, k, l0, ks, kb){
                                          {"x":0,"y":0,"z":0}, color_sphere_default)
                   sph.magnet = false
                   sph.tissue = descr                     // same object on every ball of the mesh
+                  sph.tissue_idx = j*nw + i              // rank in the mesh: survives save/load, unlike
+                                                         // the order of list_moving_objects
                   list_moving_objects.push(sph)          // dynamic: gravity, springs, collisions
                   grid[j][i] = sph
             }
@@ -353,6 +355,45 @@ function tissue_apply(id, k, l0, ks, kb){
             else { p.k_spring = k; p.rest_length = l0 }      // structural (and scenes saved before the families)
       }
       return d0
+
+}
+
+function tissue_corner_balls(id){
+
+      /*
+      The four corners of the mesh, found by rank rather than by position: a deformed or
+      folded tissue no longer has its corners at the extremities in space.
+      */
+
+      var balls = tissue_balls(id); if (!balls.length){ return [] }
+      var d = balls[0].tissue, nw = d.nw, nl = d.nl
+      var want = [0, nw-1, (nl-1)*nw, nl*nw-1]
+      var out = []
+      for (var i=0;i<balls.length;i++){
+            if (want.indexOf(balls[i].tissue_idx) >= 0){ out.push(balls[i]) }
+      }
+      return out
+
+}
+
+function tissue_toggle_corners(id){
+
+      /*
+      Anchors the four corners, or releases them if they are already anchored: a blocked ball
+      is skipped by the Verlet integrator, so the mesh hangs from them instead of falling.
+      Returns the state applied, or null if the tissue is gone.
+      */
+
+      var corners = tissue_corner_balls(id); if (!corners.length){ return null }
+      var all_blocked = true
+      for (var i=0;i<corners.length;i++){ if (!corners[i].blocked){ all_blocked = false } }
+      var state = !all_blocked                             // all anchored -> release, otherwise anchor
+      for (var i=0;i<corners.length;i++){
+            corners[i].blocked = state
+            if (state){ corners[i].speed.set(0,0,0) }       // an anchor keeps no leftover velocity
+            if (typeof refresh_blocked_color === 'function'){ refresh_blocked_color(corners[i]) }
+      }
+      return state
 
 }
 

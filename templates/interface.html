@@ -296,6 +296,22 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         var nw = t.nw, nl = t.nl                                  // staged: applied by « rebuild » only
         num_row($T, 'balls width',  function(){ return nw }, function(v){ nw = Math.max(2, Math.round(v)) })
         num_row($T, 'balls length', function(){ return nl }, function(v){ nl = Math.max(2, Math.round(v)) })
+        // Anchoring: without it the mesh simply free-falls, however rigid it is.
+        var $anc = $('<button type="button" style="width:100%; margin-top:8px; cursor:pointer; font-family:inherit; font-size:11px; padding:3px">')
+        function anchor_label(){
+              var c = tissue_corner_balls(t.id), on = c.length && c.every(function(b){ return b.blocked })
+              return on ? 'release the corners' : 'anchor the corners'
+        }
+        $anc.text(anchor_label())
+        $anc.on('mousedown mouseup dblclick', function(e){ e.stopPropagation() })
+        $anc.on('click', function(e){
+              e.stopPropagation()
+              tissue_toggle_corners(t.id)
+              $anc.text(anchor_label())
+              if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+        })
+        $T.append($anc)
+
         var $btn = $('<button type="button" style="width:100%; margin-top:6px; cursor:pointer; font-family:inherit; font-size:11px; padding:3px">')
               .text('rebuild ' + '(' + (obj.tissue.id) + ')')
         $btn.on('mousedown mouseup dblclick', function(e){ e.stopPropagation() })
@@ -553,7 +569,13 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
 
         // --- Miscellaneous: magnet, blocked, trajectory (+ group coloring) ---
         bool_row($M, 'magnet',  function(){ return obj.magnet },  function(v){ applyAll(function(t){ t.magnet = v }) })
-        bool_row($M, 'blocked', function(){ return obj.blocked }, function(v){ applyAll(function(t){ t.blocked = v }) })
+        bool_row($M, 'blocked', function(){ return obj.blocked }, function(v){
+              applyAll(function(t){
+                    t.blocked = v
+                    if (v && t.speed){ t.speed.set(0,0,0) }        // an anchor keeps no leftover velocity
+                    refresh_blocked_color(t)                       // a blocked ball turns black
+              })
+        })
         bool_row($M, 'trajectory', function(){ return obj.track_trajectory }, function(v){    // tracking specific to this object
               obj.track_trajectory = v
               if (v && typeof reset_trajectory === 'function'){ reset_trajectory(obj) } else { obj.traj = null }

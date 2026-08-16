@@ -116,7 +116,7 @@ function restore_yellow(){
       */
 
       if (yellow_obj){
-            yellow_obj.material.color.setHex(yellow_obj.currentHex)
+            yellow_obj.material.color.setHex(blocked_display_hex(yellow_obj))   // black again if it is an anchor
             yellow_obj = null
       }
 
