@@ -131,7 +131,8 @@ function load_params(name, msg, curr_tex_addr){
        speed, dimensions...) are deliberate: the type-specific loaders restore those. */
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
-                          'magnet', 'friction', 'group_id', 'tissue', 'tissue_idx', 'track_trajectory']
+                          'magnet', 'friction', 'group_id', 'tissue', 'tissue_idx',
+                          'bubble', 'bubble_idx', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
@@ -285,6 +286,15 @@ function load_chains(msg){
             if (seen[id]){ o.tissue = seen[id] } else { seen[id] = o.tissue }
             if (typeof tissue_next_id !== 'undefined' && id >= tissue_next_id){ tissue_next_id = id + 1 }
       }
+      // Same for the bubbles. Sharing matters more here: the descriptor carries the face list
+      // and the reference volume V0, both read every frame by accel_pressure.
+      var seenb = {}
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]; if (!o || !o.bubble){ continue }
+            var idb = o.bubble.id
+            if (seenb[idb]){ o.bubble = seenb[idb] } else { seenb[idb] = o.bubble }
+            if (typeof bubble_next_id !== 'undefined' && idb >= bubble_next_id){ bubble_next_id = idb + 1 }
+      }
 
 }
 
@@ -407,6 +417,7 @@ function make_infos_obj_of(obj){
                           'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
                           'is_track', 'track_solid',   // a track segment, and whether the balls bounce off it
                           'tissue', 'tissue_idx',      // mesh a ball belongs to, and its rank in it
+                          'bubble', 'bubble_idx',      // shell a ball belongs to, and its rank (the faces use it)
                           'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
       var y = obj.rotation.y

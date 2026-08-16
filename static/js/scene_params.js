@@ -88,6 +88,19 @@ tissue_nl = 6          // balls along the length, at creation
 tissue_k  = harmonic_const   // stiffness of a new tissue's springs (same scale as harmonic_const)
 tissue_l0 = lenght_spring    // equilibrium distance between two neighbouring balls
 tissue_next_id = 1     // identifies a tissue: every ball of the same mesh shares it
+//-------------------- Bubble (complex object: closed spherical shell + internal gas)
+new_bubble_ok = false  // creation tool, like the other new_*_ok
+bubble_level = 2       // icosphere subdivisions: 0/1/2/3 -> 12/42/162/642 balls
+bubble_R = 300         // radius at creation
+bubble_k = harmonic_const      // stiffness of the surface springs
+bubble_kb = harmonic_const/6   // bending stiffness (soft, as for the tissue)
+bubble_P = 0.5         // pressure, DIMENSIONLESS. The force a face carries grows as R², the
+                       // spring pull only as R, so a raw pressure would behave completely
+                       // differently at another radius. The actual coefficient is P·k/R, which
+                       // measurement shows keeps the same inflation (~1.09) from R=150 to 600
+                       // and from mesh level 1 to 3. The gas is isothermal, P0·V0/V: the shell
+                       // resists more as it is squeezed and settles by itself. 0 = no gas.
+bubble_next_id = 1
 one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (Newtonian gravity F = G·m_i·m_j/r²) — to adjust via the Interaction panel
 attract_softening = 40;                // ε: Plummer softening F = G·m·m/(r²+ε²) — removes the 1/r² singularity (energy conservation)

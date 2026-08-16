@@ -331,6 +331,39 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
                     .text('springs are OFF — the mesh will not hold together'))
         }
   }
+  function bubble_ctx_rows($B, obj){
+        /*
+        Parameters of the shell the clicked ball belongs to.
+        Stiffness and pressure apply live; mesh level and radius rebuild the shell, since both
+        change the number of balls or where they sit.
+        */
+        var b = obj.bubble
+        num_row($B, 'stiffness', function(){ return b.k },  function(v){ bubble_apply(b.id, v, b.kb, b.P) })
+        num_row($B, 'bending k', function(){ return b.kb }, function(v){ bubble_apply(b.id, b.k, v, b.P) })
+        // Dimensionless: the coefficient really used is P·k/R, so the same value gives the
+        // same inflation whatever the radius. 0 empties the bubble.
+        num_row($B, 'pressure',  function(){ return b.P },  function(v){ if (v >= 0){ bubble_apply(b.id, b.k, b.kb, v) } })
+        var lvl = b.level, R = b.R                            // staged: applied by « rebuild » only
+        num_row($B, 'mesh level', function(){ return lvl }, function(v){ lvl = Math.max(0, Math.min(3, Math.round(v))) })
+        num_row($B, 'radius',     function(){ return R },   function(v){ if (v > 0){ R = v } })
+        var $btn = $('<button type="button" style="width:100%; margin-top:6px; cursor:pointer; font-family:inherit; font-size:11px; padding:3px">').text('rebuild')
+        $btn.on('mousedown mouseup dblclick', function(e){ e.stopPropagation() })
+        $btn.on('click', function(e){
+              e.stopPropagation()
+              var id = b.id, k = b.k, kb = b.kb, P = b.P
+              hide_ctx()                                      // the clicked ball is about to be removed
+              if (typeof INTERSECTED !== 'undefined'){ INTERSECTED = null }
+              bubble_rebuild(id, lvl, R, k, kb, P)
+              if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+        })
+        $B.append($btn)
+        $B.append($('<div style="color:#888; margin-top:5px; font-size:10px; text-align:center">')
+              .text('rebuilding makes it round again and clears the motion'))
+        if (typeof springs_ok !== 'undefined' && !springs_ok){
+              $B.append($('<div style="color:#c62828; margin-top:6px; font-size:10px; text-align:center">')
+                    .text('springs are OFF — only the gas is left, the shell will blow apart'))
+        }
+  }
   function bool_row($f, label, get, set){
         var $row = $('<div style="margin:4px 0">')
         var $cb = $('<input type="checkbox">').prop('checked', !!get())
@@ -544,9 +577,11 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         // Tabs: Attributes / Dynamics / Miscellaneous (+ Tissue for a ball belonging to a mesh)
         var ctabs = [['attributes','Attributes'], ['dynamics','Dynamics'], ['misc','Miscellaneous']]
         if (obj.tissue){ ctabs.push(['tissue','Tissue']) }
+        if (obj.bubble){ ctabs.push(['bubble','Bubble']) }
         var pane = ctx_tab_bar($f, ctabs)
         var $A = pane['attributes'], $D = pane['dynamics'], $M = pane['misc']
         if (pane['tissue']){ tissue_ctx_rows(pane['tissue'], obj) }
+        if (pane['bubble']){ bubble_ctx_rows(pane['bubble'], obj) }
 
         // --- Attributes: mass, opacity, color, radius ---
         num_row($A, 'mass',            function(){ return obj.mass },             function(v){ applyAll(function(t){ t.mass = v }) })

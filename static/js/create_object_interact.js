@@ -415,6 +415,229 @@ function tissue_rebuild(id, nw, nl, k, l0, ks, kb){
 
 }
 
+//===================================================================== Bubble (complex object)
+
+/*
+A bubble is the tissue closed on itself: same balls, same springs, but on a sphere and with
+gas pushing from the inside.
+
+Why an icosphere and not a latitude/longitude grid: a lat/long grid crowds its balls at the
+poles, so the springs would have wildly different lengths and a single rest length would mean
+nothing. A subdivided icosahedron keeps every edge within a few percent of the others.
+
+Why no shear springs, unlike the tissue: the mesh is TRIANGULAR, and a triangle cannot shear
+without changing the length of a side. The structural springs already provide it, for free.
+*/
+
+function icosphere(level){
+
+      /*
+      Subdivided icosahedron on the unit sphere.
+      Returns { verts:[[x,y,z]…], faces:[[a,b,c]…], edges:[[a,b]…], bends:[[p,q]…] } where
+      bends joins the two vertices FACING each edge -- the skip-one of a flat mesh, the thing
+      that resists folding along that edge.
+      */
+
+      var t = (1 + Math.sqrt(5)) / 2
+      var verts = [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],
+                   [0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],
+                   [t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]]
+      for (var i=0;i<verts.length;i++){ verts[i] = ico_norm(verts[i]) }
+      var faces = [[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],
+                   [1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
+                   [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],
+                   [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]]
+
+      for (var s=0; s<level; s++){
+            var cache = {}, nf = []
+            function mid(a, b){                              // midpoint pushed back onto the sphere
+                  var key = (a<b) ? a+'_'+b : b+'_'+a
+                  if (cache[key] === undefined){
+                        var A = verts[a], B = verts[b]
+                        verts.push(ico_norm([A[0]+B[0], A[1]+B[1], A[2]+B[2]]))
+                        cache[key] = verts.length - 1
+                  }
+                  return cache[key]
+            }
+            for (var f=0; f<faces.length; f++){
+                  var a = faces[f][0], b = faces[f][1], c = faces[f][2]
+                  var ab = mid(a,b), bc = mid(b,c), ca = mid(c,a)
+                  nf.push([a,ab,ca], [b,bc,ab], [c,ca,bc], [ab,bc,ca])
+            }
+            faces = nf
+      }
+
+      // Edges, plus the vertex facing each of them in every adjacent face.
+      var emap = {}
+      for (var f=0; f<faces.length; f++){
+            var v = faces[f]
+            for (var e=0;e<3;e++){
+                  var a = v[e], b = v[(e+1)%3], opp = v[(e+2)%3]
+                  var key = (a<b) ? a+'_'+b : b+'_'+a
+                  if (!emap[key]){ emap[key] = { a:Math.min(a,b), b:Math.max(a,b), opp:[] } }
+                  emap[key].opp.push(opp)
+            }
+      }
+      var edges = [], bends = []
+      for (var key in emap){
+            var e = emap[key]
+            edges.push([e.a, e.b])
+            if (e.opp.length === 2){ bends.push([e.opp[0], e.opp[1]]) }   // closed surface: always 2
+      }
+      return { verts:verts, faces:faces, edges:edges, bends:bends }
+
+}
+
+function ico_norm(v){
+      var n = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]) || 1
+      return [v[0]/n, v[1]/n, v[2]/n]
+}
+
+/*
+The mesh is entirely determined by the subdivision level, so it is computed once per level and
+never stored on a bubble. Keeping the face list in the descriptor would be a real cost: the
+descriptor is saved on EVERY ball, which meant 3.8 kB x 162 balls = 0.6 MB of scene file for a
+level-2 bubble, and about 10 MB at level 3 -- for data that regenerates in a millisecond.
+*/
+var _ico_cache = {}
+function ico_geometry(level){
+      level = Math.max(0, Math.min(3, Math.round(level || 0)))
+      if (!_ico_cache[level]){ _ico_cache[level] = icosphere(level) }
+      return _ico_cache[level]
+}
+
+function bubble_link(a, b, k, l0, kind){
+
+      /*
+      One spring of the shell. Rest length is the length AT CREATION, per pair: the edges of
+      an icosphere differ by up to 19%, so a single global length would leave the mesh under
+      permanent stress. Only the structural springs get a visible elastic.
+      */
+
+      var pair = [a, b]
+      pair.push((kind === 'struct') ? create_elastic(pair) : null)
+      pair.k_spring = k
+      pair.rest_length = l0
+      pair.bubble_id = a.bubble.id
+      pair.tissue_kind = kind                  // reused as-is: same meaning, same handling
+      list_paired_harmonic.push(pair)
+
+}
+
+function make_bubble_at(pos, id, level, R, k, kb, P){
+
+      /*
+      Closed spherical shell of balls, centred on pos. Springs along every edge, plus one
+      bending spring across each edge, joining the two vertices that face it -- the exact
+      analogue of the tissue's skip-one spring, and what keeps the surface from creasing.
+      The reference volume V0 is measured once the balls are in place: the gas law then works
+      from the shape actually built, not from the theoretical sphere.
+      */
+
+      level = Math.max(0, Math.min(3, Math.round(level)))
+      var g = ico_geometry(level)
+      var descr = { id:id, level:level, R:R, k:k, kb:kb, P:P, V0:0 }
+      // NOTE: the descriptor holds plain NUMBERS only -- no ball reference (the scene JSON
+      // would become circular) and no face list (see ico_geometry: it is rebuilt from level).
+      var balls = []
+      for (var i=0;i<g.verts.length;i++){
+            var v = g.verts[i]
+            var sph = basic_sphere(random_name(),
+                                   { x:pos.x + v[0]*R, y:pos.y + v[1]*R, z:pos.z + v[2]*R },
+                                   {"x":0,"y":0,"z":0}, color_sphere_default)
+            sph.magnet = false
+            sph.bubble = descr                 // same object on every ball of the shell
+            sph.bubble_idx = i                 // rank: the faces refer to it
+            list_moving_objects.push(sph)
+            balls.push(sph)
+      }
+      for (var e=0;e<g.edges.length;e++){
+            var a = balls[g.edges[e][0]], b = balls[g.edges[e][1]]
+            bubble_link(a, b, k, a.position.distanceTo(b.position), 'struct')
+      }
+      for (var e=0;e<g.bends.length;e++){
+            var a = balls[g.bends[e][0]], b = balls[g.bends[e][1]]
+            bubble_link(a, b, kb, a.position.distanceTo(b.position), 'bend')
+      }
+      descr.V0 = bubble_volume(descr, balls)
+      color_pairs_in_blue()
+      return descr
+
+}
+
+function bubble_volume(descr, byIdx){
+
+      /*
+      Signed volume of the closed surface: V = (1/6)·Σ A·(B×C) over the faces.
+      Valid because every face of the icosphere is oriented outwards. A missing ball (deleted
+      by hand) makes its faces be skipped -- the bubble leaks, which is the honest outcome.
+      */
+
+      var f = ico_geometry(descr.level).faces, V = 0
+      for (var i=0;i<f.length;i++){
+            var A = byIdx[f[i][0]], B = byIdx[f[i][1]], C = byIdx[f[i][2]]
+            if (!A || !B || !C){ continue }
+            var a = A.position, b = B.position, c = C.position
+            V += (a.x*(b.y*c.z - b.z*c.y) + a.y*(b.z*c.x - b.x*c.z) + a.z*(b.x*c.y - b.y*c.x)) / 6
+      }
+      return V
+
+}
+
+function make_new_bubble(){
+
+      /*
+      Drops a bubble where the mouse is, using the creation values of the Object panel.
+      */
+
+      make_bubble_at(mousepos(), bubble_next_id++, bubble_level, bubble_R, bubble_k, bubble_kb, bubble_P)
+
+}
+
+function bubble_balls(id){                                   // every ball of one shell
+      var a = []
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o && o.bubble && o.bubble.id === id){ a.push(o) }
+      }
+      return a
+}
+
+function bubble_apply(id, k, kb, P){
+
+      /*
+      Stiffness and pressure of an EXISTING bubble, applied in place: the current shape and
+      the velocities are preserved. V0 is NOT recomputed -- it is the reference the gas law
+      measures against, and resetting it would make the bubble forget it is compressed.
+      */
+
+      var balls = bubble_balls(id); if (!balls.length){ return null }
+      for (var b=0;b<balls.length;b++){
+            var d = balls[b].bubble
+            d.k = k; d.kb = kb; d.P = P
+      }
+      for (var i in list_paired_harmonic){
+            var p = list_paired_harmonic[i]
+            if (p.bubble_id !== id){ continue }
+            p.k_spring = (p.tissue_kind === 'bend') ? kb : k     // rest lengths stay: they are the built shape
+      }
+      return balls[0].bubble
+
+}
+
+function bubble_rebuild(id, level, R, k, kb, P){
+
+      /*
+      New mesh level or radius: rebuilt from scratch, centred where the old one was.
+      */
+
+      var balls = bubble_balls(id); if (!balls.length){ return null }
+      var center = tissue_center(balls)                       // same barycentre helper
+      for (var i=0;i<balls.length;i++){ remove_single_object(balls[i]) }
+      return make_bubble_at(center, id, level, R, k, kb, P)
+
+}
+
 function link(condition, action, arg){
 
       /*
@@ -447,6 +670,7 @@ function mouse_create_object_or_action(event){
       link(new_sphere_ok, make_new_sphere, null)
       link(new_string_ok, make_new_string, null)
       link(new_tissue_ok, make_new_tissue, null)
+      link(new_bubble_ok, make_new_bubble, null)
       link(new_pavement_ok, dictp.make_pavement, null)
       link(new_cube_texture_ok, make_new_cube_texture, null)
       link(new_select_ok, limits_and_action, null)

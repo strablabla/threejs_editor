@@ -2901,6 +2901,62 @@ function compute_accelerations(){
             }
       }
       if (springs_ok){ for (var k in list_paired_harmonic){ accel_spring(k) } }   // springs
+      accel_pressure()                                       // gas inside the bubbles
+
+}
+
+function accel_pressure(){
+
+      /*
+      Internal gas of the bubbles, added to the acceleration.
+
+      Isothermal law: P = P0·V0/V. Squeezing the shell raises the pressure, so it pushes back
+      harder and settles on its own; a constant pressure would simply inflate for ever.
+
+      Force carried by a face: F = P·Area·n̂. With n = (B-A)×(C-A) we have Area = |n|/2 and
+      n̂ = n/|n|, so F = P·n/2 -- no normalisation needed, and no square root. Split evenly
+      between the three vertices, each receives P·n/6.
+
+      One pass over list_moving_objects groups the balls by bubble, so the cost stays linear
+      whatever the number of bubbles.
+      */
+
+      var groups = null
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (!o || !o.bubble || o.bubble_idx === undefined){ continue }
+            if (!groups){ groups = {} }
+            var id = o.bubble.id
+            if (!groups[id]){ groups[id] = { descr:o.bubble, idx:[] } }
+            groups[id].idx[o.bubble_idx] = o
+      }
+      if (!groups){ return }                                 // no bubble in the scene: nothing to do
+
+      for (var id in groups){
+            var descr = groups[id].descr, byIdx = groups[id].idx
+            // descr.P is dimensionless; the coefficient that actually enters the force is
+            // P·k/R. Without that scaling the very same P would barely move a small bubble
+            // and blow a large one apart, since the face force grows as R² and the spring
+            // pull only as R. It also follows a later change of stiffness on its own.
+            var P0 = descr.P * descr.k / (descr.R || 1)
+            if (!(P0 > 0)){ continue }                       // no gas: the shell is left to itself
+            var V = bubble_volume(descr, byIdx)
+            if (!(V > 0)){ continue }                        // turned inside out or gutted: give up rather than blow up
+            var P = P0 * descr.V0 / V
+            var f = ico_geometry(descr.level).faces
+            for (var t=0;t<f.length;t++){
+                  var A = byIdx[f[t][0]], B = byIdx[f[t][1]], C = byIdx[f[t][2]]
+                  if (!A || !B || !C){ continue }             // a deleted ball: the bubble leaks there
+                  var ax=A.position.x, ay=A.position.y, az=A.position.z
+                  var ux=B.position.x-ax, uy=B.position.y-ay, uz=B.position.z-az
+                  var vx=C.position.x-ax, vy=C.position.y-ay, vz=C.position.z-az
+                  var nx = uy*vz - uz*vy, ny = uz*vx - ux*vz, nz = ux*vy - uy*vx   // outward, norm = 2·Area
+                  var s = P/6
+                  if (!A.blocked){ A.acc.x += s*nx/A.mass; A.acc.y += s*ny/A.mass; A.acc.z += s*nz/A.mass }
+                  if (!B.blocked){ B.acc.x += s*nx/B.mass; B.acc.y += s*ny/B.mass; B.acc.z += s*nz/B.mass }
+                  if (!C.blocked){ C.acc.x += s*nx/C.mass; C.acc.y += s*ny/C.mass; C.acc.z += s*nz/C.mass }
+            }
+      }
 
 }
 
