@@ -346,6 +346,34 @@ function bs_prompt(title, message, defaultValue, onOk, onCancel){
         var lvl = b.level, R = b.R                            // staged: applied by « rebuild » only
         num_row($B, 'mesh level', function(){ return lvl }, function(v){ lvl = Math.max(0, Math.min(3, Math.round(v))) })
         num_row($B, 'radius',     function(){ return R },   function(v){ if (v > 0){ R = v } })
+        // A REAL gas: balls bouncing on the membrane. Nothing extra is needed for the physics,
+        // ball-ball collisions already exist -- so set the pressure above to 0, or the gas
+        // would be counted twice, once as particles and once as a law.
+        num_row($B, 'gas balls', function(){ return bubble_gas_n }, function(v){ if (v >= 0){ bubble_gas_n = Math.round(v) } })
+        var $gas = $('<button type="button" style="width:100%; margin-top:6px; cursor:pointer; font-family:inherit; font-size:11px; padding:3px">')
+        function gas_label(){ var n = bubble_gas_balls(b.id).length; return n ? ('empty (' + n + ' balls)') : 'fill with balls' }
+        $gas.text(gas_label())
+        $gas.on('mousedown mouseup dblclick', function(e){ e.stopPropagation() })
+        $gas.on('click', function(e){
+              e.stopPropagation()
+              if (bubble_gas_balls(b.id).length){ bubble_empty(b.id) }
+              else {
+                    var made = bubble_fill(b.id, bubble_gas_n)
+                    if (made < bubble_gas_n){       // rejection sampling gave up: the shell was full
+                          $B.find('.gas_note').remove()
+                          $B.append($('<div class="gas_note" style="color:#c62828; margin-top:4px; font-size:10px; text-align:center">')
+                                .text('room for ' + made + ' only'))
+                    }
+              }
+              $gas.text(gas_label())
+              if (typeof emit_infos_scene === 'function'){ emit_infos_scene() }
+        })
+        $B.append($gas)
+        if (b.P > 0){
+              $B.append($('<div style="color:#c62828; margin-top:4px; font-size:10px; text-align:center">')
+                    .text('pressure is on: set it to 0 before filling, or the gas counts twice'))
+        }
+
         var $btn = $('<button type="button" style="width:100%; margin-top:6px; cursor:pointer; font-family:inherit; font-size:11px; padding:3px">').text('rebuild')
         $btn.on('mousedown mouseup dblclick', function(e){ e.stopPropagation() })
         $btn.on('click', function(e){

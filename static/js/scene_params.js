@@ -101,6 +101,8 @@ bubble_P = 0.5         // pressure, DIMENSIONLESS. The force a face carries grow
                        // and from mesh level 1 to 3. The gas is isothermal, P0·V0/V: the shell
                        // resists more as it is squeezed and settles by itself. 0 = no gas.
 bubble_next_id = 1
+bubble_gas_n = 30      // balls dropped inside by « fill with balls »
+color_gas_default = 0x66ccff   // gas balls: told apart from the shell at a glance
 one_over_r2 = true
 attract_strength_one_over_r2 = 50000;  // G (Newtonian gravity F = G·m_i·m_j/r²) — to adjust via the Interaction panel
 attract_softening = 40;                // ε: Plummer softening F = G·m·m/(r²+ε²) — removes the 1/r² singularity (energy conservation)

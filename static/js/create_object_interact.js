@@ -625,6 +625,74 @@ function bubble_apply(id, k, kb, P){
 
 }
 
+function bubble_gas_balls(id){                               // the gas balls of one bubble
+      var a = []
+      for (var i in list_moving_objects){
+            var o = list_moving_objects[i]
+            if (o && o.gas_of === id){ a.push(o) }
+      }
+      return a
+}
+
+function bubble_empty(id){                                   // removes the gas, keeps the shell
+      var g = bubble_gas_balls(id)
+      for (var i=0;i<g.length;i++){ remove_single_object(g[i]) }
+      return g.length
+}
+
+function bubble_fill(id, n){
+
+      /*
+      Drops n balls inside the shell -- a REAL gas, which inflates the bubble by bouncing on
+      it. Nothing else is needed for that: ball-ball collisions already exist, so the momentum
+      the gas hands to the membrane is the genuine article, not a pressure law.
+
+      Geometry is read from the shell AS IT IS NOW, not from the creation radius: a deformed
+      or squashed bubble must still be filled inside its actual walls.
+
+      Positions are uniform in the volume -- r = Rin·u^(1/3), NOT r = Rin·u, which would pile
+      the balls near the centre -- and rejected when they overlap a ball already placed, so the
+      gas does not start with everything superimposed and explode on the first step.
+      */
+
+      var shell = bubble_balls(id); if (!shell.length){ return 0 }
+      var c = tissue_center(shell)
+      var Rm = 0
+      for (var i=0;i<shell.length;i++){ Rm += shell[i].position.distanceTo(c) }
+      Rm /= shell.length
+      var rs = (shell[0].radius !== undefined) ? shell[0].radius : radius_spring
+      var rg = radius_spring
+      var Rin = Rm - rs - rg                                 // centres must stay this far in
+      if (!(Rin > 0)){ return 0 }                            // shell too small for a single ball
+
+      var placed = [], made = 0
+      for (var k=0;k<n;k++){
+            var pos = null
+            for (var att=0; att<60 && !pos; att++){
+                  var rr = Rin * Math.pow(Math.random(), 1/3)
+                  var ct = 2*Math.random() - 1, st = Math.sqrt(1 - ct*ct), ph = 2*Math.PI*Math.random()
+                  var q = { x:c.x + rr*st*Math.cos(ph), y:c.y + rr*st*Math.sin(ph), z:c.z + rr*ct }
+                  var ok = true
+                  for (var j=0;j<placed.length;j++){
+                        var p2 = placed[j].position
+                        var dx = q.x-p2.x, dy = q.y-p2.y, dz = q.z-p2.z
+                        if (dx*dx + dy*dy + dz*dz < 4*rg*rg){ ok = false; break }
+                  }
+                  if (ok){ pos = q }
+            }
+            if (!pos){ break }                               // no room left: stop rather than stack them
+            var sph = basic_sphere(random_name(), pos, {"x":0,"y":0,"z":0}, color_gas_default)
+            sph.magnet = false
+            sph.gas_of = id                                  // so it can be emptied again
+            sph.currentHex = color_gas_default
+            random_speed_chose_xyz(sph, random_speed_z ? ['x','y','z'] : ['x','y'])   // Initial speeds settings
+            list_moving_objects.push(sph)
+            placed.push(sph); made++
+      }
+      return made
+
+}
+
 function bubble_rebuild(id, level, R, k, kb, P){
 
       /*
@@ -633,8 +701,11 @@ function bubble_rebuild(id, level, R, k, kb, P){
 
       var balls = bubble_balls(id); if (!balls.length){ return null }
       var center = tissue_center(balls)                       // same barycentre helper
+      var had_gas = bubble_empty(id)                          // the gas would be stranded outside the new shell
       for (var i=0;i<balls.length;i++){ remove_single_object(balls[i]) }
-      return make_bubble_at(center, id, level, R, k, kb, P)
+      var d = make_bubble_at(center, id, level, R, k, kb, P)
+      if (had_gas){ bubble_fill(id, had_gas) }                // refill with as many as there were
+      return d
 
 }
 

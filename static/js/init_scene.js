@@ -132,7 +132,7 @@ function load_params(name, msg, curr_tex_addr){
     var list_attr_obj = ['clone_infos', 'blocked', 'del',
                           'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
                           'magnet', 'friction', 'group_id', 'tissue', 'tissue_idx',
-                          'bubble', 'bubble_idx', 'track_trajectory']
+                          'bubble', 'bubble_idx', 'gas_of', 'track_trajectory']
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
@@ -418,6 +418,7 @@ function make_infos_obj_of(obj){
                           'is_track', 'track_solid',   // a track segment, and whether the balls bounce off it
                           'tissue', 'tissue_idx',      // mesh a ball belongs to, and its rank in it
                           'bubble', 'bubble_idx',      // shell a ball belongs to, and its rank (the faces use it)
+                          'gas_of',                    // gas ball: id of the bubble it fills
                           'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
       var x = obj.rotation.x
       var y = obj.rotation.y
