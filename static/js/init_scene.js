@@ -272,6 +272,8 @@ function load_chains(msg){
                   if (lsaved !== undefined && lsaved !== null){ pair.rest_length = lsaved }
                   var tid = msg['_chains'][k][4]                  // tissue this spring belongs to
                   if (tid !== undefined && tid !== null){ pair.tissue_id = tid }
+                  var bid = msg['_chains'][k][6]                  // bubble this spring belongs to
+                  if (bid !== undefined && bid !== null){ pair.bubble_id = bid }
                   list_paired_harmonic.push(pair)
             }
       }
@@ -468,7 +470,11 @@ function get_scene_data(){              // builds the scene JSON (without sendin
             }    // end if
           }    // end for
     if (list_paired_harmonic.length > 0){              // saves the chain links (ball names + own stiffness)
-          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring, p.rest_length, p.tissue_id, p.tissue_kind] })
+          // Every field a pair carries must be here: load_chains rebuilds pairs from scratch,
+          // so anything missing is silently lost. bubble_id was, and a reloaded bubble stopped
+          // answering to its own controls -- the balls were still found through o.bubble, the
+          // springs and their tubes no longer.
+          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring, p.rest_length, p.tissue_id, p.tissue_kind, p.bubble_id] })
     }
     if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
           listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity, locked: !!l.mesh.locked } })
