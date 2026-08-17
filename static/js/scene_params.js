@@ -153,6 +153,39 @@ as-is. The four needing a conversion (attract_strength, altitude_fit_expr,
 traj_show, mon_chrono) stay explicit in init_scene.js.
 */
 
+/*
+Object attributes that travel with the scene. ONE list read in both directions, by
+make_infos_obj_of when saving and load_params when reloading -- the same treatment as
+PERSISTED_DYNAMICS below, and for the same reason: two hand-kept mirror lists drift, and the
+drift is silent. A tissue once came back as a heap of plain balls because its descriptor was
+in the save list and not in the load one, with no error anywhere.
+
+The two asymmetries are real, so they are DECLARED rather than left to chance.
+*/
+PERSISTED_OBJ_ATTRS = [                 // copied verbatim, both ways
+      'clone_infos', 'blocked', 'mass', 'radius_interact', 'v0',
+      'is_track', 'track_solid', 'magnet', 'friction', 'group_id',
+      'tissue', 'tissue_idx',           // mesh a ball belongs to, and its rank in it
+      'bubble', 'bubble_idx',           // shell a ball belongs to, and its rank (the faces use it)
+      'gas_of',                         // gas ball: id of the bubble it fills
+      'track_trajectory'
+]
+SAVED_ONLY_OBJ_ATTRS = [                // saved too, but restored by the TYPE-SPECIFIC loaders
+      'type', 'tex_addr', 'speed',      // (load_sphere, load_wall_box, load_parallelepiped_shapes,
+      'radius', 'width', 'height',      //  load_speed…) -- copying them back generically would
+      'thickness', 'orientation',       //  fight those loaders
+      'box_id', 'movable'
+]
+LOADED_ONLY_OBJ_ATTRS = ['del']         // scenes saved back when deletion left tombstones behind
+
+/*
+Fields a spring pair carries. Same principle. The pairs used to be saved as a POSITIONAL
+array, so inserting a field in the middle would have shifted everything after it and made old
+scenes load wrong; they are now written as named keys, the old format still being read.
+*/
+PERSISTED_PAIR_ATTRS = ['k_spring', 'rest_length', 'tissue_id', 'tissue_kind', 'bubble_id']
+LEGACY_PAIR_ORDER    = ['k_spring', 'rest_length', 'tissue_id', 'tissue_kind', 'bubble_id']  // positions 2..6 of the old array
+
 PERSISTED_DYNAMICS = [
       'gravity_ok', 'springs_ok', 'one_over_r2', 'attract_softening',
       'use_cell_lists', 'use_barnes_hut', 'barnes_hut_theta', 'phys_substeps',

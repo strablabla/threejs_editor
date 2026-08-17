@@ -124,15 +124,10 @@ function load_params(name, msg, curr_tex_addr){
     listorig[name]['tex_addr'] =  curr_tex_addr               									 // texture address
     listorig[name]['tex'] =  curr_tex_addr.split('/').pop(-1)
     restore_opacity(listorig[name], msg[name]['opacity'])                            // opacity
-    /* Generic attributes copied back as they were saved. This list is the MIRROR of
-       list_attr_emit in make_infos_obj_of: an attribute saved there and missing here is simply
-       lost on reload, with no error -- which is exactly how a tissue used to come back as a
-       heap of plain balls. The names present there and absent here (radius, orientation,
-       speed, dimensions...) are deliberate: the type-specific loaders restore those. */
-    var list_attr_obj = ['clone_infos', 'blocked', 'del',
-                          'mass', 'radius_interact', 'v0', 'is_track', 'track_solid',
-                          'magnet', 'friction', 'group_id', 'tissue', 'tissue_idx',
-                          'bubble', 'bubble_idx', 'gas_of', 'track_trajectory']
+    // Same single list as the save side (scene_params.js), so nothing can be saved and not
+    // restored any more. SAVED_ONLY_OBJ_ATTRS is deliberately absent: the type-specific
+    // loaders own those.
+    var list_attr_obj = PERSISTED_OBJ_ATTRS.concat(LOADED_ONLY_OBJ_ATTRS)
     for (var i in list_attr_obj){
           var attr = list_attr_obj[i]
           if (msg[name][attr] !== undefined){ listorig[name][attr] = msg[name][attr] }   // (undefined -> do not overwrite)
@@ -257,23 +252,29 @@ function load_chains(msg){
 
       if (!msg['_chains']){ return }
       for (var k in msg['_chains']){
-            var s0 = listorig[ msg['_chains'][k][0] ]
-            var s1 = listorig[ msg['_chains'][k][1] ]
+            var rec = msg['_chains'][k]
+            // Two shapes accepted. New: named keys. Old: a positional array where slots 2..6
+            // held, in order, LEGACY_PAIR_ORDER. Reading both keeps every already-saved scene
+            // loadable -- that is the whole point of not renumbering a positional format.
+            var legacy = Array.isArray(rec)
+            var n0 = legacy ? rec[0] : rec.a
+            var n1 = legacy ? rec[1] : rec.b
+            function field(name){
+                  if (!legacy){ return rec[name] }
+                  var pos = LEGACY_PAIR_ORDER.indexOf(name)
+                  return (pos < 0) ? undefined : rec[2 + pos]
+            }
+            var s0 = listorig[n0], s1 = listorig[n1]
             if (s0 && s1){
-                  var kind = msg['_chains'][k][5]                 // 'struct' | 'shear' | 'bend' (absent on older scenes)
-                  // Shear and bending springs of a tissue carry no visible elastic: they are
-                  // internal, and drawing them would bury the mesh under a web of tubes.
+                  var kind = field('tissue_kind')                 // 'struct' | 'shear' | 'bend' (absent on older scenes)
+                  // Shear and bending springs carry no visible elastic: they are internal, and
+                  // drawing them would bury the mesh under a web of tubes.
                   var el = (kind === 'shear' || kind === 'bend') ? null : create_elastic([s0, s1])
                   var pair = [s0, s1, el]
-                  if (kind !== undefined && kind !== null){ pair.tissue_kind = kind }
-                  var ksaved = msg['_chains'][k][2]               // saved own stiffness (if set)
-                  if (ksaved !== undefined && ksaved !== null){ pair.k_spring = ksaved }
-                  var lsaved = msg['_chains'][k][3]               // saved own rest length (if set)
-                  if (lsaved !== undefined && lsaved !== null){ pair.rest_length = lsaved }
-                  var tid = msg['_chains'][k][4]                  // tissue this spring belongs to
-                  if (tid !== undefined && tid !== null){ pair.tissue_id = tid }
-                  var bid = msg['_chains'][k][6]                  // bubble this spring belongs to
-                  if (bid !== undefined && bid !== null){ pair.bubble_id = bid }
+                  for (var q=0;q<PERSISTED_PAIR_ATTRS.length;q++){   // same list as get_scene_data()
+                        var key = PERSISTED_PAIR_ATTRS[q], v = field(key)
+                        if (v !== undefined && v !== null){ pair[key] = v }
+                  }
                   list_paired_harmonic.push(pair)
             }
       }
@@ -423,14 +424,9 @@ function make_infos_obj_of(obj){
       rotation, opacity, attributes and color. Reused by copy/paste.
       */
 
-      var list_attr_emit = ['clone_infos', 'type', 'tex_addr', 'blocked',
-                          'mass', 'speed', 'v0', 'radius', 'radius_interact', 'magnet', 'friction',
-                          'width', 'height', 'thickness', 'orientation', 'box_id', 'movable', 'group_id',
-                          'is_track', 'track_solid',   // a track segment, and whether the balls bounce off it
-                          'tissue', 'tissue_idx',      // mesh a ball belongs to, and its rank in it
-                          'bubble', 'bubble_idx',      // shell a ball belongs to, and its rank (the faces use it)
-                          'gas_of',                    // gas ball: id of the bubble it fills
-                          'track_trajectory']  // useful to recreate spheres/boxes (+ the trajectory selection)
+      // Declared once in scene_params.js and read from there by BOTH directions, so the save
+      // and the reload can no longer drift apart. See PERSISTED_OBJ_ATTRS.
+      var list_attr_emit = PERSISTED_OBJ_ATTRS.concat(SAVED_ONLY_OBJ_ATTRS)
       var x = obj.rotation.x
       var y = obj.rotation.y
       var z = obj.rotation.z
@@ -470,11 +466,18 @@ function get_scene_data(){              // builds the scene JSON (without sendin
             }    // end if
           }    // end for
     if (list_paired_harmonic.length > 0){              // saves the chain links (ball names + own stiffness)
-          // Every field a pair carries must be here: load_chains rebuilds pairs from scratch,
-          // so anything missing is silently lost. bubble_id was, and a reloaded bubble stopped
-          // answering to its own controls -- the balls were still found through o.bubble, the
-          // springs and their tubes no longer.
-          listpos['_chains'] = list_paired_harmonic.map(function(p){ return [p[0].name, p[1].name, p.k_spring, p.rest_length, p.tissue_id, p.tissue_kind, p.bubble_id] })
+          // Named keys, driven by PERSISTED_PAIR_ATTRS, which load_chains reads too. The old
+          // POSITIONAL form is still understood on loading, but is no longer written: adding a
+          // field in the middle of it would have shifted every following one and made existing
+          // scenes load wrong.
+          listpos['_chains'] = list_paired_harmonic.map(function(p){
+                var rec = { a: p[0].name, b: p[1].name }
+                for (var q=0;q<PERSISTED_PAIR_ATTRS.length;q++){
+                      var key = PERSISTED_PAIR_ATTRS[q]
+                      if (p[key] !== undefined){ rec[key] = p[key] }
+                }
+                return rec
+          })
     }
     if (typeof list_lids !== 'undefined' && list_lids.length > 0){   // lids (recreated from their box_id on loading)
           listpos['_lids'] = list_lids.map(function(l){ return { box_id: l.box_id, opacity: l.mesh.material.opacity, locked: !!l.mesh.locked } })
