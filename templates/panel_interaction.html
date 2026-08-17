@@ -113,9 +113,14 @@
               <label><input type="checkbox" id="chk_show_speeds" title="affiche une flèche 3D de vitesse sur chaque objet mobile"> show speeds (3D arrows)</label>
             </div><br>
 
+            <!-- « max » field: ceiling of the slider, chosen by the user and remembered.
+                 Same treatment as the radius slider of the right-click menu. -->
             <div class="help"> <span> Strength: </span>
               <input type="range" id="rng_speed_intensity" min="0" max="200" step="5" style="vertical-align:middle; width:120px">
               <span id="speed_intensity_val"></span>
+              <span style="color:#888; margin-left:6px">max</span>
+              <input type="number" id="speed_max_input" min="10" step="10" style="width:62px; font-size:0.85em"
+                     title="valeur maximale de la glissière (mémorisée d'une session à l'autre)">
             </div><br>
 
             <div class="help">
@@ -233,6 +238,23 @@
     })
 
     // --- Ball starting velocity: random/zero mode + intensity ---
+    // Ceiling of the Strength slider: a user preference, remembered across sessions, NOT a
+    // scene setting -- it says how far one wants to be able to push the handle, not how fast
+    // this particular scene is. Same treatment as the radius slider of the right-click menu.
+    function get_speed_slider_max(){
+        var v = parseFloat(localStorage.getItem('speed_slider_max'))
+        return (!isNaN(v) && v >= 10) ? v : 200
+    }
+    function set_speed_slider_max(v){ try { localStorage.setItem('speed_slider_max', v) } catch(e){} }
+    function apply_speed_max(){
+        // never below the value in force: loading a scene with Strength = 900 must not silently
+        // clip it back to the ceiling.
+        var eff = Math.max(get_speed_slider_max(), Math.ceil(random_speed_module))
+        $('#rng_speed_intensity').attr('max', eff)
+        $('#speed_max_input').val(get_speed_slider_max())
+        return eff
+    }
+    apply_speed_max()
     $('#chk_random_speed').prop('checked', random_initial_speed)
     $('#chk_random_speed_z').prop('checked', random_speed_z)
     $('#rng_speed_intensity').val(random_speed_module)
@@ -243,6 +265,18 @@
         random_speed_module = parseFloat(this.value)
         $('#speed_intensity_val').text(random_speed_module)
     })
+    $('#speed_max_input').on('input change', function(){
+        var m = parseFloat(this.value); if (isNaN(m) || m < 10){ return }
+        set_speed_slider_max(m)
+        var eff = Math.max(m, Math.ceil(random_speed_module))
+        $('#rng_speed_intensity').attr('max', eff)
+        if (parseFloat($('#rng_speed_intensity').val()) > eff){
+              $('#rng_speed_intensity').val(eff).trigger('input')   // bring the handle back under the new ceiling
+        }
+    })
+    // TrackballControls is bound to document and the scene shortcuts listen page-wide.
+    $('#speed_max_input').on('keydown keypress keyup mousedown mousemove mouseup dblclick', function(e){ e.stopPropagation() })
+    $('#speed_max_input').on('keydown', function(e){ if (e.which === 13 || e.which === 27){ this.blur() } })
 
     // --- Integration accuracy: Verlet substeps per frame ---
     function apply_substeps(n){
@@ -307,6 +341,7 @@
         apply_substeps(Math.max(1, Math.min(16, Math.round(phys_substeps) || 1)))   // scene's own accuracy
         $('#chk_random_speed').prop('checked', random_initial_speed)
         $('#chk_random_speed_z').prop('checked', random_speed_z)
+        apply_speed_max()                      // a scene may carry a Strength above the ceiling
         $('#rng_speed_intensity').val(random_speed_module)
         $('#speed_intensity_val').text(random_speed_module)
         $('#flatten_z_input').val(flatten_z_level)
