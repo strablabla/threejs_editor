@@ -1,0 +1,16 @@
+/* Lato (SIL Open Font License 1.1), served locally instead of fonts.googleapis.com.
+   Latin subset only, as Google Fonts serves it: covers French. See VENDOR.md. */
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/lato-v25-latin-400.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(fonts/lato-v25-latin-700.woff2) format('woff2');
+}

@@ -7,6 +7,10 @@ that opens `localhost:5000`), so it must not depend on a third-party server to
 start. Two CDNs it used to rely on are already gone: `rawgit.com` (closed 2019)
 and `netdna.bootstrapcdn.com`.
 
+Fonts count too: a `<link rel="stylesheet">` to Google Fonts sits in the
+`<head>` and blocks rendering. On a network that does not answer (Wi-Fi without
+internet), the page stayed blank for 30 s until Chrome gave up on it.
+
 **Nothing in this directory is our code.** `static/js/` and `static/css/` hold
 only code written for this project. To upgrade a library, replace the file here
 and update the version in the table — do not edit these files in place.
@@ -30,6 +34,7 @@ and update the version in the table — do not edit these files in place.
 | `TrackballControls.js` | Three.js example | matches r75 | `road.html` |
 | `simple_flat/TrackballControls.js` | Three.js example, **patched locally** | see below | `three.html` |
 | `simple_flat/stats.js` | Three.js example — stats.js | unknown | `create_3d.html` |
+| `lato.css` + `fonts/lato-v25-latin-{400,700}.woff2` | Lato font (SIL OFL 1.1), latin subset from Google Fonts | v25 | `create_3d`, `test_dropzone` |
 
 `three-r75.min.js` sha384:
 `MqF2uAwxdWhDFc7G9Q+/b0MO0UpZDDnzbJOv5qUJ9cPmOYXSMHVS9FOiZSqL0ZQN`
