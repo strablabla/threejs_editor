@@ -40,15 +40,23 @@ The `install.sh` script:
   `$PYTHON_BIN` (default `python3.8`) if uv is absent. Only runs if the venv is
   missing or broken, so the script is safe to re-run;
 - generates `launch.sh`, a launcher that starts `run.py` from the venv (plus
-  `launch.bat` on Windows, which a shortcut can target without Git Bash);
+  `launch.bat` and `launch.vbs` on Windows);
 - adds a **clickable shortcut** on the desktop, with the app icon — the form
   differs per OS, the icon is always `static/img/app_icon.png`:
+
+The shortcut starts the server with **no window**. Its messages are in the page
+(**Ctrl+Shift+D**, Terminal tab) and in `logs/server.log`, started afresh at each
+launch. To stop it, use the red button at the top right of the page, or close the
+tabs: it stops by itself 2 minutes after the last one left (`APP_IDLE_SHUTDOWN_SEC`
+in the environment changes the delay, `0` turns it off, as in Docker). `./launch.sh` from a
+terminal, or `launch.bat`, keeps them in a window, to look into a server that does
+not start.
 
 | OS | What is created | Icon conversion |
 |---|---|---|
 | Linux | `threejs_editor.desktop` in the directory reported by `xdg-user-dir` (`~/Bureau`, `~/Desktop`, else `~`), marked trusted for GNOME | none, PNG used directly |
 | macOS | a real `Three.js Editor.app` bundle on `~/Desktop` | PNG → `.icns` with the stock `sips` + `iconutil` |
-| Windows | `Three.js Editor.lnk` on the desktop, targeting `launch.bat`, created through PowerShell | PNG → `.ico`, by wrapping the same PNG in an ICO container |
+| Windows | `Three.js Editor.lnk` on the desktop, targeting `launch.vbs`, created through PowerShell | PNG → `.ico`, by wrapping the same PNG in an ICO container |
 
 If **neither** uv **nor** `$PYTHON_BIN` is found, the script says so and stops.
 Installing uv is the simplest way out — then re-run:
@@ -185,6 +193,7 @@ the distance between the two points and of width `track_width` (40).
 `u` link two objects with a spring · up/down arrows to move up/down.
 **Ctrl+Z** undo · **Ctrl+Y** (or **Ctrl+Shift+Z**) redo.
 **Ctrl+C** copy · **Ctrl+V** paste (see *Copy / paste* below).
+**Ctrl+Shift+D** debug panel (the server's terminal, the page's console).
 
 `d` **really removes** what it deletes — the hovered object, or the whole selection area —
 from the scene, from `objects`, from the physics lists, from the springs that referenced it,

@@ -67,9 +67,15 @@ VENV_PY="$(venv_python)"
 
 # --- 2. Launch scripts ------------------------------------------------------
 LAUNCHER="$APP_DIR/launch.sh"
+# With no terminal (the shortcut), the output goes to logs/server.log, started
+# afresh each time; the page shows it too (Ctrl+Shift+D).
 cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env bash
 cd "$APP_DIR"
+if [ ! -t 1 ]; then
+    mkdir -p logs
+    exec "$VENV_PY" run.py > logs/server.log 2>&1
+fi
 exec "$VENV_PY" run.py
 EOF
 chmod +x "$LAUNCHER"
@@ -84,6 +90,17 @@ cd /d "%~dp0"
 "%~dp0venv\Scripts\python.exe" run.py
 EOF
     echo "[launcher] $APP_DIR/launch.bat"
+
+    # What the shortcut runs: a .bat always opens a window, a .vbs need not.
+    # launch.bat keeps it, to look into a server that does not start.
+    cat > "$APP_DIR/launch.vbs" <<'EOF'
+Set shell = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+shell.CurrentDirectory = fso.GetParentFolderName(WScript.ScriptFullName)
+If Not fso.FolderExists("logs") Then fso.CreateFolder("logs")
+shell.Run "cmd /c ""venv\Scripts\python.exe run.py > logs\server.log 2>&1""", 0, False
+EOF
+    echo "[launcher] $APP_DIR/launch.vbs"
 fi
 
 # --- 3. Clickable shortcut --------------------------------------------------
@@ -101,7 +118,7 @@ Name=Three.js Editor
 Comment=Launches the 3D editor
 Exec=$LAUNCHER
 Icon=$ICON_PNG
-Terminal=true
+Terminal=false
 Categories=Development;Graphics;
 EOF
     chmod +x "$DESKTOP_FILE"
@@ -177,14 +194,15 @@ open(sys.argv[2], 'wb').write(hdr + png)
 PY
 
     # Git Bash speaks POSIX paths; the Windows shell needs native ones.
-    WIN_BAT="$(cygpath -w "$APP_DIR/launch.bat" 2>/dev/null || echo "$APP_DIR/launch.bat")"
+    WIN_VBS="$(cygpath -w "$APP_DIR/launch.vbs" 2>/dev/null || echo "$APP_DIR/launch.vbs")"
     WIN_DIR="$(cygpath -w "$APP_DIR" 2>/dev/null || echo "$APP_DIR")"
     WIN_ICO="$(cygpath -w "$ICON_ICO" 2>/dev/null || echo "$ICON_ICO")"
 
     powershell.exe -NoProfile -NonInteractive -Command "
         \$link = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Three.js Editor.lnk'
         \$s = (New-Object -ComObject WScript.Shell).CreateShortcut(\$link)
-        \$s.TargetPath       = '$WIN_BAT'
+        \$s.TargetPath       = (Join-Path \$env:WINDIR 'System32\wscript.exe')
+        \$s.Arguments        = '\"$WIN_VBS\"'
         \$s.WorkingDirectory = '$WIN_DIR'
         \$s.IconLocation     = '$WIN_ICO'
         \$s.Description      = 'Launches the 3D editor'

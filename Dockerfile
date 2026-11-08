@@ -23,7 +23,8 @@ COPY . .
 RUN mkdir -p static/old static/scenes static/reports static/upload
 
 ENV APP_HOST=0.0.0.0 \
-    APP_OPEN_BROWSER=0
+    APP_OPEN_BROWSER=0 \
+    APP_IDLE_SHUTDOWN_SEC=0
 
 EXPOSE 5000
 CMD ["python", "run.py"]

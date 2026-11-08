@@ -217,7 +217,8 @@ function hide_show_keys(){
             { title:'View', rows:[
                   {k:['k'], d:'set camera view (drag: A → look-at)'},
                   {k:['V'], d:'show / hide view arrows'},
-                  {k:['Ctrl','K'], d:'show / hide this shortcuts card'} ]},
+                  {k:['Ctrl','K'], d:'show / hide this shortcuts card'},
+                  {k:['Ctrl','Shift','D'], d:'debug panel (server terminal, page console)'} ]},
             { title:'History', rows:[
                   {k:['Ctrl','Z'], d:'undo'}, {k:['Ctrl','Y'], d:'redo'} ]},
             { title:'Mouse', rows:[

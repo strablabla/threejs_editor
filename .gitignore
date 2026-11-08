@@ -13,6 +13,8 @@ env/
 # Régénéré par install.sh avec les chemins absolus de la machine locale
 /launch.sh
 /launch.bat
+/launch.vbs
+/logs/
 # Généré par install.sh sous Windows à partir de static/img/app_icon.png
 /static/img/app_icon.ico
 

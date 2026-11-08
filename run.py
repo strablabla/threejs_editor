@@ -14,10 +14,14 @@ ATTENTION !!!! pour faire connection avec pyserial faire "sudo $HOME/anaconda/bi
 import eventlet
 eventlet.monkey_patch()
 #################
+import server_log
+server_log.capture()      # first of all: every line, for the debug panel (Ctrl+Shift+D)
 import os, sys, time, json, glob, math
 opd, opb = os.path.dirname, os.path.basename
 import shutil as sh
 import webbrowser, subprocess
+from urllib.request import urlopen
+from urllib.error import URLError
 sys.path.append('/usr/lib/python2.7/dist-packages')
 from threading import Thread
 import flask
@@ -33,6 +37,7 @@ app = Flask(__name__, static_url_path = '/static')
 app.config['SECRET_KEY'] = 'secret!'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0   # pas de cache navigateur des statiques (JS/CSS) -> toujours la derniere version
 socketio = SocketIO(app) #, async_mode=async_mode
+server_log.attach(socketio)
 thread = None
 
 @app.after_request
@@ -51,6 +56,33 @@ try:
         print('serial connection established !! ')
 except:
     print("no serial connection")
+
+# ---------- Stop once the last tab is gone ----------
+# Started from the shortcut the server has no window to close: it would stay on
+# for ever, holding port 5000. It stops APP_IDLE_SHUTDOWN_SEC seconds after the
+# last page left (default 120 s, 0 = never, the container's setting). The delay
+# covers a reload; nothing is armed before a first page has connected.
+IDLE_SHUTDOWN_SEC = float(os.environ.get('APP_IDLE_SHUTDOWN_SEC', '120'))
+pages = set()                                             # socket ids on /pos
+idle_countdown = 0                                        # only the last one started may stop
+
+def stop_if_still_idle(countdown):
+    sleep(IDLE_SHUTDOWN_SEC)
+    if countdown == idle_countdown and not pages:
+        print('No page left for {:g} s: stopping the server.'.format(IDLE_SHUTDOWN_SEC))
+        os._exit(0)
+
+@socketio.on('connect', namespace='/pos')
+def page_connected():
+    pages.add(request.sid)
+
+@socketio.on('disconnect', namespace='/pos')
+def page_disconnected():
+    global idle_countdown
+    pages.discard(request.sid)
+    if not pages and IDLE_SHUTDOWN_SEC > 0:
+        idle_countdown += 1
+        socketio.start_background_task(stop_if_still_idle, idle_countdown)
 
 @socketio.on('message', namespace='/pos')
 def receive(message):
@@ -531,9 +563,9 @@ def index():
     #return render_template('test_dropzone.html') #
     #return render_template('first_page.html') #
 
-def open_browser():
+def open_browser(delay=1.5):
     '''Ouvre automatiquement le navigateur (Chrome de préférence) sur l'appli.'''
-    sleep(1.5)                                            # laisser le serveur démarrer
+    sleep(delay)                                          # laisser le serveur démarrer
     url = 'http://localhost:5000'
     for b in ('google-chrome', 'google-chrome-stable', 'chromium-browser', 'chromium'):
         path = sh.which(b)
@@ -541,6 +573,24 @@ def open_browser():
             subprocess.Popen([path, url])
             return
     webbrowser.open(url)                                  # repli : navigateur par défaut
+
+def already_running():
+    '''
+    The port taken is most often the editor itself, left running. Started from
+    the shortcut there is no window to report it in: open the running one rather
+    than fail in silence. Returns True if this server has nothing left to do.
+    '''
+    try:
+        page = urlopen('http://127.0.0.1:5000/', timeout=2).read().decode('utf-8', 'replace')
+    except (URLError, OSError):
+        return False                                      # nobody there: go on
+    if 'Scene creation' in page:
+        print('threejs_editor is already running: opening it.')
+        if os.environ.get('APP_OPEN_BROWSER', '1') != '0':
+            open_browser(delay=0)
+    else:
+        print('Port 5000 is used by another program: threejs_editor cannot start.')
+    return True
 
 if __name__ == '__main__':
     # Two settings driven by the environment, so that the same run.py serves both
@@ -550,6 +600,8 @@ if __name__ == '__main__':
     #                        container -> unreachable from the host even with -p.
     #   APP_OPEN_BROWSER=0   a container has neither a browser nor a display.
     host = os.environ.get('APP_HOST', '127.0.0.1')        # socketio.run() default
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true' and already_running():
+        sys.exit(0)
     if os.environ.get('APP_OPEN_BROWSER', '1') != '0':
         if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':  # open once only (not on each reload)
             Thread(target=open_browser, daemon=True).start()
